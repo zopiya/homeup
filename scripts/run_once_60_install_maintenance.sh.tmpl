@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Purpose: Configure maintenance tools
+# Runs once when hash changes
+
+{{- template "utils.sh" . -}}
+
+{{ if not .install_maintenance -}}
+info "Skipping maintenance tools configuration"
+exit 0
+{{ end -}}
+
+set -euo pipefail
+
+header "Configuring Maintenance Tools"
+
+# Nothing specific to configure for topgrade/restic at install time
+# Configuration is in dotfiles
+info "No additional configuration needed for maintenance tools"
+
+echo ""
+success "Maintenance tools configured"

@@ -1,0 +1,8 @@
+enable-ssh-support
+default-cache-ttl 60
+max-cache-ttl 120
+{{ if eq .chezmoi.os "darwin" -}}
+pinentry-program {{ .chezmoi.homeDir }}/.nix-profile/bin/pinentry-mac
+{{- else -}}
+pinentry-program /usr/bin/pinentry-curses
+{{- end }}

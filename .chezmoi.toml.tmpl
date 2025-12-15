@@ -1,0 +1,52 @@
+{{- /* Checks if running in a headless environment (no GUI) */ -}}
+{{- $headless := false -}}
+{{- if eq .chezmoi.os "linux" -}}
+  {{- if not (env "DISPLAY") -}}
+    {{- $headless = true -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Default values */ -}}
+{{- $install_core_cli := true -}}
+{{- $install_fonts := true -}}
+{{- $install_security := false -}}
+{{- $install_gui := false -}}
+{{- $install_runtime := false -}}
+{{- $install_maintenance := false -}}
+
+{{- /* Interactive prompts */ -}}
+{{- $install_core_cli = promptBoolOnce . "install_core_cli" "📦 Install Core CLI Tools (git, ripgrep, fzf, bat...)?" $install_core_cli -}}
+
+{{- $install_fonts = promptBoolOnce . "install_fonts" "🎨 Install Fonts (JetBrains Mono, Fira Code...)?" $install_fonts -}}
+
+{{- $install_security = promptBoolOnce . "install_security" "🔐 Install Security Tools (gnupg, yubikey-manager, 1password-cli...)?" $install_security -}}
+
+{{- if not $headless -}}
+{{-   $install_gui = promptBoolOnce . "install_gui" "🖥️  Install GUI Applications (VSCode, Chrome...)?" $install_gui -}}
+{{- end -}}
+
+{{- $install_runtime = promptBoolOnce . "install_runtime" "🔧 Install Development Runtimes (mise for version management)?" $install_runtime -}}
+
+{{- $install_maintenance = promptBoolOnce . "install_maintenance" "🧹 Install Maintenance Tools (topgrade, restic)?" $install_maintenance -}}
+
+{{- $email := promptStringOnce . "email" "Your email address" -}}
+
+[data]
+    headless = {{ $headless }}
+    email = {{ $email | quote }}
+    
+    # Package installation options
+    install_core_cli = {{ $install_core_cli }}
+    install_fonts = {{ $install_fonts }}
+    install_security = {{ $install_security }}
+    install_gui = {{ $install_gui }}
+    install_runtime = {{ $install_runtime }}
+    install_maintenance = {{ $install_maintenance }}
+
+[diff]
+    command = "delta"
+    pager = "delta"
+
+[merge]
+    command = "nvim"
+    args = ["-d", "{{ `{{ .Destination }}` }}", "{{ `{{ .Source }}` }}", "{{ `{{ .Target }}` }}"]

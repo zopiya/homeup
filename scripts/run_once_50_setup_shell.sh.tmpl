@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Purpose: Setup shell environment (FZF bindings, etc.)
+# Runs once when hash changes
+
+set -euo pipefail
+
+{{- template "utils.sh" . -}}
+
+header "Setting up Shell Environment"
+
+# Homebrew Configuration
+if [[ -x /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -x /usr/local/bin/brew ]]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+elif [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
+  eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+fi
+
+# Install FZF key bindings
+step 1 1 "Configuring FZF..."
+if [ -f "$(brew --prefix)/opt/fzf/install" ]; then
+    "$(brew --prefix)/opt/fzf/install" --all --no-bash --no-fish > /dev/null 2>&1 &
+    spinner $! "Installing FZF bindings..."
+    success "FZF bindings installed"
+else
+    info "FZF install script not found, skipping..."
+fi
+
+echo ""
+success "Shell setup complete"

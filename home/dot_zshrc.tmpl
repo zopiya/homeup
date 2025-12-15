@@ -1,0 +1,52 @@
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+# if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+#   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+# fi
+
+# Homebrew Configuration
+if [[ -x /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -x /usr/local/bin/brew ]]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+elif [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
+  eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+fi
+
+# Path Configuration
+export PATH="$HOME/.local/bin:$PATH"
+
+# Sheldon (Plugin Manager)
+eval "$(sheldon source)"
+
+# Starship (Prompt)
+eval "$(starship init zsh)"
+
+# Zoxide (Smart Directory Jumper)
+eval "$(zoxide init zsh)"
+
+# Mise (Runtime Manager)
+{{- if .install_mise }}
+eval "$(mise activate zsh)"
+{{- end }}
+
+# FZF
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+# Load Modular Configs
+source "$HOME/.config/shell/exports.zsh"
+source "$HOME/.config/shell/aliases.zsh"
+source "$HOME/.config/shell/functions.zsh"
+
+# Security Module (GPG Agent)
+{{- if .install_security }}
+export GPG_TTY=$(tty)
+export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
+gpgconf --launch gpg-agent
+{{- end }}
+
+# Syntax Highlighting (must be last)
+# source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh

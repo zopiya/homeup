@@ -1,0 +1,10 @@
+# YubiKey Configuration Snippet
+# This file is sourced by zshrc if security module is enabled
+
+# Check if YubiKey is inserted
+if command -v ykman &> /dev/null; then
+    if ! ykman list &> /dev/null; then
+        # echo "YubiKey not detected."
+        :
+    fi
+fi

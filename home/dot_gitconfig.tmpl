@@ -1,0 +1,38 @@
+[include]
+    path = ~/.config/git/identity.gitconfig
+    path = ~/.config/git/aliases.gitconfig
+
+[core]
+    editor = nvim
+    pager = delta
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate = true
+    light = false
+    side-by-side = true
+
+[merge]
+    conflictstyle = diff3
+
+[diff]
+    colorMoved = default
+
+[init]
+    defaultBranch = main
+
+[pull]
+    rebase = true
+
+[push]
+    autoSetupRemote = true
+
+{{ if .install_security }}
+[commit]
+    gpgsign = true
+
+[tag]
+    gpgsign = true
+{{ end }}

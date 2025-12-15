@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Purpose: Display summary after installation
+# Runs always
+
+{{- template "utils.sh" . -}}
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "${GREEN}✨ Installation Complete!${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+echo ""
+echo -e "${CYAN}System Info:${NC}"
+echo -e "  • OS: {{ .chezmoi.os }} {{ .chezmoi.arch }}"
+echo -e "  • Headless: {{ .headless }}"
+
+echo ""
+echo -e "${CYAN}Modules Status:${NC}"
+echo -e "  ✅ Core"
+{{ if .install_security -}}
+echo -e "  ✅ Security"
+{{ else -}}
+echo -e "  ⚪ Security (Skipped)"
+{{ end -}}
+{{ if .install_gui -}}
+echo -e "  ✅ GUI"
+{{ else -}}
+echo -e "  ⚪ GUI (Skipped)"
+{{ end -}}
+{{ if .install_mise -}}
+echo -e "  ✅ Mise"
+{{ else -}}
+echo -e "  ⚪ Mise (Skipped)"
+{{ end -}}
+{{ if .install_maintenance -}}
+echo -e "  ✅ Maintenance"
+{{ else -}}
+echo -e "  ⚪ Maintenance (Skipped)"
+{{ end -}}
+
+echo ""
+echo -e "${CYAN}📚 Next steps:${NC}"
+echo -e "  1. Restart your shell: ${BLUE}exec zsh${NC}"
+echo -e "  2. Verify installation: ${BLUE}chezmoi verify${NC}"
+{{ if .install_security -}}
+echo -e "  3. Insert your YubiKey (if applicable)"
+{{ end -}}
+{{ if .install_gui -}}
+echo -e "  4. Launch VSCode and sign in"
+{{ end -}}
+
+echo ""
+echo -e "${CYAN}💡 Tips:${NC}"
+echo -e "  • Edit configs: ${BLUE}chezmoi edit <file>${NC}"
+echo -e "  • Apply changes: ${BLUE}chezmoi apply${NC}"
+echo -e "  • Update on other machines: ${BLUE}chezmoi update${NC}"
+
+echo ""

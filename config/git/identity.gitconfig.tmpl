@@ -1,0 +1,8 @@
+[user]
+    name = {{ .chezmoi.username | quote }}
+    email = {{ .email | quote }}
+
+{{ if .install_security }}
+[user]
+    signingkey = {{ .gpg_key_id | default "" | quote }}
+{{ end }}

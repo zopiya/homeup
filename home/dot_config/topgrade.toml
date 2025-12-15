@@ -1,0 +1,18 @@
+[misc]
+disable = ["system", "emacs", "vim"]
+assume_yes = true
+cleanup = true
+
+[git]
+max_concurrency = 5
+repos = [
+    "~/.local/share/chezmoi",
+]
+
+[brew]
+greedy_cask = true
+autoremove = true
+
+[linux]
+# Arch Linux
+yay_arguments = "--noconfirm"

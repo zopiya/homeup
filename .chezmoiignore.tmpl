@@ -1,0 +1,36 @@
+README.md
+bootstrap.sh
+config/**
+data/**
+scripts/**
+
+{{ if .headless }}
+# Ignore GUI related files in headless mode
+Library/**
+Applications/**
+.config/Code/**
+{{ end }}
+
+{{ if ne .chezmoi.os "darwin" }}
+# Ignore macOS specific files
+Library/**
+.config/iterm2/**
+{{ end }}
+
+{{ if ne .chezmoi.os "linux" }}
+# Ignore Linux specific files
+.config/systemd/**
+{{ end }}
+
+{{ if not .install_security }}
+private_dot_gnupg/**
+.config/security/**
+{{ end }}
+
+{{ if not .install_mise }}
+.config/mise/**
+{{ end }}
+
+{{ if not .install_maintenance }}
+.config/topgrade.toml
+{{ end }}

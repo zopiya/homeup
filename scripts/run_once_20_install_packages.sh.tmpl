@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📦 Installing Selected Packages"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# 显示将要安装的类别
+echo "Categories selected:"
+{{ if .install_core_cli -}}
+echo "  ✓ Core CLI Tools"
+{{ end -}}
+{{ if .install_fonts -}}
+echo "  ✓ Fonts"
+{{ end -}}
+{{ if .install_security -}}
+echo "  ✓ Security Tools"
+{{ end -}}
+{{ if .install_gui -}}
+echo "  ✓ GUI Applications"
+{{ end -}}
+{{ if .install_runtime -}}
+echo "  ✓ Development Runtimes"
+{{ end -}}
+{{ if .install_maintenance -}}
+echo "  ✓ Maintenance Tools"
+{{ end -}}
+
+echo ""
+echo "⏳ Installing via Homebrew..."
+
+# Render Brewfile to a temporary location
+BREWFILE=$(mktemp)
+# Use chezmoi execute-template to render the Brewfile
+# We read the template file from the source directory
+chezmoi execute-template < "{{ .chezmoi.sourceDir }}/data/Brewfile.tmpl" > "$BREWFILE"
+
+# Execute installation
+brew bundle --no-lock --file="$BREWFILE"
+
+rm "$BREWFILE"
+
+echo ""
+echo "✅ Installation complete!"
