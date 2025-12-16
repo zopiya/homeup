@@ -37,9 +37,9 @@ eval "$(mise activate zsh)"
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 # Load Modular Configs
-source "$HOME/.config/shell/exports.zsh"
-source "$HOME/.config/shell/aliases.zsh"
-source "$HOME/.config/shell/functions.zsh"
+source "$ZDOTDIR/exports.zsh"
+source "$ZDOTDIR/aliases.zsh"
+source "$ZDOTDIR/functions.zsh"
 
 # Security Module (GPG Agent)
 {{- if (get . "install_security") }}
