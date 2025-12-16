@@ -288,6 +288,7 @@ export INFOPATH=\"$BREW_PREFIX/share/info:\${INFOPATH:-}\""
 
     # Add sourcing snippet to shell profiles (idempotent)
     local marker="# Homebrew (Homeup Bootstrap)"
+    # shellcheck disable=SC2016
     local snippet='[ -r "$HOME/.config/homebrew/shellenv" ] && . "$HOME/.config/homebrew/shellenv"'
 
     for profile in "$HOME/.zprofile" "$HOME/.profile" "$HOME/.bash_profile"; do

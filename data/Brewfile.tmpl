@@ -36,11 +36,13 @@ cask "font-source-han-serif"
 {{ if (get . "install_security") -}}
 # ===== Security Tools =====
 brew "gnupg"
-brew "yubikey-manager"
+brew "ykman"
 {{ if eq .chezmoi.os "darwin" -}}
 brew "pinentry-mac"
+cask "1password-cli"
+{{ else -}}
+brew "1password/tap/1password-cli"
 {{ end -}}
-brew "1password-cli"
 brew "age"
 {{ end -}}
 
