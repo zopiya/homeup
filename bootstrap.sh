@@ -1,201 +1,396 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Homeup Bootstrap Script
-# Purpose: Initialize the environment from scratch (bare metal)
-# 1. Detects OS and Architecture
-# 2. Installs Homebrew
-# 3. Installs Chezmoi
-# 4. Initializes Homeup
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# Purpose: Level 0 Bootstrap - Install Homebrew + Chezmoi
+# Version: 3.0.1
+# License: MIT
+#
+# Scope (strictly limited):
+#   1. Detect OS/Arch
+#   2. Install system dependencies (Linux only)
+#   3. Install Homebrew
+#   4. Persist Homebrew environment
+#   5. Install chezmoi via Homebrew
+#   6. Execute chezmoi init --apply
+#
+# This is a bootstrap script, NOT a configuration script.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-set -e # Exit on error
+set -Eeuo pipefail
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Output Styling & Helper Functions
+# Constants
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# Colors
-readonly GREEN='\033[0;32m'
-readonly BLUE='\033[0;34m'
-readonly YELLOW='\033[1;33m'
-readonly RED='\033[0;31m'
-readonly CYAN='\033[0;36m'
-readonly NC='\033[0m' # No Color
+readonly SCRIPT_VERSION="3.0.1"
+readonly BREW_SHELLENV_FILE="$HOME/.config/homebrew/shellenv"
+readonly BREW_INSTALL_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
+readonly SPINNER_FRAMES='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
 
-# Icons
-readonly ICON_START="🚀"
-readonly ICON_PKG="📦"
-readonly ICON_CONF="🔧"
-readonly ICON_SUCCESS="✅"
-readonly ICON_FAIL="❌"
-readonly ICON_WARN="⚠️ "
-readonly ICON_INFO="💡"
-readonly ICON_CHECK="🔍"
-readonly ICON_WAIT="⏳"
+# TTY detection for colors (use $'...' for actual escape sequences)
+if [[ -t 1 ]] && [[ "${TERM:-dumb}" != "dumb" ]]; then
+    readonly IS_TTY=true
+    readonly C_RESET=$'\033[0m'
+    readonly C_GREEN=$'\033[32m'
+    readonly C_GRAY=$'\033[90m'
+    readonly C_RED=$'\033[31m'
+    readonly C_CYAN=$'\033[36m'
+else
+    readonly IS_TTY=false
+    readonly C_RESET='' C_GREEN='' C_GRAY='' C_RED='' C_CYAN=''
+fi
 
-info() {
-    echo -e "${BLUE}${ICON_INFO}  $1${NC}"
+# Runtime state
+OS="" ARCH="" DISTRO="" BREW_PREFIX=""
+SUDO_KEEP_ALIVE_PID=""
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Output
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+msg_ok()   { printf "%s[OK]%s   %s\n" "$C_GREEN" "$C_RESET" "$1"; }
+msg_skip() { printf "%s[SKIP]%s %s\n" "$C_GRAY" "$C_RESET" "$1"; }
+msg_fail() { printf "%s[FAIL]%s %s\n" "$C_RED" "$C_RESET" "$1" >&2; }
+msg_info() { printf "       %s\n" "$1"; }
+
+die() {
+    msg_fail "$1"
+    exit "${2:-1}"
 }
 
-success() {
-    echo -e "${GREEN}${ICON_SUCCESS}  $1${NC}"
-}
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Spinner
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-error() {
-    echo -e "${RED}${ICON_FAIL}  $1${NC}"
-}
-
-warning() {
-    echo -e "${YELLOW}${ICON_WARN}  $1${NC}"
-}
-
-step() {
-    local current=$1
-    local total=$2
-    local message=$3
-    echo ""
-    echo -e "${CYAN}[$current/$total] $message${NC}"
-}
-
-header() {
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${CYAN}${ICON_START}  $1${NC}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-}
-
-# Spinner for long running tasks
 spinner() {
-    local pid=$1
-    local message=$2
-    local delay=0.1
-    local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-    
-    echo -n "  ${ICON_WAIT} $message "
-    while kill -0 $pid 2>/dev/null; do
-        local temp=${spinstr#?}
-        printf "[%c]" "$spinstr"
-        local spinstr=$temp${spinstr%"$temp"}
-        sleep $delay
-        printf "\b\b\b"
+    local pid=$1 message=$2
+    local frame=0 delay=0.1
+
+    if [[ "$IS_TTY" != true ]]; then
+        printf "       %s\n" "$message"
+        wait "$pid" 2>/dev/null
+        return $?
+    fi
+
+    while kill -0 "$pid" 2>/dev/null; do
+        printf "\r\033[K%s%s%s %s" "$C_CYAN" "${SPINNER_FRAMES:frame:1}" "$C_RESET" "$message"
+        frame=$(( (frame + 1) % ${#SPINNER_FRAMES} ))
+        sleep "$delay"
     done
-    printf "   \b\b\b"
-    echo ""
+    printf "\r\033[K"
+
+    wait "$pid" 2>/dev/null
+    return $?
 }
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Main Execution
+# Cleanup
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-header "Homeup Bootstrap Starting..."
+cleanup() {
+    trap - EXIT INT TERM
+    if [[ -n "${SUDO_KEEP_ALIVE_PID:-}" ]] && kill -0 "$SUDO_KEEP_ALIVE_PID" 2>/dev/null; then
+        kill "$SUDO_KEEP_ALIVE_PID" 2>/dev/null || true
+    fi
+}
 
-# 1. Detect OS and Architecture
-step 1 4 "Detecting system..."
-OS="$(uname -s)"
-ARCH="$(uname -m)"
+trap cleanup EXIT
+trap 'printf "\n"; die "Interrupted by user" 130' INT TERM
 
-echo -e "  ✓ OS: $OS"
-echo -e "  ✓ Arch: $ARCH"
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Prerequisites
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# 2. Install Dependencies (Linux only)
-if [ "$OS" = "Linux" ]; then
-    step 2 4 "Installing Linux dependencies..."
-    
-    SUDO=""
-    if command -v sudo &> /dev/null; then
-        SUDO="sudo"
-    elif [ "$EUID" -ne 0 ]; then
-        error "This script requires root privileges or sudo to install dependencies."
-        exit 1
+check_bash_version() {
+    if [[ -z "${BASH_VERSION:-}" ]] || [[ ${BASH_VERSINFO[0]} -lt 4 ]]; then
+        die "Bash 4+ required (found: ${BASH_VERSION:-none})"
+    fi
+}
+
+require_cmd() {
+    command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"
+}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Sudo
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+setup_sudo() {
+    [[ $EUID -eq 0 ]] && die "Do not run as root. Use a normal user with sudo access."
+    require_cmd sudo
+
+    if ! sudo -v 2>/dev/null; then
+        die "sudo authentication failed"
     fi
 
-    if command -v apt-get &> /dev/null; then
-        $SUDO apt-get update > /dev/null 2>&1 &
-        spinner $! "Updating apt repositories..."
-        
-        $SUDO apt-get install -y git curl build-essential procps file > /dev/null 2>&1 &
-        spinner $! "Installing packages..."
-    elif command -v dnf &> /dev/null; then
-        $SUDO dnf install -y git curl @development-tools procps-ng file > /dev/null 2>&1 &
-        spinner $! "Installing packages..."
+    (
+        while sudo -n true 2>/dev/null; do
+            sleep 50
+        done
+    ) &
+    SUDO_KEEP_ALIVE_PID=$!
+
+    msg_ok "Sudo credentials acquired"
+}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# System Detection
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+detect_system() {
+    OS="$(uname -s)"
+    ARCH="$(uname -m)"
+
+    if [[ "$OS" == "Linux" ]] && [[ -f /etc/os-release ]]; then
+        # shellcheck source=/dev/null
+        . /etc/os-release
+        DISTRO="${ID:-unknown}"
+        msg_ok "Detected: Linux ($DISTRO, $ARCH)"
+    elif [[ "$OS" == "Darwin" ]]; then
+        msg_ok "Detected: macOS ($ARCH)"
     else
-        error "Unsupported Linux distribution. Please install git, curl, and build-essential manually."
-        exit 1
+        die "Unsupported OS: $OS"
     fi
-    success "Dependencies installed"
-fi
+}
 
-# 3. Install Homebrew
-step 2 4 "Installing Homebrew..."
-if ! command -v brew &> /dev/null; then
-    info "Homebrew not found. Installing..."
-    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" > /dev/null 2>&1 &
-    spinner $! "Downloading and running Homebrew installer..."
-    
-    # Configure Homebrew environment variables for current session
-    if [ -x /opt/homebrew/bin/brew ]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-    elif [ -x /usr/local/bin/brew ]; then
-        eval "$(/usr/local/bin/brew shellenv)"
-    elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-    elif [ -x "$HOME/.linuxbrew/bin/brew" ]; then
-        eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# macOS: Xcode CLI Tools
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+check_xcode_tools() {
+    if xcode-select -p &>/dev/null; then
+        msg_skip "Xcode Command Line Tools (already installed)"
+        return 0
     fi
-    success "Homebrew installed"
-else
-    success "Homebrew already installed"
-fi
 
-# Verify Homebrew installation
-if ! command -v brew &> /dev/null; then
-    error "Homebrew installation failed."
+    msg_fail "Xcode Command Line Tools required"
+    msg_info "Run: xcode-select --install"
+    msg_info "Then re-run this script"
     exit 1
-fi
+}
 
-# 4. Install Chezmoi
-step 3 4 "Installing Chezmoi..."
-if ! command -v chezmoi &> /dev/null; then
-    brew install chezmoi > /dev/null 2>&1 &
-    spinner $! "Installing Chezmoi via Homebrew..."
-    success "Chezmoi installed"
-else
-    success "Chezmoi already installed"
-fi
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Linux Dependencies
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# 5. Initialize Homeup
-step 4 4 "Initializing Homeup..."
-if [ -d "$HOME/.local/share/chezmoi" ]; then
-    info "Chezmoi directory already exists. Pulling latest changes..."
-    chezmoi git pull -- --autostash --rebase > /dev/null 2>&1 &
-    spinner $! "Updating Homeup repo..."
-    
-    info "Applying changes..."
-    chezmoi apply
-else
-    info "Running chezmoi init..."
-    if [ -d ".git" ]; then
-        info "Detected git repository, initializing from current directory..."
-        chezmoi init --apply --source .
+install_linux_deps() {
+    if command -v git &>/dev/null && command -v curl &>/dev/null; then
+        msg_skip "System dependencies (already installed)"
+        return 0
+    fi
+
+    local update_cmd="" install_cmd="" packages=""
+
+    case "$DISTRO" in
+        ubuntu|debian|pop|mint|raspbian)
+            update_cmd="sudo apt-get update -qq"
+            install_cmd="sudo apt-get install -y -qq"
+            packages="git curl build-essential procps file"
+            ;;
+        fedora|rhel|centos|almalinux|rocky)
+            update_cmd="sudo dnf check-update -q || true"
+            install_cmd="sudo dnf install -y -q"
+            packages="git curl @development-tools procps-ng file"
+            ;;
+        arch|manjaro|endeavouros)
+            update_cmd="sudo pacman -Sy --noconfirm"
+            install_cmd="sudo pacman -S --noconfirm --needed"
+            packages="git curl base-devel procps-ng file"
+            ;;
+        alpine)
+            update_cmd="sudo apk update -q"
+            install_cmd="sudo apk add --no-cache -q"
+            packages="git curl build-base procps file bash"
+            ;;
+        *)
+            msg_skip "System dependencies (unsupported distro: $DISTRO)"
+            return 0
+            ;;
+    esac
+
+    (
+        $update_cmd >/dev/null 2>&1
+        # shellcheck disable=SC2086
+        $install_cmd $packages >/dev/null 2>&1
+    ) &
+
+    if spinner $! "Installing system dependencies"; then
+        msg_ok "System dependencies installed"
     else
-        if [ -n "$1" ]; then
-             chezmoi init --apply "$1"
-        else
-             warning "No repository URL provided and not in a git repository."
-             echo "Usage: $0 <repo-url>"
-             echo "Example: $0 https://github.com/username/homeup.git"
-             exit 1
+        die "Failed to install system dependencies"
+    fi
+}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Homebrew
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+find_brew() {
+    local paths=("/opt/homebrew" "/usr/local" "/home/linuxbrew/.linuxbrew" "$HOME/.linuxbrew")
+
+    # Check if already in PATH
+    if command -v brew >/dev/null 2>&1; then
+        BREW_PREFIX="$(brew --prefix)"
+        return 0
+    fi
+
+    # Check standard locations
+    for prefix in "${paths[@]}"; do
+        if [[ -x "$prefix/bin/brew" ]]; then
+            BREW_PREFIX="$prefix"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+setup_brew_env() {
+    [[ -z "$BREW_PREFIX" ]] && return 1
+    [[ ! -x "$BREW_PREFIX/bin/brew" ]] && return 1
+
+    # Always update PATH first so brew command works
+    export PATH="$BREW_PREFIX/bin:$BREW_PREFIX/sbin:$PATH"
+
+    # Then eval full shellenv
+    if ! eval "$("$BREW_PREFIX/bin/brew" shellenv 2>/dev/null)"; then
+        # Fallback: set essential variables
+        export HOMEBREW_PREFIX="$BREW_PREFIX"
+        export HOMEBREW_CELLAR="$BREW_PREFIX/Cellar"
+        export HOMEBREW_REPOSITORY="$BREW_PREFIX/Homebrew"
+    fi
+    return 0
+}
+
+persist_brew_env() {
+    [[ -z "$BREW_PREFIX" ]] && return 1
+    [[ ! -x "$BREW_PREFIX/bin/brew" ]] && return 1
+
+    mkdir -p "$(dirname "$BREW_SHELLENV_FILE")"
+
+    # Generate shellenv content
+    local shellenv_content
+    if ! shellenv_content="$("$BREW_PREFIX/bin/brew" shellenv 2>/dev/null)" || [[ -z "$shellenv_content" ]]; then
+        # Fallback: generate manually
+        shellenv_content="export HOMEBREW_PREFIX=\"$BREW_PREFIX\"
+export HOMEBREW_CELLAR=\"$BREW_PREFIX/Cellar\"
+export HOMEBREW_REPOSITORY=\"$BREW_PREFIX/Homebrew\"
+export PATH=\"$BREW_PREFIX/bin:$BREW_PREFIX/sbin:\${PATH+:\$PATH}\"
+export MANPATH=\"$BREW_PREFIX/share/man\${MANPATH+:\$MANPATH}:\"
+export INFOPATH=\"$BREW_PREFIX/share/info:\${INFOPATH:-}\""
+    fi
+
+    printf '%s\n' "$shellenv_content" > "$BREW_SHELLENV_FILE"
+    chmod 644 "$BREW_SHELLENV_FILE"
+
+    # Add sourcing snippet to shell profiles (idempotent)
+    local marker="# Homebrew (Homeup Bootstrap)"
+    local snippet='[ -r "$HOME/.config/homebrew/shellenv" ] && . "$HOME/.config/homebrew/shellenv"'
+
+    for profile in "$HOME/.zprofile" "$HOME/.profile" "$HOME/.bash_profile"; do
+        # Skip if marker already present
+        if [[ -f "$profile" ]] && grep -qF "$marker" "$profile" 2>/dev/null; then
+            continue
+        fi
+        # Create file if not exists, append snippet
+        printf '\n%s\n%s\n' "$marker" "$snippet" >> "$profile"
+    done
+
+    return 0
+}
+
+install_brew() {
+    if find_brew; then
+        setup_brew_env
+        local version
+        version=$(brew --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+        persist_brew_env
+        msg_skip "Homebrew v$version (already installed)"
+        return 0
+    fi
+
+    require_cmd curl
+    require_cmd bash
+
+    (
+        NONINTERACTIVE=1 bash -c "$(curl -fsSL "$BREW_INSTALL_URL")" >/dev/null 2>&1
+    ) &
+
+    if spinner $! "Installing Homebrew"; then
+        if find_brew && setup_brew_env; then
+            persist_brew_env
+            msg_ok "Homebrew installed"
+            return 0
         fi
     fi
-fi
 
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e "${GREEN}✨ Bootstrap Complete!${NC}"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-
-log_success() {
-    echo -e "${GREEN}${ICON_SUCCESS}  $1${NC}"
+    die "Homebrew installation failed"
 }
 
-log_success "Bootstrap complete! Please restart your shell."
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Chezmoi
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+install_chezmoi() {
+    if command -v chezmoi &>/dev/null; then
+        local version
+        version=$(chezmoi --version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+        msg_skip "chezmoi $version (already installed)"
+        return 0
+    fi
+
+    require_cmd brew
+
+    (
+        brew install chezmoi >/dev/null 2>&1
+    ) &
+
+    if spinner $! "Installing chezmoi"; then
+        if command -v chezmoi &>/dev/null; then
+            msg_ok "chezmoi installed"
+            return 0
+        fi
+    fi
+
+    die "chezmoi installation failed"
+}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Main
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+print_banner() {
+    cat << 'EOF'
+    __  __                               
+   / / / /___  ____ ___  ___  __  ______ 
+  / /_/ / __ \/ __ `__ \/ _ \/ / / / __ \
+ / __  / /_/ / / / / / /  __/ /_/ / /_/ /
+/_/ /_/\____/_/ /_/ /_/\___/\__,_/ .___/ 
+                                /_/      
+EOF
+    printf "Bootstrap v%s\n\n" "$SCRIPT_VERSION"
+}
+
+main() {
+    check_bash_version
+    print_banner
+    setup_sudo
+    detect_system
+
+    if [[ "$OS" == "Darwin" ]]; then
+        check_xcode_tools
+    elif [[ "$OS" == "Linux" ]]; then
+        install_linux_deps
+    fi
+
+    install_brew
+    install_chezmoi
+
+    printf "\n%sBootstrap complete.%s\n" "$C_GREEN" "$C_RESET"
+    printf "Restart your shell or run: source %s\n" "$BREW_SHELLENV_FILE"
+}
+
+main "$@"

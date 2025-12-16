@@ -1,0 +1,124 @@
+name: Test Bootstrap Script
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test-macos:
+    name: Test on macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bash 5
+        run: |
+          brew install bash
+          echo "/usr/local/bin/bash" >> $GITHUB_PATH
+          echo "$(brew --prefix)/bin" >> $GITHUB_PATH
+
+      - name: Check Bash version
+        run: |
+          which bash
+          bash --version
+
+      - name: Run bootstrap.sh
+        run: |
+          chmod +x bootstrap.sh
+          bash ./bootstrap.sh
+        env:
+          CI: true
+          NONINTERACTIVE: 1
+
+      - name: Verify Installation
+        run: |
+          # Source the shellenv to verify environment variables are set correctly
+          if [ -f "$HOME/.config/homebrew/shellenv" ]; then
+            source "$HOME/.config/homebrew/shellenv"
+          else
+            echo "Error: shellenv file not found!"
+            exit 1
+          fi
+          
+          echo "Verifying Homebrew..."
+          if ! command -v brew &> /dev/null; then
+             echo "Error: brew command not found in PATH"
+             exit 1
+          fi
+          brew --version
+          
+          echo "Verifying chezmoi..."
+          if ! command -v chezmoi &> /dev/null; then
+             echo "Error: chezmoi command not found in PATH"
+             exit 1
+          fi
+          chezmoi --version
+
+  test-linux:
+    name: Test on ${{ matrix.distro }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu
+            image: ubuntu:latest
+            pre_install: apt-get update && apt-get install -y sudo curl git file
+          - distro: debian
+            image: debian:latest
+            pre_install: apt-get update && apt-get install -y sudo curl git file
+          - distro: fedora
+            image: fedora:latest
+            pre_install: dnf install -y sudo curl git file shadow-utils findutils
+
+    container:
+      image: ${{ matrix.image }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare Container Environment
+        run: |
+          ${{ matrix.pre_install }}
+          useradd -m -s /bin/bash testuser
+          echo "testuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+          chown -R testuser:testuser $GITHUB_WORKSPACE
+
+      - name: Run bootstrap.sh
+        run: |
+          chmod +x bootstrap.sh
+          su - testuser -c "cd $GITHUB_WORKSPACE && ./bootstrap.sh"
+        env:
+          CI: true
+          NONINTERACTIVE: 1
+
+      - name: Verify Installation
+        run: |
+          su - testuser -c "
+            # Simulate a new login shell or sourcing the env file
+            if [ -f \"\$HOME/.config/homebrew/shellenv\" ]; then
+              source \"\$HOME/.config/homebrew/shellenv\"
+            else
+              echo 'Error: shellenv file not found!'
+              exit 1
+            fi
+            
+            echo 'Verifying Homebrew...'
+            if ! command -v brew &> /dev/null; then
+               echo 'Error: brew command not found in PATH'
+               exit 1
+            fi
+            brew --version
+            
+            echo 'Verifying chezmoi...'
+            if ! command -v chezmoi &> /dev/null; then
+               echo 'Error: chezmoi command not found in PATH'
+               exit 1
+            fi
+            chezmoi --version
+          "
