@@ -1,8 +1,20 @@
+# Enable SSH support (allows using GPG key for SSH authentication)
 enable-ssh-support
-default-cache-ttl 60
-max-cache-ttl 120
-{{ if eq .chezmoi.os "darwin" -}}
-pinentry-program {{ .chezmoi.homeDir }}/.nix-profile/bin/pinentry-mac
-{{- else -}}
+
+# Cache settings
+# default-cache-ttl: 1 hour (3600 seconds)
+# max-cache-ttl: 1 day (86400 seconds)
+default-cache-ttl 3600
+max-cache-ttl 86400
+
+{{- if eq .chezmoi.os "darwin" }}
+# macOS: Use pinentry-mac from Homebrew
+{{-   if eq .chezmoi.arch "arm64" }}
+pinentry-program /opt/homebrew/bin/pinentry-mac
+{{-   else }}
+pinentry-program /usr/local/bin/pinentry-mac
+{{-   end }}
+{{- else }}
+# Linux: Fallback to curses
 pinentry-program /usr/bin/pinentry-curses
 {{- end }}
