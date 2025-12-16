@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+#
+# Description: Install system packages via Homebrew/Apt
+# Author: GitHub Copilot
+# Generated: 2025-12-16
+
+set -euo pipefail
+
+# --- Helper Functions ---
+readonly GREEN='\033[1;32m'
+readonly BLUE='\033[1;34m'
+readonly YELLOW='\033[1;33m'
+readonly RED='\033[1;31m'
+readonly CYAN='\033[1;36m'
+readonly GRAY='\033[0;90m'
+readonly NC='\033[0m' # No Color
+
+info() { echo -e "${BLUE}::${NC} $1"; }
+success() { echo -e "${GREEN}>>${NC} $1"; }
+error() { echo -e "${RED}!!${NC} $1"; }
+warning() { echo -e "${YELLOW}!!${NC} $1"; }
+substep() { echo -e "${GRAY}   -> $1${NC}"; }
+step() { echo -e "${CYAN}[$1/$2]${NC} $3"; }
+header() { echo ""; echo -e "${BLUE}==>${NC} ${1}"; echo ""; }
+check_cmd() { command -v "$1" >/dev/null 2>&1; }
+# ------------------------
+
+header "Installing Selected Packages"
+
+# Display selected categories
+info "Categories selected:"
+{{ if (get . "install_core_cli") -}}
+substep "Core CLI Tools"
+{{ end -}}
+{{ if (get . "install_fonts") -}}
+substep "Fonts"
+{{ end -}}
+{{ if (get . "install_security") -}}
+substep "Security Tools"
+{{ end -}}
+{{ if (get . "install_gui") -}}
+substep "GUI Applications"
+{{ end -}}
+{{ if (get . "install_mise") -}}
+substep "Development Runtimes"
+{{ end -}}
+{{ if (get . "install_maintenance") -}}
+substep "Maintenance Tools"
+{{ end -}}
+
+info "Installing via Homebrew..."
+
+# Homebrew Configuration
+if [[ -x /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -x /usr/local/bin/brew ]]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+elif [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
+  eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+fi
+
+# Render Brewfile to a temporary location
+BREWFILE=$(mktemp -t brewfile.XXXXXX 2>/dev/null || mktemp)
+trap 'rm -f "$BREWFILE"' EXIT
+
+# Use chezmoi execute-template to render the Brewfile
+chezmoi execute-template < "{{ .chezmoi.sourceDir }}/data/Brewfile.tmpl" > "$BREWFILE"
+
+if brew bundle --file="$BREWFILE"; then
+    success "Installation complete!"
+else
+    error "Homebrew bundle failed!"
+    exit 1
+fi

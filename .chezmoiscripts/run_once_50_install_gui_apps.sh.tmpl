@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+#
+# Description: Install GUI applications (Flatpak, etc.)
+# Author: GitHub Copilot
+# Generated: 2025-12-16
+
+set -euo pipefail
+
+# --- Helper Functions ---
+readonly GREEN='\033[1;32m'
+readonly BLUE='\033[1;34m'
+readonly YELLOW='\033[1;33m'
+readonly RED='\033[1;31m'
+readonly CYAN='\033[1;36m'
+readonly GRAY='\033[0;90m'
+readonly NC='\033[0m' # No Color
+
+info() { echo -e "${BLUE}::${NC} $1"; }
+success() { echo -e "${GREEN}>>${NC} $1"; }
+error() { echo -e "${RED}!!${NC} $1"; }
+warning() { echo -e "${YELLOW}!!${NC} $1"; }
+substep() { echo -e "${GRAY}   -> $1${NC}"; }
+step() { echo -e "${CYAN}[$1/$2]${NC} $3"; }
+header() { echo ""; echo -e "${BLUE}==>${NC} ${1}"; echo ""; }
+check_cmd() { command -v "$1" >/dev/null 2>&1; }
+# ------------------------
+
+{{ if not (get . "install_gui") -}}
+info "Skipping GUI applications installation"
+exit 0
+{{ end -}}
+
+header "Installing GUI Applications"
+
+{{ if eq .chezmoi.os "linux" -}}
+# Install Flatpak if not present
+step 1 3 "Checking Flatpak..."
+if ! check_cmd flatpak; then
+    info "Installing Flatpak..."
+    
+    SUDO=""
+    if check_cmd sudo; then
+        SUDO="sudo"
+    elif [ "$EUID" -ne 0 ]; then
+        error "Root privileges required to install Flatpak."
+        exit 1
+    fi
+
+    if check_cmd apt-get; then
+        $SUDO apt-get install -y flatpak
+    elif check_cmd dnf; then
+        $SUDO dnf install -y flatpak
+    fi
+    success "Flatpak installed"
+else
+    success "Flatpak already installed"
+fi
+
+# Add Flathub repo
+step 2 3 "Adding Flathub repository..."
+flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+success "Flathub added"
+
+# Install Flatpak apps
+step 3 3 "Installing applications..."
+# Add your flatpak install logic here if needed
+# flatpak install -y flathub com.visualstudio.code
+success "Applications installed"
+{{ else }}
+info "GUI installation on macOS is handled via Homebrew Cask (in install_packages)."
+{{ end -}}

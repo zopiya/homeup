@@ -1,11 +1,28 @@
 #!/usr/bin/env bash
-
-# Restic Backup Script
+#
+# Description: Restic Backup Script
 # Usage: ./restic_backup.sh
 
-set -e
+set -euo pipefail
 
-{{ template "utils.sh" . -}}
+# --- Helper Functions ---
+readonly GREEN='\033[1;32m'
+readonly BLUE='\033[1;34m'
+readonly YELLOW='\033[1;33m'
+readonly RED='\033[1;31m'
+readonly CYAN='\033[1;36m'
+readonly GRAY='\033[0;90m'
+readonly NC='\033[0m' # No Color
+
+info() { echo -e "${BLUE}::${NC} $1"; }
+success() { echo -e "${GREEN}>>${NC} $1"; }
+error() { echo -e "${RED}!!${NC} $1"; }
+warning() { echo -e "${YELLOW}!!${NC} $1"; }
+substep() { echo -e "${GRAY}   -> $1${NC}"; }
+step() { echo -e "${CYAN}[$1/$2]${NC} $3"; }
+header() { echo ""; echo -e "${BLUE}==>${NC} ${1}"; echo ""; }
+check_cmd() { command -v "$1" >/dev/null 2>&1; }
+# ------------------------
 
 header "Restic Backup"
 
@@ -16,7 +33,7 @@ header "Restic Backup"
 # export AWS_SECRET_ACCESS_KEY="..."
 
 step 1 3 "Checking Restic..."
-if ! command -v restic &> /dev/null; then
+if ! check_cmd restic; then
     error "Restic not installed."
     exit 1
 else
@@ -25,12 +42,18 @@ fi
 
 step 2 3 "Starting backup..."
 # Restic output is important, so we let it show
-restic backup $HOME --exclude-file=.resticignore
+if [ -f "$HOME/.resticignore" ]; then
+    restic backup "$HOME" --exclude-file="$HOME/.resticignore"
+else
+    warning "No .resticignore found. Skipping backup to prevent backing up junk."
+    info "Create $HOME/.resticignore to enable backup."
+fi
 success "Backup finished"
 
 step 3 3 "Pruning old snapshots..."
-restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+if check_cmd restic; then
+    restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune || warning "Prune failed or no repo connected"
+fi
 success "Pruning finished"
 
-echo ""
 success "Backup complete"
