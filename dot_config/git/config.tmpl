@@ -5,6 +5,23 @@
 [core]
     editor = nvim
     pager = delta
+    autocrlf = input
+    safecrlf = true
+    eol = lf
+{{- if eq .chezmoi.os "darwin" }}
+    precomposeunicode = true
+    ignorecase = true
+{{- end }}
+
+[credential]
+{{- if eq .chezmoi.os "darwin" }}
+    helper = osxkeychain
+{{- else }}
+    helper = cache --timeout=3600
+{{- end }}
+
+[gpg]
+    program = gpg
 
 [interactive]
     diffFilter = delta --color-only

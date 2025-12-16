@@ -1,8 +1,27 @@
 [alias]
+    # Basic Shortcuts
+    s = status
+    st = status
     co = checkout
     br = branch
     ci = commit
-    st = status
-    lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+    a = add
+    d = diff
+    ds = diff --staged
+
+    # Common Workflows
+    cm = commit -m
+    aa = add .
+    amend = commit --amend --no-edit
     unstage = reset HEAD --
+    undo = reset HEAD~1 --mixed
+
+    # Sync
+    pl = pull
+    ps = push
+    pf = push --force-with-lease
+
+    # Logs
+    l = log --oneline
     last = log -1 HEAD
+    lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
