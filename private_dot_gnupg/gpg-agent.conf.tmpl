@@ -15,6 +15,6 @@ pinentry-program /opt/homebrew/bin/pinentry-mac
 pinentry-program /usr/local/bin/pinentry-mac
 {{-   end }}
 {{- else }}
-# Linux: Fallback to curses
-pinentry-program /usr/bin/pinentry-curses
+# Linux: Use Homebrew pinentry
+pinentry-program /home/linuxbrew/.linuxbrew/bin/pinentry
 {{- end }}

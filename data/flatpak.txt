@@ -1,8 +1,17 @@
+# Browsers
+com.google.Chrome
+org.mozilla.firefox
+
+# Communication
+chat.delta.desktop
+org.mozilla.Thunderbird
+
 # Development
-com.visualstudio.code
 io.dbeaver.DBeaverCommunity
+io.podman_desktop.PodmanDesktop
 org.electerm.electerm
 
-# Utilities
+# System & Utilities
+com.github.tchx84.Flatseal
+io.missioncenter.MissionCenter
 org.localsend.LocalSend_Flutter
-com.google.Chrome

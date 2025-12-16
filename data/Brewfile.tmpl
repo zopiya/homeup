@@ -1,76 +1,85 @@
 {{ if (get . "install_core_cli") -}}
-# ===== Core CLI Tools =====
-brew "zsh"
+# Core CLI Tools
+brew "bat"
 brew "chezmoi"
-brew "git"
-brew "wget"
 brew "curl"
-brew "ripgrep"
+brew "eza"
 brew "fd"
 brew "fzf"
-brew "bat"
-brew "eza"
-brew "jq"
-brew "yq"
-brew "git-delta"
-brew "zoxide"
-brew "starship"
-brew "sheldon"
-brew "neovim"
-brew "lazygit"
 brew "gh"
-brew "uv"
+brew "git"
+brew "git-delta"
+brew "httpie"
+brew "jq"
+brew "lazygit"
+brew "neovim"
 brew "pnpm"
+brew "ripgrep"
+brew "sheldon"
+brew "starship"
+brew "uv"
+brew "wget"
+brew "yazi"
+brew "yq"
+brew "zoxide"
+brew "zsh"
 {{ end -}}
 
 {{ if (get . "install_fonts") -}}
-# ===== Fonts =====
-# Code
+# Fonts
+{{   if eq .chezmoi.os "darwin" -}}
 cask "font-jetbrains-mono-nerd-font"
-# UI / Fallback
-cask "font-noto-sans-cjk"
-# Reading / Serif
-cask "font-source-han-serif"
+cask "font-hack-nerd-font"
+cask "font-noto-sans"
+cask "font-source-han-serif-vf"
+{{   end -}}
 {{ end -}}
 
 {{ if (get . "install_security") -}}
-# ===== Security Tools =====
+# Security Tools
+cask "1password-cli"
+brew "age"
 brew "gnupg"
 brew "ykman"
-{{ if eq .chezmoi.os "darwin" -}}
+
+{{   if eq .chezmoi.os "darwin" -}}
 brew "pinentry-mac"
-cask "1password-cli"
-{{ else -}}
-brew "1password/tap/1password-cli"
-{{ end -}}
-brew "age"
+{{   end -}}
 {{ end -}}
 
 {{ if and (get . "install_gui") (not (get . "headless")) -}}
-# ===== GUI Applications (macOS) =====
-{{ if eq .chezmoi.os "darwin" -}}
-# Cross-platform
-cask "visual-studio-code"
-cask "google-chrome"
-cask "dbeaver-community"
-cask "electerm"
-cask "localsend"
-
-# macOS Exclusive
-cask "iterm2"
-cask "raycast"
-cask "orbstack"
+# GUI Applications (macOS)
+{{   if eq .chezmoi.os "darwin" -}}
 cask "1password"
-{{ end -}}
+cask "dbeaver-community"
+cask "deltachat"
+cask "electerm"
+cask "firefox"
+cask "google-chrome"
+cask "iterm2"
+cask "jetbrains-toolbox"
+cask "keka"
+cask "localsend"
+cask "nextcloud"
+cask "obsidian"
+cask "orbstack"
+cask "raycast"
+cask "rectangle"
+cask "stats"
+cask "typora"
+cask "visual-studio-code"
+cask "vlc"
+cask "wireshark-app"
+{{   end -}}
 {{ end -}}
 
 {{ if (get . "install_mise") -}}
-# ===== Development Runtimes =====
+# Development Runtimes
 brew "mise"
 {{ end -}}
 
 {{ if (get . "install_maintenance") -}}
-# ===== Maintenance Tools =====
-brew "topgrade"
+# Maintenance Tools
 brew "restic"
+brew "topgrade"
 {{ end -}}
