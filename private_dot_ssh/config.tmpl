@@ -1,0 +1,23 @@
+Host *
+  # Keep connection alive (send heartbeat every 60s)
+  ServerAliveInterval 60
+  ServerAliveCountMax 30
+
+  # Connection multiplexing (accelerate subsequent connections)
+  ControlMaster auto
+  ControlPath ~/.ssh/control-%C
+  ControlPersist 4h
+
+  # Automatically add key to agent
+  AddKeysToAgent yes
+
+{{- if eq .chezmoi.os "darwin" }}
+  # macOS specific: Store private key passphrase in Keychain
+  UseKeychain yes
+{{- end }}
+
+  # GitHub optimization (prevent timeout)
+  Host github.com
+    User git
+    Hostname github.com
+    ServerAliveInterval 30
