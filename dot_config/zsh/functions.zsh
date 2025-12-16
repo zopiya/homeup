@@ -3,6 +3,51 @@ mkcd() {
     mkdir -p "$1" && cd "$1"
 }
 
+# cd into directory and list contents
+cl() {
+    cd "$1" && ls
+}
+
+# Quick Backup (file -> file.bak)
+bak() {
+    cp "$1" "$1.bak" && echo "✅ Backed up $1 to $1.bak"
+}
+
+# Quick Restore (file.bak -> file)
+unbak() {
+    mv "$1.bak" "$1" && echo "✅ Restored $1 from $1.bak"
+}
+
+# Cheat Sheet (e.g., cht tar)
+cht() {
+    curl "cht.sh/$1"
+}
+
+# Git Commit & Push
+gcp() {
+    git add . && git commit -m "$1" && git push
+}
+
+# Fuzzy Find & Edit
+fe() {
+  local files=($(fzf --query="$1" --multi --select-1 --exit-0))
+  [[ -n "$files" ]] && ${EDITOR:-vim} "${files[@]}"
+}
+
+# Fuzzy Kill Process
+fkill() {
+  local pid
+  if [ "$UID" != "0" ]; then
+    pid=$(ps -f -u $UID | sed 1d | fzf -m | awk '{print $2}')
+  else
+    pid=$(ps -ef | sed 1d | fzf -m | awk '{print $2}')
+  fi
+
+  if [ "x$pid" != "x" ]; then
+    echo $pid | xargs kill -${1:-9}
+  fi
+}
+
 # Extract any archive
 extract() {
     if [ -f $1 ] ; then
