@@ -9,7 +9,11 @@ require("mason-lspconfig").setup({
   },
 })
 
-local lspconfig = require("lspconfig")
+local status_ok, lspconfig = pcall(require, "lspconfig")
+if not status_ok then
+  return
+end
+
 local cmp_nvim_lsp = require("cmp_nvim_lsp")
 
 local capabilities = cmp_nvim_lsp.default_capabilities()
