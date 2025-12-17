@@ -65,6 +65,9 @@ jobs:
           fi
           chezmoi init --apply --source .
         env:
+          CI: true
+          NONINTERACTIVE: 1
+          MISE_NODE_GPG_VERIFY: "0"
           CHEZMOI_GIT_NAME: "Test User"
           CHEZMOI_GIT_EMAIL: "test@example.com"
           CHEZMOI_PROFILE: "1"

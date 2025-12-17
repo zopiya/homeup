@@ -35,6 +35,7 @@ header "Configuring Mise Runtime Manager"
 # Disable Node.js signature verification in CI/Headless environments to avoid GPG errors
 if [ -n "${CI:-}" ]; then
     warning "CI detected: Disabling Node.js GPG signature verification"
+    export MISE_NODE_GPG_VERIFY=0
     export MISE_NODE_VERIFY_SIGNATURES=0
     export NODEJS_CHECK_SIGNATURES="no" # For asdf-nodejs compatibility
 fi
@@ -70,6 +71,9 @@ fi
 
 # Install global packages
 step 2 3 "Installing global packages..."
+
+# CI: Skip Node.js GPG verification
+[[ -n "${CI:-}" ]] && export MISE_NODE_GPG_VERIFY=0
 
 # Python
 if ! mise list python | grep -q "3.12"; then
