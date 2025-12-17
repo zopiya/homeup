@@ -32,6 +32,13 @@ exit 0
 
 header "Configuring Mise Runtime Manager"
 
+# Disable Node.js signature verification in CI/Headless environments to avoid GPG errors
+if [ -n "${CI:-}" ]; then
+    warning "CI detected: Disabling Node.js GPG signature verification"
+    export MISE_NODE_VERIFY_SIGNATURES=0
+    export NODEJS_CHECK_SIGNATURES="no" # For asdf-nodejs compatibility
+fi
+
 # Homebrew Configuration
 if [[ -x /opt/homebrew/bin/brew ]]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"

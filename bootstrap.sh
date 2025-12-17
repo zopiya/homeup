@@ -48,6 +48,27 @@ OS="" ARCH="" DISTRO="" BREW_PREFIX=""
 SUDO_KEEP_ALIVE_PID=""
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Pre-flight Checks
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+check_dependencies() {
+    local deps=("curl" "git")
+    local missing=()
+
+    for dep in "${deps[@]}"; do
+        if ! command -v "$dep" >/dev/null 2>&1; then
+            missing+=("$dep")
+        fi
+    done
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        msg_fail "Missing required dependencies: ${missing[*]}"
+        msg_info "Please install them and run this script again."
+        exit 1
+    fi
+}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Output
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -122,8 +143,16 @@ setup_sudo() {
     [[ $EUID -eq 0 ]] && die "Do not run as root. Use a normal user with sudo access."
     require_cmd sudo
 
-    if ! sudo -v 2>/dev/null; then
-        die "sudo authentication failed"
+    # In CI or non-interactive mode, check if we have passwordless sudo
+    if [[ -n "${NONINTERACTIVE:-}" ]] || [[ -n "${CI:-}" ]]; then
+        if ! sudo -n -v 2>/dev/null; then
+            die "Passwordless sudo required in non-interactive mode"
+        fi
+    else
+        # Interactive mode: prompt for password
+        if ! sudo -v; then
+            die "sudo authentication failed"
+        fi
     fi
 
     (
@@ -376,6 +405,7 @@ EOF
 }
 
 main() {
+    check_dependencies
     check_bash_version
     print_banner
     setup_sudo

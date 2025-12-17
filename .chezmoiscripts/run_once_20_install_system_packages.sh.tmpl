@@ -68,9 +68,14 @@ trap 'rm -f "$BREWFILE"' EXIT
 # Use chezmoi execute-template to render the Brewfile
 chezmoi execute-template < "{{ .chezmoi.sourceDir }}/data/Brewfile.tmpl" > "$BREWFILE"
 
+# In CI, we might want to be more verbose on failure
 if brew bundle --file="$BREWFILE"; then
     success "Installation complete!"
 else
     error "Homebrew bundle failed!"
+    if [ -n "${CI:-}" ]; then
+        info "CI Debug: Listing installed packages..."
+        brew list || true
+    fi
     exit 1
 fi

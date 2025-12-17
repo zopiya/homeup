@@ -40,9 +40,14 @@ fi
 
 # Check for internet connection
 step 1 2 "Checking internet connection..."
-if ! curl -s --head https://github.com > /dev/null; then
-    error "No internet connection."
-    exit 1
+# Use a shorter timeout (5s) to avoid hanging
+if ! curl -s --head --connect-timeout 5 https://github.com > /dev/null; then
+    warning "Could not connect to GitHub. Internet might be down or restricted."
+    # In CI, this should be a fatal error. In manual mode, maybe the user knows what they are doing (e.g. local cache).
+    if [ -n "${CI:-}" ]; then
+        error "CI detected: Internet connection is required."
+        exit 1
+    fi
 else
     success "Internet connection active"
 fi

@@ -57,8 +57,12 @@ step 2 3 "Verifying /etc/shells..."
 
 if ! grep -q "$TARGET_SHELL" /etc/shells; then
     warning "Shell $TARGET_SHELL is not in /etc/shells"
-    info "Adding it now (sudo permission required)..."
-    echo "$TARGET_SHELL" | sudo tee -a /etc/shells >/dev/null
+    info "Adding it now..."
+    if check_cmd sudo; then
+        echo "$TARGET_SHELL" | sudo tee -a /etc/shells >/dev/null
+    else
+        echo "$TARGET_SHELL" | tee -a /etc/shells >/dev/null
+    fi
     success "Added to /etc/shells"
 else
     substep "Shell is already in /etc/shells"
@@ -77,7 +81,18 @@ fi
 
 if [ "$CURRENT_SHELL" != "$TARGET_SHELL" ]; then
     info "Changing shell from $CURRENT_SHELL to $TARGET_SHELL"
-    chsh -s "$TARGET_SHELL"
+    
+    # Use sudo to change shell.
+    # 1. In CI: Works without password (NOPASSWD configured).
+    # 2. Local: Reuses cached sudo credentials from Step 2, avoiding a second password prompt.
+    if check_cmd sudo; then
+        sudo chsh -s "$TARGET_SHELL" "$USER"
+    elif [ -n "${CI:-}" ]; then
+        warning "CI detected and sudo not found. Skipping shell change to avoid password prompt hang."
+    else
+        chsh -s "$TARGET_SHELL"
+    fi
+
     success "Default shell changed"
 else
     substep "Default shell is already correct"

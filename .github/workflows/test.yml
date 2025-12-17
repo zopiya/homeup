@@ -10,6 +10,7 @@ jobs:
   test-macos:
     name: Test on macOS (Workstation)
     runs-on: macos-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -69,9 +70,30 @@ jobs:
           CHEZMOI_PROFILE: "1"
           CHEZMOI_INSTALL_SECURITY: "false"
 
+      - name: Verify Dotfiles
+        run: |
+          echo "Verifying dotfiles installation..."
+          
+          # Check if key config files exist
+          [ -f "$HOME/.config/starship.toml" ] || { echo "Error: starship.toml missing"; exit 1; }
+          [ -f "$HOME/.config/zsh/.zshrc" ] || { echo "Error: .zshrc missing"; exit 1; }
+          
+          # Check if tools are in PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          if [ -f "$HOME/.config/homebrew/shellenv" ]; then
+            source "$HOME/.config/homebrew/shellenv"
+          fi
+          
+          command -v starship >/dev/null || { echo "Error: starship not found"; exit 1; }
+          command -v mise >/dev/null || { echo "Error: mise not found"; exit 1; }
+          command -v nvim >/dev/null || { echo "Error: nvim not found"; exit 1; }
+          
+          echo "Verification passed!"
+
   test-linux:
     name: Test on ${{ matrix.distro }} (${{ matrix.type }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -105,6 +127,13 @@ jobs:
       - name: Prepare Container Environment
         run: |
           ${{ matrix.pre_install }}
+          # Ensure zsh is installed for the verification step
+          if command -v apt-get &> /dev/null; then
+            apt-get install -y zsh
+          elif command -v dnf &> /dev/null; then
+            dnf install -y zsh
+          fi
+          
           useradd -m -s /bin/bash testuser
           echo "testuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
           chown -R testuser:testuser $GITHUB_WORKSPACE
@@ -112,7 +141,8 @@ jobs:
       - name: Run bootstrap.sh
         run: |
           chmod +x bootstrap.sh
-          su - testuser -c "cd $GITHUB_WORKSPACE && ./bootstrap.sh"
+          # Pass CI and NONINTERACTIVE env vars to the user shell
+          su - testuser -c "export CI=true NONINTERACTIVE=1 && cd $GITHUB_WORKSPACE && ./bootstrap.sh"
         env:
           CI: true
           NONINTERACTIVE: 1
@@ -120,6 +150,7 @@ jobs:
       - name: Verify Installation
         run: |
           su - testuser -c "
+            export CI=true
             # Simulate a new login shell or sourcing the env file
             if [ -f \"\$HOME/.config/homebrew/shellenv\" ]; then
               source \"\$HOME/.config/homebrew/shellenv\"
@@ -146,6 +177,7 @@ jobs:
       - name: Initialize chezmoi
         run: |
           su - testuser -c "
+            export CI=true
             export CHEZMOI_GIT_NAME='Test User'
             export CHEZMOI_GIT_EMAIL='test@example.com'
             export CHEZMOI_PROFILE='${{ matrix.profile }}'
@@ -157,4 +189,37 @@ jobs:
             
             cd $GITHUB_WORKSPACE
             chezmoi init --apply --source .
+          "
+
+      - name: Verify Dotfiles
+        run: |
+          su - testuser -c "
+            export CI=true
+            echo 'Verifying dotfiles installation...'
+            
+            # Check if key config files exist
+            [ -f \"\$HOME/.config/starship.toml\" ] || { echo 'Error: starship.toml missing'; exit 1; }
+            
+            # .zshrc might be in .config/zsh/.zshrc or ~/.zshrc depending on ZDOTDIR
+            if [ -f \"\$HOME/.config/zsh/.zshrc\" ]; then
+                echo 'Found .zshrc in .config/zsh'
+            elif [ -f \"\$HOME/.zshrc\" ]; then
+                echo 'Found .zshrc in HOME'
+            else
+                echo 'Error: .zshrc missing'
+                exit 1
+            fi
+            
+            # Check if tools are in PATH (via .local/bin)
+            export PATH=\"\$HOME/.local/bin:\$PATH\"
+            if [ -f \"\$HOME/.config/homebrew/shellenv\" ]; then
+              source \"\$HOME/.config/homebrew/shellenv\"
+            fi
+            
+            # Core checks (Profile 1 & 2)
+            command -v starship >/dev/null || { echo 'Error: starship not found'; exit 1; }
+            command -v mise >/dev/null || { echo 'Error: mise not found'; exit 1; }
+            command -v nvim >/dev/null || { echo 'Error: nvim not found'; exit 1; }
+            
+            echo 'Verification passed!'
           "

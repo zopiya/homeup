@@ -42,14 +42,28 @@ if ! check_cmd flatpak; then
     if check_cmd sudo; then
         SUDO="sudo"
     elif [ "$EUID" -ne 0 ]; then
-        error "Root privileges required to install Flatpak."
+        # In CI containers (like Alpine/Debian minimal), we might be root but without sudo installed.
+        # If we are root, we don't need sudo. If we are not root and no sudo, we fail.
+        error "Root privileges required to install Flatpak (and sudo not found)."
         exit 1
     fi
 
     if check_cmd apt-get; then
+        # Debian/Ubuntu
+        # Update apt cache first to ensure package is found
+        $SUDO apt-get update -qq || true
         $SUDO apt-get install -y flatpak
     elif check_cmd dnf; then
+        # Fedora/RHEL
         $SUDO dnf install -y flatpak
+    elif check_cmd pacman; then
+        # Arch Linux
+        $SUDO pacman -S --noconfirm flatpak
+    elif check_cmd zypper; then
+        # openSUSE
+        $SUDO zypper install -y flatpak
+    else
+        warning "Unsupported package manager. Please install Flatpak manually."
     fi
     success "Flatpak installed"
 else
@@ -58,27 +72,32 @@ fi
 
 # Add Flathub repo
 step 2 3 "Adding Flathub repository..."
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-success "Flathub added"
 
-# Install Flatpak apps
-step 3 3 "Installing applications from data/flatpak.txt..."
-FLATPAK_LIST="{{ .chezmoi.sourceDir }}/data/flatpak.txt"
-
-if [ -f "$FLATPAK_LIST" ]; then
-    # Read the file, ignore comments and empty lines
-    apps=$(grep -vE '^\s*#|^\s*$' "$FLATPAK_LIST")
-    
-    if [ -n "$apps" ]; then
-        info "Installing: $apps"
-        # Use xargs to install all apps in one go, or loop if you prefer individual error handling
-        echo "$apps" | xargs flatpak install -y flathub
-        success "Flatpak applications installed"
-    else
-        warning "No applications found in flatpak.txt"
-    fi
+if [ -n "${CI:-}" ]; then
+    warning "Skipping Flatpak configuration in CI environment (no system bus)"
 else
-    warning "data/flatpak.txt not found, skipping app installation"
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    success "Flathub added"
+
+    # Install Flatpak apps
+    step 3 3 "Installing applications from data/flatpak.txt..."
+    FLATPAK_LIST="{{ .chezmoi.sourceDir }}/data/flatpak.txt"
+
+    if [ -f "$FLATPAK_LIST" ]; then
+        # Read the file, ignore comments and empty lines
+        apps=$(grep -vE '^\s*#|^\s*$' "$FLATPAK_LIST")
+        
+        if [ -n "$apps" ]; then
+            info "Installing: $apps"
+            # Use xargs to install all apps in one go, or loop if you prefer individual error handling
+            echo "$apps" | xargs flatpak install -y flathub
+            success "Flatpak applications installed"
+        else
+            warning "No applications found in flatpak.txt"
+        fi
+    else
+        warning "data/flatpak.txt not found, skipping app installation"
+    fi
 fi
 
 {{ else }}
