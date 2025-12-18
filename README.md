@@ -30,7 +30,7 @@
 | ----------------------------- | ----------- | -------------------------------------------------- | ---------- |
 | **Primary MacBook**           | Workstation | Core + GUI + Fonts + Mise + Security + Maintenance | ~15 min    |
 | **Remote Linux Server**       | Server      | Core + Mise + Maintenance                          | ~8 min     |
-| **Docker Container**          | Minimal     | Core only                                          | ~3 min     |
+| **Docker Container**          | Manual      | Core only                                          | ~3 min     |
 | **Work Machine (Restricted)** | Manual      | Core + GUI (no Security)                           | ~10 min    |
 | **Raspberry Pi**              | Server      | Core + Mise                                        | ~10 min    |
 
@@ -86,14 +86,19 @@ The project follows a **4-layer modular architecture**:
 ```
 ├── bootstrap.sh          # Entry point for installation
 ├── data/                 # Package lists (Brewfile, Flatpak)
+├── dot_bashrc.tmpl       # Bash configuration
+├── dot_zshenv.tmpl       # Zsh environment variables
 ├── dot_config/           # XDG Config Home
 │   ├── git/              # Git config
 │   ├── mise/             # Runtime versions
 │   ├── nvim/             # Neovim config
+│   ├── security/         # Security tools (GPG, YubiKey)
 │   ├── sheldon/          # Zsh plugins
 │   ├── starship.toml     # Prompt config
+│   ├── topgrade.toml     # Update utility config
 │   └── zsh/              # Zsh config (ZDOTDIR)
 ├── dot_local/            # Local binaries and scripts
+├── private_dot_gnupg/    # GPG configuration
 └── private_dot_ssh/      # SSH config template
 ```
 
@@ -125,10 +130,9 @@ During initialization, you'll be asked to:
    Git Email: your@email.com
 
 2. Machine Profile
-   [1] workstation  (macOS/Linux GUI) - Full stack
-   [2] server       (Headless)        - CLI + Runtimes
-   [3] minimal      (Container/CI)    - Core only
-   [9] manual       (Custom)          - Granular control
+   [1] workstation  (macOS/Linux GUI) - Core + GUI + Fonts + Runtime + Maint
+   [2] server       (Headless)        - Core + Runtime + Maint
+   [9] manual       (Custom)          - Custom selection
    Select Profile: 1
 
 3. Security Module
@@ -143,6 +147,7 @@ During initialization, you'll be asked to:
      [x] Fonts
      [x] Mise Runtime
      [x] Maintenance Tools
+     [ ] Security Suite
      [ ] Security Suite
 ```
 

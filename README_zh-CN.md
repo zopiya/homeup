@@ -30,7 +30,7 @@
 | ---------------------- | ----------- | -------------------------------------- | -------- |
 | **主力 MacBook**       | Workstation | Core + GUI + 字体 + Mise + 安全 + 维护 | ~15 分钟 |
 | **远程 Linux 服务器**  | Server      | Core + Mise + 维护                     | ~8 分钟  |
-| **Docker 容器**        | Minimal     | 仅 Core                                | ~3 分钟  |
+| **Docker 容器**        | Manual      | 仅 Core                                | ~3 分钟  |
 | **工作机（受限环境）** | Manual      | Core + GUI（无安全模块）               | ~10 分钟 |
 | **树莓派**             | Server      | Core + Mise                            | ~10 分钟 |
 
@@ -86,14 +86,19 @@
 ```
 ├── bootstrap.sh          # 安装入口脚本
 ├── data/                 # 软件包列表 (Brewfile, Flatpak)
+├── dot_bashrc.tmpl       # Bash 配置
+├── dot_zshenv.tmpl       # Zsh 环境变量
 ├── dot_config/           # XDG Config Home 配置目录
 │   ├── git/              # Git 配置
 │   ├── mise/             # 运行时版本配置
 │   ├── nvim/             # Neovim 配置
+│   ├── security/         # 安全工具 (GPG, YubiKey)
 │   ├── sheldon/          # Zsh 插件配置
 │   ├── starship.toml     # 终端提示符配置
+│   ├── topgrade.toml     # 更新工具配置
 │   └── zsh/              # Zsh 配置 (ZDOTDIR)
 ├── dot_local/            # 本地二进制文件和脚本
+├── private_dot_gnupg/    # GPG 配置
 └── private_dot_ssh/      # SSH 配置模版
 ```
 
@@ -125,10 +130,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/zopiya/dotfiles/main/bootstr
    Git 邮箱: your@email.com
 
 2. 机器配置文件
-   [1] workstation  (macOS/Linux GUI) - 完整工具栈
-   [2] server       (无头环境)         - CLI + 运行时
-   [3] minimal      (容器/CI)          - 仅核心
-   [9] manual       (自定义)           - 细粒度控制
+   [1] workstation  (macOS/Linux GUI) - Core + GUI + Fonts + Runtime + Maint
+   [2] server       (无头环境)         - Core + Runtime + Maint
+   [9] manual       (自定义)           - 自定义选择
    选择配置: 1
 
 3. 安全模块
