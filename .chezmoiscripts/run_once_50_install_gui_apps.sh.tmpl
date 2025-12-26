@@ -84,15 +84,31 @@ else
     FLATPAK_LIST="{{ .chezmoi.sourceDir }}/data/flatpak.txt"
 
     if [ -f "$FLATPAK_LIST" ]; then
-        # Read the file, ignore comments and empty lines
-        apps=$(grep -vE '^\s*#|^\s*$' "$FLATPAK_LIST")
-        
-        if [ -n "$apps" ]; then
-            info "Installing: $apps"
-            # Use xargs to install all apps in one go, or loop if you prefer individual error handling
-            echo "$apps" | xargs flatpak install -y flathub
-            success "Flatpak applications installed"
-        else
+        # Read the file, ignore comments and empty lines, install one by one
+        local installed=0
+        local failed=0
+
+        while IFS= read -r app; do
+            # Skip empty lines and comments
+            [[ -z "$app" || "$app" =~ ^[[:space:]]*# ]] && continue
+
+            info "Installing $app..."
+            if flatpak install -y flathub "$app" 2>/dev/null; then
+                substep "✓ $app"
+                ((installed++))
+            else
+                warning "✗ Failed to install $app (continuing...)"
+                ((failed++))
+            fi
+        done < "$FLATPAK_LIST"
+
+        if [ $installed -gt 0 ]; then
+            success "Installed $installed application(s)"
+        fi
+        if [ $failed -gt 0 ]; then
+            warning "$failed application(s) failed to install"
+        fi
+        if [ $installed -eq 0 ] && [ $failed -eq 0 ]; then
             warning "No applications found in flatpak.txt"
         fi
     else

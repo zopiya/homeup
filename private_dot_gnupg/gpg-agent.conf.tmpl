@@ -8,20 +8,20 @@ default-cache-ttl 3600
 max-cache-ttl 86400
 
 {{- if eq .chezmoi.os "darwin" }}
-# macOS: Use pinentry-mac from Homebrew
+# macOS: Use pinentry-mac from Homebrew (GUI password prompt)
 {{-   if eq .chezmoi.arch "arm64" }}
-pinentry-program /opt/homebrew/bin/pinentry-mac
+pinentry-program /opt/homebrew/bin/pinentry-mac  # Apple Silicon
 {{-   else }}
-pinentry-program /usr/local/bin/pinentry-mac
+pinentry-program /usr/local/bin/pinentry-mac      # Intel Mac
 {{-   end }}
 {{- else }}
-# Linux: Try Homebrew pinentry first, fall back to system pinentry
+# Linux: Dynamic pinentry detection with fallback chain
+# Priority: Homebrew (shared) > Homebrew (user) > System
 {{-   if stat "/home/linuxbrew/.linuxbrew/bin/pinentry" }}
 pinentry-program /home/linuxbrew/.linuxbrew/bin/pinentry
 {{-   else if stat (printf "%s/.linuxbrew/bin/pinentry" .chezmoi.homeDir) }}
 pinentry-program {{ .chezmoi.homeDir }}/.linuxbrew/bin/pinentry
 {{-   else }}
-# Fallback to system pinentry
-pinentry-program /usr/bin/pinentry
+pinentry-program /usr/bin/pinentry  # System fallback
 {{-   end }}
 {{- end }}

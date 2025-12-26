@@ -34,22 +34,24 @@ cask "font-noto-sans"
 cask "font-source-han-serif-vf"
 {{ end -}}
 
+{{/* Security Module: Optional (YubiKey/GPG/1Password) */}}
 {{ if (get . "install_security") -}}
 # Security Tools
 {{- if eq .chezmoi.os "darwin" }}
-cask "1password-cli"
+cask "1password-cli"  {{/* macOS: Install via Cask for better integration */}}
 {{- else }}
-brew "1password-cli"
+brew "1password-cli"  {{/* Linux: Install via Homebrew formula */}}
 {{- end }}
 brew "age"
 brew "gnupg"
 brew "ykman"
 
 {{   if eq .chezmoi.os "darwin" -}}
-brew "pinentry-mac"
+brew "pinentry-mac"  {{/* macOS-specific: GUI password entry */}}
 {{   end -}}
 {{ end -}}
 
+{{/* GUI Module: Only install if not in headless mode (Linux GUI uses Flatpak) */}}
 {{ if and (get . "install_gui") (not (get . "headless")) -}}
 # GUI Applications (macOS)
 {{   if eq .chezmoi.os "darwin" -}}

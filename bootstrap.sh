@@ -5,7 +5,7 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Purpose: Level 0 Bootstrap - Install Homebrew + Chezmoi
-# Version: 3.0.1
+# Version: 3.0.2
 # License: MIT
 #
 # Scope (strictly limited):
@@ -14,7 +14,11 @@
 #   3. Install Homebrew
 #   4. Persist Homebrew environment
 #   5. Install chezmoi via Homebrew
-#   6. Execute chezmoi init --apply
+#   6. Optionally execute chezmoi init --apply (if DOTFILES_REPO is set)
+#
+# Optional automation:
+#   Set DOTFILES_REPO environment variable to auto-initialize dotfiles:
+#   DOTFILES_REPO=https://github.com/user/dotfiles ./bootstrap.sh
 #
 # This is a bootstrap script, NOT a configuration script.
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -25,7 +29,7 @@ set -Eeuo pipefail
 # Constants
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-readonly SCRIPT_VERSION="3.0.1"
+readonly SCRIPT_VERSION="3.0.2"
 readonly BREW_SHELLENV_FILE="$HOME/.config/homebrew/shellenv"
 readonly BREW_INSTALL_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 readonly SPINNER_FRAMES='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
@@ -421,7 +425,21 @@ main() {
     install_chezmoi
 
     printf "\n%sBootstrap complete.%s\n" "$C_GREEN" "$C_RESET"
-    printf "Restart your shell or run: source %s\n" "$BREW_SHELLENV_FILE"
+    printf "Restart your shell or run: source %s\n\n" "$BREW_SHELLENV_FILE"
+
+    # Optional: Initialize dotfiles if DOTFILES_REPO is set
+    if [[ -n "${DOTFILES_REPO:-}" ]]; then
+        msg_info "Initializing dotfiles from ${DOTFILES_REPO}..."
+        if chezmoi init --apply "$DOTFILES_REPO"; then
+            msg_ok "Dotfiles initialized and applied"
+        else
+            msg_fail "Failed to initialize dotfiles"
+        fi
+    else
+        printf "To initialize dotfiles, run:\n"
+        printf "  chezmoi init --apply <your-repo-url>\n"
+        printf "\nOr set DOTFILES_REPO environment variable before running this script.\n"
+    fi
 }
 
 main "$@"
