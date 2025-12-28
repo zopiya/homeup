@@ -4,17 +4,23 @@
 # Homeup Bootstrap Script
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# Purpose: Level 0 Bootstrap - Install Homebrew + Chezmoi
-# Version: 3.0.2
+# Purpose: Layer 0 Bootstrap - Environment Detection + Base Tools
+# Version: 4.0.0
 # License: MIT
 #
 # Scope (strictly limited):
-#   1. Detect OS/Arch
+#   1. Detect OS / Arch / Distro / Mode
 #   2. Install system dependencies (Linux only)
 #   3. Install Homebrew
-#   4. Persist Homebrew environment
+#   4. Install Flatpak (Linux workstation only)
 #   5. Install chezmoi via Homebrew
 #   6. Optionally execute chezmoi init --apply (if DOTFILES_REPO is set)
+#
+# Output Variables:
+#   HOMEUP_OS      - darwin | linux
+#   HOMEUP_ARCH    - x86_64 | arm64
+#   HOMEUP_DISTRO  - debian | fedora | arch | alpine | macos
+#   HOMEUP_MODE    - workstation | server
 #
 # Optional automation:
 #   Set DOTFILES_REPO environment variable to auto-initialize dotfiles:
@@ -29,12 +35,12 @@ set -Eeuo pipefail
 # Constants
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-readonly SCRIPT_VERSION="3.0.2"
+readonly SCRIPT_VERSION="4.0.0"
 readonly BREW_SHELLENV_FILE="$HOME/.config/homebrew/shellenv"
 readonly BREW_INSTALL_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
 readonly SPINNER_FRAMES='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
 
-# TTY detection for colors (use $'...' for actual escape sequences)
+# TTY detection for colors
 if [[ -t 1 ]] && [[ "${TERM:-dumb}" != "dumb" ]]; then
     readonly IS_TTY=true
     readonly C_RESET=$'\033[0m'
@@ -47,9 +53,12 @@ else
     readonly C_RESET='' C_GREEN='' C_GRAY='' C_RED='' C_CYAN=''
 fi
 
-# Runtime state
-OS="" ARCH="" DISTRO="" BREW_PREFIX=""
+# Runtime state (internal)
+_OS="" _ARCH="" _DISTRO="" _MODE="" BREW_PREFIX=""
 SUDO_KEEP_ALIVE_PID=""
+
+# Output variables (exported)
+export HOMEUP_OS="" HOMEUP_ARCH="" HOMEUP_DISTRO="" HOMEUP_MODE=""
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Pre-flight Checks
@@ -173,19 +182,117 @@ setup_sudo() {
 # System Detection
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-detect_system() {
-    OS="$(uname -s)"
-    ARCH="$(uname -m)"
+detect_os() {
+    local os
+    os="$(uname -s)"
 
-    if [[ "$OS" == "Linux" ]] && [[ -f /etc/os-release ]]; then
+    case "$os" in
+        Darwin) _OS="darwin" ;;
+        Linux)  _OS="linux" ;;
+        *)      die "Unsupported OS: $os" ;;
+    esac
+
+    HOMEUP_OS="$_OS"
+    export HOMEUP_OS
+}
+
+detect_arch() {
+    local arch
+    arch="$(uname -m)"
+
+    case "$arch" in
+        x86_64)       _ARCH="x86_64" ;;
+        amd64)        _ARCH="x86_64" ;;
+        aarch64)      _ARCH="arm64" ;;
+        arm64)        _ARCH="arm64" ;;
+        *)            die "Unsupported architecture: $arch" ;;
+    esac
+
+    HOMEUP_ARCH="$_ARCH"
+    export HOMEUP_ARCH
+}
+
+detect_distro() {
+    if [[ "$_OS" == "darwin" ]]; then
+        _DISTRO="macos"
+    elif [[ -f /etc/os-release ]]; then
         # shellcheck source=/dev/null
         . /etc/os-release
-        DISTRO="${ID:-unknown}"
-        msg_ok "Detected: Linux ($DISTRO, $ARCH)"
-    elif [[ "$OS" == "Darwin" ]]; then
-        msg_ok "Detected: macOS ($ARCH)"
+        local id="${ID:-unknown}"
+
+        # Normalize to distro family
+        case "$id" in
+            ubuntu|debian|pop|mint|raspbian|kali)
+                _DISTRO="debian"
+                ;;
+            fedora|rhel|centos|almalinux|rocky)
+                _DISTRO="fedora"
+                ;;
+            arch|manjaro|endeavouros)
+                _DISTRO="arch"
+                ;;
+            alpine)
+                _DISTRO="alpine"
+                ;;
+            *)
+                _DISTRO="$id"
+                ;;
+        esac
     else
-        die "Unsupported OS: $OS"
+        _DISTRO="unknown"
+    fi
+
+    HOMEUP_DISTRO="$_DISTRO"
+    export HOMEUP_DISTRO
+}
+
+detect_mode() {
+    # macOS is always workstation (has GUI by default)
+    if [[ "$_OS" == "darwin" ]]; then
+        _MODE="workstation"
+        HOMEUP_MODE="$_MODE"
+        export HOMEUP_MODE
+        return 0
+    fi
+
+    # Linux: detect GUI environment
+    local has_gui=false
+
+    # Check for display server
+    if [[ -n "${DISPLAY:-}" ]] || [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
+        has_gui=true
+    fi
+
+    # Check XDG session type
+    if [[ "${XDG_SESSION_TYPE:-}" == "x11" ]] || [[ "${XDG_SESSION_TYPE:-}" == "wayland" ]]; then
+        has_gui=true
+    fi
+
+    # Check for common desktop environment indicators
+    if [[ -n "${XDG_CURRENT_DESKTOP:-}" ]] || [[ -n "${DESKTOP_SESSION:-}" ]]; then
+        has_gui=true
+    fi
+
+    if [[ "$has_gui" == true ]]; then
+        _MODE="workstation"
+    else
+        _MODE="server"
+    fi
+
+    HOMEUP_MODE="$_MODE"
+    export HOMEUP_MODE
+}
+
+detect_system() {
+    detect_os
+    detect_arch
+    detect_distro
+    detect_mode
+
+    if [[ "$_OS" == "darwin" ]]; then
+        msg_ok "Detected: macOS ($_ARCH, $_MODE)"
+    else
+        msg_ok "Detected: Linux/$_DISTRO ($_ARCH, $_MODE)"
     fi
 }
 
@@ -217,18 +324,18 @@ install_linux_deps() {
 
     local update_cmd="" install_cmd="" packages=""
 
-    case "$DISTRO" in
-        ubuntu|debian|pop|mint|raspbian)
+    case "$_DISTRO" in
+        debian)
             update_cmd="sudo apt-get update -qq"
             install_cmd="sudo apt-get install -y -qq"
             packages="git curl build-essential procps file"
             ;;
-        fedora|rhel|centos|almalinux|rocky)
+        fedora)
             update_cmd="sudo dnf check-update -q || true"
             install_cmd="sudo dnf install -y -q"
             packages="git curl @development-tools procps-ng file"
             ;;
-        arch|manjaro|endeavouros)
+        arch)
             update_cmd="sudo pacman -Sy --noconfirm"
             install_cmd="sudo pacman -S --noconfirm --needed"
             packages="git curl base-devel procps-ng file"
@@ -239,7 +346,7 @@ install_linux_deps() {
             packages="git curl build-base procps file bash"
             ;;
         *)
-            msg_skip "System dependencies (unsupported distro: $DISTRO)"
+            msg_skip "System dependencies (unsupported distro: $_DISTRO)"
             return 0
             ;;
     esac
@@ -255,6 +362,63 @@ install_linux_deps() {
     else
         die "Failed to install system dependencies"
     fi
+}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Flatpak (Linux workstation only)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+install_flatpak() {
+    # Only install on Linux workstation
+    if [[ "$_OS" != "linux" ]] || [[ "$_MODE" != "workstation" ]]; then
+        return 0
+    fi
+
+    if command -v flatpak &>/dev/null; then
+        local version
+        version=$(flatpak --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+        msg_skip "Flatpak v$version (already installed)"
+        return 0
+    fi
+
+    local install_cmd=""
+
+    case "$_DISTRO" in
+        debian)
+            install_cmd="sudo apt-get install -y -qq flatpak"
+            ;;
+        fedora)
+            # Fedora usually has flatpak pre-installed, but just in case
+            install_cmd="sudo dnf install -y -q flatpak"
+            ;;
+        arch)
+            install_cmd="sudo pacman -S --noconfirm --needed flatpak"
+            ;;
+        alpine)
+            install_cmd="sudo apk add --no-cache -q flatpak"
+            ;;
+        *)
+            msg_skip "Flatpak (unsupported distro: $_DISTRO)"
+            return 0
+            ;;
+    esac
+
+    (
+        $install_cmd >/dev/null 2>&1
+        # Add Flathub repository
+        flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo >/dev/null 2>&1 || true
+    ) &
+
+    if spinner $! "Installing Flatpak"; then
+        if command -v flatpak &>/dev/null; then
+            msg_ok "Flatpak installed (Flathub added)"
+            return 0
+        fi
+    fi
+
+    # Flatpak failure is not fatal, just warn
+    msg_fail "Flatpak installation failed (non-fatal, continuing)"
+    return 0
 }
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -398,14 +562,24 @@ install_chezmoi() {
 
 print_banner() {
     cat << 'EOF'
-    __  __                               
-   / / / /___  ____ ___  ___  __  ______ 
+    __  __
+   / / / /___  ____ ___  ___  __  ______
   / /_/ / __ \/ __ `__ \/ _ \/ / / / __ \
  / __  / /_/ / / / / / /  __/ /_/ / /_/ /
-/_/ /_/\____/_/ /_/ /_/\___/\__,_/ .___/ 
-                                /_/      
+/_/ /_/\____/_/ /_/ /_/\___/\__,_/ .___/
+                                /_/
 EOF
     printf "Bootstrap v%s\n\n" "$SCRIPT_VERSION"
+}
+
+print_summary() {
+    printf "\n"
+    printf "%s━━━ Environment ━━━%s\n" "$C_CYAN" "$C_RESET"
+    printf "  HOMEUP_OS      = %s\n" "$HOMEUP_OS"
+    printf "  HOMEUP_ARCH    = %s\n" "$HOMEUP_ARCH"
+    printf "  HOMEUP_DISTRO  = %s\n" "$HOMEUP_DISTRO"
+    printf "  HOMEUP_MODE    = %s\n" "$HOMEUP_MODE"
+    printf "\n"
 }
 
 main() {
@@ -415,16 +589,19 @@ main() {
     setup_sudo
     detect_system
 
-    if [[ "$OS" == "Darwin" ]]; then
+    if [[ "$_OS" == "darwin" ]]; then
         check_xcode_tools
-    elif [[ "$OS" == "Linux" ]]; then
+    elif [[ "$_OS" == "linux" ]]; then
         install_linux_deps
+        install_flatpak
     fi
 
     install_brew
     install_chezmoi
 
-    printf "\n%sBootstrap complete.%s\n" "$C_GREEN" "$C_RESET"
+    print_summary
+
+    printf "%sBootstrap complete.%s\n" "$C_GREEN" "$C_RESET"
     printf "Restart your shell or run: source %s\n\n" "$BREW_SHELLENV_FILE"
 
     # Optional: Initialize dotfiles if DOTFILES_REPO is set
