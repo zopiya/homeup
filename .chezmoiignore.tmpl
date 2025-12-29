@@ -1,34 +1,43 @@
+# ------------------------------------------------------------
+# OS / Filesystem junk
+# ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+**/.DS_Store
+
+# ------------------------------------------------------------
+# Editor / IDE junk
+# ------------------------------------------------------------
+.vscode
+.idea
+*.swp
+*.swo
+*.tmp
+*.bak
+
+# ------------------------------------------------------------
+# Chezmoi runtime / internal state
+# ------------------------------------------------------------
+.chezmoidata
+.chezmoitemplates
+.chezmoiversion
+
+# ------------------------------------------------------------
+# VCS / CI (repo-level, not dotfiles)
+# ------------------------------------------------------------
+.git
+.github
+
+# ------------------------------------------------------------
+# Docs & misc meta
+# ------------------------------------------------------------
+docs
 README.md
-bootstrap.sh
-data/**
 
-{{ if (get . "headless") }}
-# Ignore GUI related files in headless mode
-Library/**
-Applications/**
-.config/Code/**
-{{ end }}
-
-{{ if ne .chezmoi.os "darwin" }}
-# Ignore macOS specific files
-Library/**
-.config/iterm2/**
-{{ end }}
-
-{{ if ne .chezmoi.os "linux" }}
-# Ignore Linux specific files
-.config/systemd/**
-{{ end }}
-
-{{ if not (get . "install_security") }}
-.gnupg/**
-.config/security/**
-{{ end }}
-
-{{ if not (get . "install_mise") }}
-.config/mise/**
-{{ end }}
-
-{{ if not (get . "install_maintenance") }}
-.config/topgrade.toml
-{{ end }}
+# ------------------------------------------------------------
+# Logs / caches / generated
+# ------------------------------------------------------------
+*.log
+*.cache
+*.out
+*.pid
