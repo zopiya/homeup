@@ -1,53 +1,127 @@
+# ------------------------------------------------------------------------------
+# Core Git Configuration
+# ------------------------------------------------------------------------------
+
 [include]
-    path = {{ .chezmoi.homeDir }}/.config/git/identity.gitconfig
-    path = {{ .chezmoi.homeDir }}/.config/git/aliases.gitconfig
+    # Load identity and aliases from separate files
+    path = ~/.config/git/identity.gitconfig
+    path = ~/.config/git/aliases.gitconfig
 
 [core]
     editor = nvim
+    # Use delta for fancy diffs
     pager = delta
-    autocrlf = input
+
+    # Line Endings:
+    # 'input' = Convert CRLF to LF on commit, keep LF on checkout.
+# Best for cross-platform projects if you are on macOS/Linux.
+autocrlf = input
     safecrlf = true
     eol = lf
+
+    # Optimize performance for filesystem operations
+    # fsmonitor = true
+
 {{- if eq .chezmoi.os "darwin" }}
+    # macOS Specific: Handle filename normalization (NFC vs NFD)
     precomposeunicode = true
     ignorecase = true
 {{- end }}
 
+# ------------------------------------------------------------------------------
+# Network & Credentials
+# ------------------------------------------------------------------------------
 [credential]
 {{- if eq .chezmoi.os "darwin" }}
     helper = osxkeychain
 {{- else }}
-    helper = cache --timeout=3600
+    # Cache credentials for 24 hours (86400 seconds) on Linux for convenience
+    helper = cache --timeout=86400
 {{- end }}
 
-[gpg]
-    program = gpg
+[protocol]
+ # Use Git wire protocol v2 (faster fetching)
+    version = 2
 
+# Force SSH for GitHub/GitLab to use your optimized ~/.ssh/config
+# This replaces 'https://' with 'git@' automatically.
+[url "git@github.com:"]
+    insteadOf = https://github.com/
+[url "git@gitlab.com:"]
+    insteadOf = https://gitlab.com/
+
+# ------------------------------------------------------------------------------
+# Diff & Merge Tool (Delta)
+# ------------------------------------------------------------------------------
 [interactive]
     diffFilter = delta --color-only
 
 [delta]
-    navigate = true
-    light = false
+    navigate = true    # use n/N to jump between changes
+    light = false      # set to true if you use a light terminal theme
     side-by-side = true
+    line-numbers = true
+    # Visual styling
+    syntax-theme = Dracula
+    plus-style = "syntax #012800"
+ minus-style = "syntax #340001"
 
 [merge]
-    conflictstyle = diff3
+    # zdiff3 shows the common ancestor but compresses common lines.
+# Much easier to resolve conflicts than standard diff3.
+    conflictstyle = zdiff3
 
 [diff]
     colorMoved = default
 
+# ------------------------------------------------------------------------------
+# Workflow Defaults
+# ------------------------------------------------------------------------------
 [init]
     defaultBranch = main
 
 [pull]
+    # Avoid unnecessary merge commits on pull
     rebase = true
 
 [push]
+    # Automatically set upstream branch on first push
     autoSetupRemote = true
+    # safer: only push the current branch to its upstream
+    default = simple
 
+# ------------------------------------------------------------------------------
+# Signing & Security (Primary: GPG)
+# ------------------------------------------------------------------------------
 [commit]
     gpgsign = true
+    # Show diff statistics in the commit message template
+ verbose = true
 
 [tag]
     gpgsign = true
+
+[gpg]
+    # Default to GPG (OpenPGP) behavior
+    format = openpgp
+
+{{- if eq .chezmoi.os "darwin" }}
+    # macOS: Explicit path to fix "signing failed" in GUI apps (SourceTree, VS Code, etc.)
+    {{- if eq .chezmoi.arch "arm64" }}
+    program = /opt/homebrew/bin/gpg
+    {{- else }}
+    program = /usr/local/bin/gpg
+    {{- end }}
+{{- else }}
+    # Linux: Default system path
+    program = gpg
+{{- end }}
+
+# --- FUTURE PROOFING: SSH SIGNING BACKUP ---
+# If you ever want to switch to SSH signing, uncomment these lines
+# and comment out the [gpg] block above.
+# [gpg]
+#     format = ssh
+# [gpg "ssh"]
+#     program = ssh-keygen
+#     allowedSignersFile = ~/.ssh/allowed_signers

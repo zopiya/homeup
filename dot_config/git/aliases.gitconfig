@@ -1,27 +1,44 @@
 [alias]
-    # Basic Shortcuts
+    # --- Basic Shortcuts ---
     s = status
     st = status
     co = checkout
+    sw = switch   # Modern replacement for checkout (branch)
+    rs = restore  # Modern replacement for checkout (file)
     br = branch
     ci = commit
     a = add
     d = diff
     ds = diff --staged
 
-    # Common Workflows
+    # --- Common Workflows ---
     cm = commit -m
     aa = add .
-    amend = commit --amend --no-edit
-    unstage = reset HEAD --
-    undo = reset HEAD~1 --mixed
+    # Amend the last commit (change message)
+    amend = commit --amend
 
-    # Sync
+    # Amend the last commit (keep message, just add staged files)
+    oops = commit --amend --no-edit
+
+    # Resetting
+    unstage = reset HEAD --
+    undo = reset HEAD~1 --mixed  # Go back 1 commit, keep changes in working dir
+    wipe = reset --hard HEAD     # DANGER: Discard all local changes
+
+    # --- Syncing ---
     pl = pull
     ps = push
-    pf = push --force-with-lease
+    pf = push --force-with-lease # Safer than --force
 
-    # Logs
+    # --- Logging ---
     l = log --oneline
     last = log -1 HEAD
+    # A beautiful graph view
     lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+
+    # --- Utility ---
+    # CD to the root of the repository
+    root = rev-parse --show-toplevel
+
+    # Prune remote-tracking branches that no longer exist on remote
+    cleanup = fetch --prune

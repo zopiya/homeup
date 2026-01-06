@@ -1,8 +1,17 @@
 [user]
-    name = "zopiya"
-    email = "i@zopiya.com"
+    # Pulled from chezmoi.toml [data] section
+    name = {{ .name }}
+    email = {{ .email }}
 
-# [user]
-    # GPG Signing Key
-    # Replace with your actual key ID
-    # signingkey = ""
+    # --------------------------------------------------------------------------
+    # GPG Signing (Primary)
+    # --------------------------------------------------------------------------
+    # Explicitly set the GPG key ID from chezmoi data.
+    # This ensures stability even if you have multiple keys.
+    signingkey = {{ .signingkey }}
+
+    # --------------------------------------------------------------------------
+    # SSH Signing (Backup/Future)
+    # --------------------------------------------------------------------------
+    # If switching to SSH signing, replace the above with:
+    # signingkey = ~/.ssh/id_ed25519_sk.pub
