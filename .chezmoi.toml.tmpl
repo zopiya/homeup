@@ -1,15 +1,47 @@
-{{- /* ------------------------------------------------------------------ */ -}}
-{{- /* Homeup Configuration (Zero-Interaction)                            */ -}}
-{{- /* ------------------------------------------------------------------ */ -}}
+# Managed by chezmoi
+# ------------------------------------------------------------------------------
+# Personal Chezmoi Configuration
+# ------------------------------------------------------------------------------
 
-[update]
-    apply = false
-    method = "brew"
+# 1. Source Directory
+# Explicitly define where source files are kept.
+sourceDir = "{{ .chezmoi.homeDir }}/.local/share/chezmoi"
 
+# 2. Global Variables (Data)
+# These variables are available in all your templates (e.g., {{ .email }}).
+# This allows you to share dotfiles while keeping personal data dynamic.
+[data]
+    name = "zopiya"
+    email = "i@zopiya.com"
+    signingkey = "4520C731F79D0C82"
+    # Optional: logic flag for templates (e.g., {{ if eq .type "personal" }})
+    # type = "personal"
+
+# 3. Editor Settings
+# Ensure 'chezmoi edit' uses Neovim instead of the system default (nano/vi).
+[edit]
+    command = "nvim"
+
+# 4. Diff Configuration
+# Use 'delta' for syntax-highlighted, side-by-side diffs.
 [diff]
     command = "delta"
     pager = "delta"
+    # Exclude large or binary files from diff output to reduce noise.
+    exclude = ["scripts/**", "externals/**"]
 
+# 5. Merge Configuration
+# Use Neovim as the merge tool to resolve conflicts.
 [merge]
     command = "nvim"
-    args = ["-d", "{{ `{{ .Destination }}` }}", "{{ `{{ .Source }}` }}", "{{ `{{ .Target }}` }}"]
+    # Opens Neovim in diff mode with 3 windows:
+    # Destination (Local) | Source (Remote) | Target (Final Result)
+    args = ["-d", "{{ .Destination }}", "{{ .Source }}", "{{ .Target }}"]
+
+# 6. Update Policy
+[update]
+    # Safety First: Do not automatically apply changes after pulling.
+    # You must run 'chezmoi apply' manually to verify changes first.
+    apply = false
+    # Use Homebrew to manage external packages defined in .chezmoiexternal.toml
+    method = "brew"
