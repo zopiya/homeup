@@ -1,23 +1,63 @@
+{{- /* --------------------------------------------------------------------------------
+Logic: Profile Detection
+Default to "workstation" if .profile is not set (Safety net)
+--------------------------------------------------------------------------------
+*/ -}}
+{{- $profile := .profile | default "workstation" -}}
+
+# Managed by chezmoi
+# Profile: {{ $profile }}
+# ------------------------------------------------------------------------------
+# Optimized SSH Configuration (CA + YubiKey FIDO + Multiplexing)
+# ------------------------------------------------------------------------------
+
+# 1. Local Extensions
+# Include local configuration if it exists (e.g., for temporary work hosts).
+Include ~/.ssh/config.local
+
+# 2. Service Optimizations (Specific overrides Global)
+# These MUST come before "Host *" to override the default User.
+Host github.com gitlab.com bitbucket.org
+    User git
+    # Less aggressive keepalive for git operations, but ensures stability.
+    ServerAliveInterval 30
+    # IdentityFile ~/.ssh/id_ed25519_sk  # Optional: Explicitly use your FIDO key
+
+# 3. Global Settings
 Host *
-  # Keep connection alive (send heartbeat every 60s)
-  ServerAliveInterval 60
-  ServerAliveCountMax 30
-
-  # Connection multiplexing (accelerate subsequent connections)
-  ControlMaster auto
-  ControlPath ~/.ssh/control-%C
-  ControlPersist 4h
-
-  # Automatically add key to agent
-  AddKeysToAgent yes
-
-{{- if eq .chezmoi.os "darwin" }}
-  # macOS specific: Store private key passphrase in Keychain
-  UseKeychain yes
+    # --- Identity & Auth ---
+{{- if eq $profile "workstation" }}
+    # [Workstation Mode]
+    # Default to 'zopiya' (signed user) for all your personal servers.
+    User zopiya
+    # Allow forwarding your YubiKey agent to remote hosts (crucial for Codespaces/Bastions)
+    ForwardAgent yes
+    # Automatically add keys to agent
+    AddKeysToAgent yes
+{{- else }}
+    # [Server/Codespace Mode]
+    # Do not force 'zopiya' user broadly, respect system default or specific commands.
+    # Do NOT forward agent further for security.
+    ForwardAgent no
 {{- end }}
 
-  # GitHub optimization (prevent timeout)
-  Host github.com
-    User git
-    Hostname github.com
-    ServerAliveInterval 30
+    # --- Connection KeepAlive ---
+    # Send a heartbeat every 60 seconds. Disconnect after 30 failed attempts.
+    ServerAliveInterval 60
+    ServerAliveCountMax 30
+
+    # --- Connection Multiplexing ---
+    # Accelerate subsequent connections by reusing the existing master connection.
+    ControlMaster auto
+    # Store sockets in the directory managed by chezmoi (private_sockets -> ~/.ssh/sockets)
+    ControlPath ~/.ssh/sockets/%C
+    ControlPersist 4h
+
+    # --- Performance ---
+    Compression yes
+
+{{- if eq .chezmoi.os "darwin" }}
+    # --- macOS Specific ---
+    IgnoreUnknown UseKeychain
+    UseKeychain yes
+{{- end }}
