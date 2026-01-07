@@ -176,8 +176,9 @@ jobs:
         run: |
           sudo useradd -m -s /bin/bash testuser
           echo "testuser ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/testuser
-          sudo chmod +x bootstrap.sh
-          sudo chown -R testuser:testuser $GITHUB_WORKSPACE
+          sudo cp -r $GITHUB_WORKSPACE /tmp/dotfiles
+          sudo chown -R testuser:testuser /tmp/dotfiles
+          sudo chmod +x /tmp/dotfiles/bootstrap.sh
 
       - name: Run bootstrap.sh
         id: bootstrap
@@ -187,7 +188,7 @@ jobs:
             export HOMEUP_PROFILE=${{ matrix.profile }}
             export NONINTERACTIVE=1
             export CI=true
-            cd $GITHUB_WORKSPACE
+            cd /tmp/dotfiles
             ./bootstrap.sh -p ${{ matrix.profile }} -y
           "
 
@@ -210,7 +211,7 @@ jobs:
           sudo -u testuser bash -c "
             export HOMEUP_PROFILE=${{ matrix.profile }}
             source \"\$HOME/.config/homebrew/shellenv\" 2>/dev/null || eval \"\$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\"
-            cd $GITHUB_WORKSPACE
+            cd /tmp/dotfiles
             chezmoi init --apply --source .
           "
 
