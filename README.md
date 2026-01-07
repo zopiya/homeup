@@ -1,60 +1,100 @@
 # Homeup
 
-**Automated, opinionated dotfiles management.**
-Powered by [chezmoi](https://www.chezmoi.io/) and [Homebrew](https://brew.sh/).
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![chezmoi](https://img.shields.io/badge/powered%20by-chezmoi-blue)](https://www.chezmoi.io/)
 
-## Philosophy
+Opinionated dotfiles for macOS & Linux with multi-profile support.
 
-*   **Zero Interaction**: Run one command and walk away. No prompts, no questions.
-*   **Cross-Platform**: Works on macOS and Linux (Debian, Fedora, Arch, Alpine).
-*   **Adaptive**:
-    *   **macOS**: Installs everything (CLI + GUI Apps + Fonts).
-    *   **Linux Desktop**: Installs CLI tools + Flatpak GUI Apps.
-    *   **Linux Server (Headless)**: Installs CLI tools only (auto-detects absence of GUI).
+## Features
 
-## Installation
+- **Multi-Profile** - Workstation, Codespace, Server configurations
+- **Cross-Platform** - macOS and Linux (Debian, Fedora, Arch, Alpine)
+- **Secure** - Profile-based secret isolation, no private keys in repo
+- **YubiKey-Ready** - GPG signing and SSH authentication support
+- **One Command** - Fully automated bootstrap process
 
-### One-Liner
+## Quick Start
 
 ```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/bootstrap.sh)"
+# Interactive (auto-detects profile)
+curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/bootstrap.sh | bash
+
+# Specify profile
+curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/bootstrap.sh | bash -s -- -p workstation -r zopiya/homeup -a
 ```
 
-### Manual Install
+### Manual Installation
 
-1.  **Clone & Apply**:
-    ```bash
-    chezmoi init --apply https://github.com/zopiya/homeup.git
-    ```
+```bash
+# 1. Install chezmoi and initialize
+chezmoi init https://github.com/zopiya/homeup.git
 
-2.  **Verify**:
-    ```bash
-    chezmoi verify
-    ```
+# 2. Review changes
+chezmoi diff
 
-## What's Included?
+# 3. Apply
+chezmoi apply
+```
 
-*   **Core Tools**: `zsh`, `starship`, `fzf`, `bat`, `eza`, `ripgrep`, `jq`, `yq`.
-*   **Development**: `neovim`, `tmux`, `git`, `gh`, `lazygit`.
-*   **Runtimes**: `mise` (managing Node.js, Python, etc.), `uv`, `pnpm`.
-*   **Security**: `gnupg`, `age`, `ssh` config.
-*   **GUI Apps (macOS/Linux)**: Browsers, VSCode, 1Password, Obsidian, etc.
+## Profiles
+
+| Profile | Trust Level | Use Case | Features |
+|---------|-------------|----------|----------|
+| **workstation** | Full | Personal machine | GPG signing, YubiKey, GUI apps, all packages |
+| **codespace** | Borrowed | Dev containers | SSH forwarding, CLI tools, no GPG |
+| **server** | Zero | Production/CI | Minimal packages, no private keys |
+
+Set profile via environment variable:
+```bash
+export HOMEUP_PROFILE=workstation
+```
+
+## What's Included
+
+| Category | Tools |
+|----------|-------|
+| Shell | zsh, starship, sheldon, fzf, atuin, zoxide |
+| Editor | neovim, tmux, zellij |
+| Git | git, gh, lazygit, delta |
+| Modern Unix | bat, eza, fd, ripgrep, jq, yq, dust |
+| Runtime | mise, uv, pnpm |
+| Security | gnupg, age, 1password-cli, ykman |
+
+## Structure
+
+```
+homeup/
+├── bootstrap.sh                 # Layer 0: Environment setup
+├── .chezmoiscripts/             # Layer 1: Package installation
+├── packages/
+│   ├── Brewfile.core            # Shared CLI tools (all profiles)
+│   ├── Brewfile.macos           # macOS workstation
+│   ├── Brewfile.linux           # Linux workstation
+│   ├── Brewfile.codespace       # Codespace additions
+│   ├── Brewfile.server          # Server additions
+│   └── flatpak.txt              # Linux GUI apps
+├── dot_config/
+│   ├── git/                     # Git configuration
+│   ├── zsh/                     # Zsh configuration
+│   ├── nvim/                    # Neovim configuration
+│   └── security/                # GPG, 1Password, YubiKey
+├── private_dot_ssh/             # SSH configuration
+└── private_dot_gnupg/           # GPG configuration
+```
 
 ## Customization
 
-*   **Packages**: Edit `packages/Brewfile.macos` or `packages/Brewfile.linux`.
-*   **Flatpaks**: Edit `packages/flatpak.txt`.
-*   **Git Identity**: Edit `dot_config/git/identity.gitconfig.tmpl`.
+```bash
+# Edit packages
+chezmoi edit packages/Brewfile.macos
 
-## Directory Structure
+# Edit git identity
+chezmoi edit dot_config/git/identity.gitconfig.tmpl
 
-```text
-├── bootstrap.sh              # Initial setup script
-├── .chezmoiscripts/          # Installation logic (Brew, Flatpak, Shell)
-├── packages/                 # Package lists
-│   ├── Brewfile.macos        # macOS packages (CLI + GUI)
-│   ├── Brewfile.linux        # Linux packages (CLI only)
-│   └── flatpak.txt           # Linux GUI applications
-├── dot_config/               # Config files (nvim, zsh, git, etc.)
-└── .chezmoi.toml.tmpl        # System detection logic
+# Apply changes
+chezmoi apply
 ```
+
+## License
+
+MIT

@@ -1,0 +1,216 @@
+# Homeup Profile Guide
+
+This document explains the multi-profile architecture of Homeup and how to configure your environment.
+
+## Quick Start
+
+```bash
+# Interactive mode (auto-detect profile)
+./bootstrap.sh
+
+# Specify profile
+./bootstrap.sh -p workstation
+
+# New machine one-liner (recommended)
+./bootstrap.sh -p workstation -r zopiya/homeup -a
+
+# CI/Server automation (non-interactive)
+./bootstrap.sh -p server -r zopiya/homeup -a -y
+
+# Remote execution
+curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/bootstrap.sh | bash -s -- -p workstation -r zopiya/homeup -a
+```
+
+## CLI Options
+
+```
+Usage: ./bootstrap.sh [OPTIONS]
+
+Options:
+  -p, --profile <name>    Profile: workstation, codespace, server
+  -r, --repo <repo>       Dotfiles repo (e.g., user/repo or full URL)
+  -a, --apply             Auto-apply chezmoi after init
+  -y, --yes               Non-interactive mode (skip confirmations)
+  -h, --help              Show help
+  -v, --version           Show version
+```
+
+## The Three Profiles
+
+### Workstation (Default)
+
+**Use for:** MacBook, Linux Desktop, Primary development machine
+
+**Trust Model:** Full trust - this machine holds your private keys
+
+| Feature | Status |
+|---------|--------|
+| YubiKey / SSH Keys | Local |
+| GPG Signing | Enabled |
+| SSH Agent Forwarding | To remotes |
+| GUI Applications | Installed |
+| Full Package Set | Yes |
+| 1Password CLI | Yes |
+
+**Typical Setup:**
+```bash
+# No special config needed - this is the default
+chezmoi init zopiya/homeup --apply
+```
+
+---
+
+### Codespace
+
+**Use for:** GitHub Codespaces, VS Code Dev Containers, Cloud IDEs
+
+**Trust Model:** Borrowed trust - uses SSH Agent Forwarding from host
+
+| Feature | Status |
+|---------|--------|
+| YubiKey / SSH Keys | Forwarded from host |
+| GPG Signing | Disabled (enable manually if needed) |
+| SSH Agent Forwarding | From host machine |
+| GUI Applications | Not installed |
+| Package Set | Core CLI + Dev tools |
+| 1Password CLI | Optional |
+
+**Typical Setup:**
+```bash
+# Environment variable is usually auto-detected in Codespaces
+# Or set explicitly:
+export HOMEUP_PROFILE=codespace
+chezmoi init zopiya/homeup --apply
+```
+
+**To enable GPG signing manually:**
+```bash
+git config --global commit.gpgsign true
+# Then configure GPG agent forwarding or local keys
+```
+
+---
+
+### Server
+
+**Use for:** VPS, Production servers, CI/CD runners
+
+**Trust Model:** Zero trust - no private keys stored, minimal footprint
+
+| Feature | Status |
+|---------|--------|
+| YubiKey / SSH Keys | None (CA-based auth) |
+| GPG Signing | Disabled |
+| SSH Agent Forwarding | Disabled |
+| GUI Applications | Not installed |
+| Package Set | Minimal (git, vim, tmux) |
+| 1Password CLI | No |
+
+**Typical Setup:**
+```bash
+export HOMEUP_PROFILE=server
+chezmoi init zopiya/homeup --apply
+```
+
+---
+
+## Profile Detection
+
+During bootstrap, the profile is determined in this order:
+
+1. **CLI Argument** (highest priority)
+   ```bash
+   ./bootstrap.sh --profile workstation
+   ```
+
+2. **Environment Variable**
+   ```bash
+   export HOMEUP_PROFILE=codespace
+   ./bootstrap.sh
+   ```
+
+3. **Auto-Detection**
+   - `CODESPACES` or `REMOTE_CONTAINERS` env → `codespace`
+   - `SSH_CONNECTION` without `DISPLAY` → `server`
+   - Otherwise → `workstation`
+
+4. **Interactive Confirmation** (3-second timeout)
+   - Shows detected profile
+   - Allows manual override
+   - Skipped with `--yes` flag
+   - Auto-confirms if no input
+
+## Changing Profile After Installation
+
+Edit your chezmoi config:
+
+```bash
+chezmoi edit-config
+```
+
+Change the profile value:
+```toml
+[data]
+    profile = "server"  # Change to desired profile
+```
+
+Re-apply:
+```bash
+chezmoi apply
+```
+
+## Profile Comparison Matrix
+
+| Component | Workstation | Codespace | Server |
+|-----------|:-----------:|:---------:|:------:|
+| Shell (zsh + plugins) | Full | Full | Full |
+| Starship prompt | Yes | Yes | Yes |
+| Neovim | Full | Full | Full |
+| Tmux | Full | Full | Full |
+| Git (with delta) | Yes | Yes | Yes |
+| GPG signing | Yes | No | No |
+| SSH keys | Local | Forwarded | None |
+| 1Password CLI | Yes | Optional | No |
+| GUI apps | Yes | No | No |
+| Homebrew casks | Yes | No | No |
+| Flatpak (Linux) | Yes | No | No |
+
+## Security Considerations
+
+### Workstation
+- Store YubiKey/hardware keys securely
+- Enable SSH agent confirmation (`AddKeysToAgent confirm`)
+- Use short GPG cache timeouts
+
+### Codespace
+- Verify SSH agent forwarding works: `ssh-add -l`
+- Don't store secrets in the container
+- Use environment variables for sensitive data
+
+### Server
+- Rely on SSH CA for authentication
+- No private keys should exist on the server
+- Audit `authorized_keys` regularly
+
+## Troubleshooting
+
+### Check Current Profile
+```bash
+chezmoi data | grep profile
+```
+
+### Verify Template Rendering
+```bash
+chezmoi diff
+chezmoi execute-template '{{ .profile }}'
+```
+
+### Force Re-initialization
+```bash
+chezmoi init --force zopiya/homeup
+chezmoi apply
+```
+
+---
+
+*Generated by Loop X - Multi-Profile Architecture v1.0*
