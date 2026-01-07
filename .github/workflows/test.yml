@@ -5,16 +5,19 @@
 #
 # Matrix:
 #   - macOS + workstation
-#   - Linux + workstation
-#   - Linux + codespace
-#   - Linux + server
+#   - Linux (Ubuntu) + workstation
+#   - Linux (Ubuntu) + codespace
+#   - Linux (Ubuntu) + server
+#   - Fedora + workstation
+#   - Fedora + codespace
+#   - Fedora + server
 # ==============================================================================
 
 name: Test
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -32,10 +35,16 @@ on:
           - codespace
           - server
 
+# Limit concurrent runs per branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   NONINTERACTIVE: 1
   HOMEBREW_NO_AUTO_UPDATE: 1
   HOMEBREW_NO_ANALYTICS: 1
+  CI: true
 
 jobs:
   # ----------------------------------------------------------------------------
@@ -44,19 +53,34 @@ jobs:
   test-macos:
     name: macOS / workstation
     runs-on: macos-latest
-    if: ${{ github.event.inputs.profile == '' || github.event.inputs.profile == 'workstation' }}
-    timeout-minutes: 30
+    if: ${{ !github.event.inputs.profile || github.event.inputs.profile == 'workstation' }}
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
+        id: checkout
         uses: actions/checkout@v4
 
       - name: Install Bash 5+
+        id: install_bash
         run: |
           brew install bash
           echo "$(brew --prefix)/bin" >> $GITHUB_PATH
 
+      - name: Cache Homebrew
+        id: cache_homebrew
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            ~/.config/homebrew
+          key: ${{ runner.os }}-homebrew-${{ hashFiles('bootstrap.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-homebrew-
+
       - name: Run bootstrap.sh
+        id: bootstrap
+        if: steps.checkout.outcome == 'success'
         run: |
           chmod +x bootstrap.sh
           ./bootstrap.sh -p workstation -y
@@ -64,6 +88,8 @@ jobs:
           HOMEUP_PROFILE: workstation
 
       - name: Verify Bootstrap
+        id: verify_bootstrap
+        if: steps.bootstrap.outcome == 'success'
         run: |
           source "$HOME/.config/homebrew/shellenv"
           echo "--- Homebrew ---"
@@ -72,6 +98,8 @@ jobs:
           chezmoi --version
 
       - name: Apply Chezmoi
+        id: apply_chezmoi
+        if: steps.verify_bootstrap.outcome == 'success'
         run: |
           source "$HOME/.config/homebrew/shellenv"
           chezmoi init --apply --source .
@@ -79,6 +107,8 @@ jobs:
           HOMEUP_PROFILE: workstation
 
       - name: Verify Workstation Profile
+        id: verify_profile
+        if: steps.apply_chezmoi.outcome == 'success'
         run: |
           source "$HOME/.config/homebrew/shellenv"
           export PATH="$HOME/.local/bin:$PATH"
@@ -114,8 +144,7 @@ jobs:
   test-linux:
     name: Linux / ${{ matrix.profile }}
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.profile == '' || github.event.inputs.profile == matrix.profile }}
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     strategy:
       fail-fast: false
@@ -124,15 +153,34 @@ jobs:
 
     steps:
       - name: Checkout
+        id: checkout
+        if: ${{ !github.event.inputs.profile || github.event.inputs.profile == matrix.profile }}
         uses: actions/checkout@v4
 
+      - name: Cache Homebrew
+        id: cache_homebrew
+        if: steps.checkout.outcome == 'success'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/linuxbrew/.linuxbrew
+            ~/.cache/Homebrew
+          key: ${{ runner.os }}-homebrew-${{ matrix.profile }}-${{ hashFiles('bootstrap.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-homebrew-${{ matrix.profile }}-
+            ${{ runner.os }}-homebrew-
+
       - name: Setup Test User
+        id: setup_user
+        if: steps.checkout.outcome == 'success'
         run: |
           sudo useradd -m -s /bin/bash testuser
           echo "testuser ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/testuser
           sudo chown -R testuser:testuser $GITHUB_WORKSPACE
 
       - name: Run bootstrap.sh
+        id: bootstrap
+        if: steps.setup_user.outcome == 'success'
         run: |
           chmod +x bootstrap.sh
           sudo -u testuser bash -c "
@@ -144,6 +192,8 @@ jobs:
           "
 
       - name: Verify Bootstrap
+        id: verify_bootstrap
+        if: steps.bootstrap.outcome == 'success'
         run: |
           sudo -u testuser bash -c '
             source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -154,6 +204,8 @@ jobs:
           '
 
       - name: Apply Chezmoi
+        id: apply_chezmoi
+        if: steps.verify_bootstrap.outcome == 'success'
         run: |
           sudo -u testuser bash -c "
             export HOMEUP_PROFILE=${{ matrix.profile }}
@@ -163,6 +215,8 @@ jobs:
           "
 
       - name: Verify Profile - Core
+        id: verify_core
+        if: steps.apply_chezmoi.outcome == 'success'
         run: |
           sudo -u testuser bash -c '
             source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -188,7 +242,7 @@ jobs:
           '
 
       - name: Verify Profile - Workstation
-        if: matrix.profile == 'workstation'
+        if: ${{ matrix.profile == 'workstation' && steps.verify_core.outcome == 'success' }}
         run: |
           sudo -u testuser bash -c '
             source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -216,7 +270,7 @@ jobs:
           '
 
       - name: Verify Profile - Codespace
-        if: matrix.profile == 'codespace'
+        if: ${{ matrix.profile == 'codespace' && steps.verify_core.outcome == 'success' }}
         run: |
           sudo -u testuser bash -c '
             source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -238,7 +292,207 @@ jobs:
           '
 
       - name: Verify Profile - Server
-        if: matrix.profile == 'server'
+        if: ${{ matrix.profile == 'server' && steps.verify_core.outcome == 'success' }}
+        run: |
+          sudo -u testuser bash -c '
+            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+            echo "=== Verifying Server Profile ==="
+
+            # GPG signing disabled
+            echo "--- GPG Signing ---"
+            test -f "$HOME/.config/git/config" || { echo "FAIL: git config missing"; exit 1; }
+            grep -q "gpgsign = false" "$HOME/.config/git/config" || { echo "FAIL: GPG signing should be disabled"; exit 1; }
+            echo "OK: GPG signing disabled"
+
+            # SSH config with ForwardAgent no
+            echo "--- SSH Config ---"
+            grep -q "ForwardAgent no" "$HOME/.ssh/config" || { echo "FAIL: ForwardAgent should be disabled"; exit 1; }
+            echo "OK: SSH ForwardAgent disabled"
+
+            # 1Password and YubiKey configs should NOT exist
+            echo "--- Security Exclusions ---"
+            test ! -f "$HOME/.config/security/1password.inc" || { echo "FAIL: 1password.inc should not exist"; exit 1; }
+            test ! -f "$HOME/.config/security/yubikey.inc" || { echo "FAIL: yubikey.inc should not exist"; exit 1; }
+            echo "OK: Security configs properly excluded"
+
+            echo "=== Server Profile Verified ==="
+          '
+
+  # ----------------------------------------------------------------------------
+  # Fedora Matrix (workstation, codespace, server)
+  # ----------------------------------------------------------------------------
+  test-fedora:
+    name: Fedora / ${{ matrix.profile }}
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+      options: --user root
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [workstation, codespace, server]
+
+    steps:
+      - name: Install Dependencies
+        id: install_deps
+        if: ${{ !github.event.inputs.profile || github.event.inputs.profile == matrix.profile }}
+        run: |
+          dnf install -y \
+            git \
+            sudo \
+            curl \
+            wget \
+            which \
+            findutils \
+            tar \
+            gzip \
+            procps-ng \
+            hostname
+
+      - name: Checkout
+        id: checkout
+        if: steps.install_deps.outcome == 'success'
+        uses: actions/checkout@v4
+
+      - name: Cache Homebrew
+        id: cache_homebrew
+        if: steps.checkout.outcome == 'success'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/linuxbrew/.linuxbrew
+            ~/.cache/Homebrew
+          key: fedora-homebrew-${{ matrix.profile }}-${{ hashFiles('bootstrap.sh') }}
+          restore-keys: |
+            fedora-homebrew-${{ matrix.profile }}-
+            fedora-homebrew-
+
+      - name: Setup Test User
+        id: setup_user
+        if: steps.checkout.outcome == 'success'
+        run: |
+          useradd -m -s /bin/bash testuser
+          echo "testuser ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/testuser
+          chown -R testuser:testuser $GITHUB_WORKSPACE
+
+      - name: Run bootstrap.sh
+        id: bootstrap
+        if: steps.setup_user.outcome == 'success'
+        run: |
+          chmod +x bootstrap.sh
+          sudo -u testuser bash -c "
+            export HOMEUP_PROFILE=${{ matrix.profile }}
+            export NONINTERACTIVE=1
+            export CI=true
+            cd $GITHUB_WORKSPACE
+            ./bootstrap.sh -p ${{ matrix.profile }} -y
+          "
+
+      - name: Verify Bootstrap
+        id: verify_bootstrap
+        if: steps.bootstrap.outcome == 'success'
+        run: |
+          sudo -u testuser bash -c '
+            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            echo "--- Homebrew ---"
+            brew --version
+            echo "--- Chezmoi ---"
+            chezmoi --version
+          '
+
+      - name: Apply Chezmoi
+        id: apply_chezmoi
+        if: steps.verify_bootstrap.outcome == 'success'
+        run: |
+          sudo -u testuser bash -c "
+            export HOMEUP_PROFILE=${{ matrix.profile }}
+            source \"\$HOME/.config/homebrew/shellenv\" 2>/dev/null || eval \"\$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\"
+            cd $GITHUB_WORKSPACE
+            chezmoi init --apply --source .
+          "
+
+      - name: Verify Profile - Core
+        id: verify_core
+        if: steps.apply_chezmoi.outcome == 'success'
+        run: |
+          sudo -u testuser bash -c '
+            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            export PATH="$HOME/.local/bin:$PATH"
+
+            echo "=== Verifying Core (All Profiles) ==="
+
+            # Config files
+            echo "--- Config Files ---"
+            test -f "$HOME/.config/starship.toml" || { echo "FAIL: starship.toml"; exit 1; }
+            test -f "$HOME/.config/zsh/.zshrc" || test -f "$HOME/.zshrc" || { echo "FAIL: zshrc"; exit 1; }
+            echo "OK: Core config files present"
+
+            # Core tools
+            echo "--- Core Tools ---"
+            command -v zsh || { echo "FAIL: zsh"; exit 1; }
+            command -v starship || { echo "FAIL: starship"; exit 1; }
+            command -v nvim || { echo "FAIL: nvim"; exit 1; }
+            command -v bat || { echo "FAIL: bat"; exit 1; }
+            command -v eza || { echo "FAIL: eza"; exit 1; }
+            command -v fzf || { echo "FAIL: fzf"; exit 1; }
+            echo "OK: Core tools installed"
+          '
+
+      - name: Verify Profile - Workstation
+        if: ${{ matrix.profile == 'workstation' && (!github.event.inputs.profile || github.event.inputs.profile == matrix.profile) }}
+        run: |
+          sudo -u testuser bash -c '
+            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+            echo "=== Verifying Workstation Profile ==="
+
+            # GPG signing enabled
+            echo "--- GPG Signing ---"
+            test -f "$HOME/.config/git/config" || { echo "FAIL: git config missing"; exit 1; }
+            grep -q "gpgsign = true" "$HOME/.config/git/config" || { echo "FAIL: GPG signing not enabled"; exit 1; }
+            echo "OK: GPG signing enabled"
+
+            # Security configs present
+            echo "--- Security Configs ---"
+            test -f "$HOME/.gnupg/gpg.conf" || { echo "FAIL: gpg.conf"; exit 1; }
+            test -f "$HOME/.gnupg/gpg-agent.conf" || { echo "FAIL: gpg-agent.conf"; exit 1; }
+            echo "OK: Security configs present"
+
+            # SSH config with ForwardAgent yes
+            echo "--- SSH Config ---"
+            grep -q "ForwardAgent yes" "$HOME/.ssh/config" || { echo "FAIL: ForwardAgent not enabled"; exit 1; }
+            echo "OK: SSH ForwardAgent enabled"
+
+            echo "=== Workstation Profile Verified ==="
+          '
+
+      - name: Verify Profile - Codespace
+        if: ${{ matrix.profile == 'codespace' && steps.verify_core.outcome == 'success' }}
+        run: |
+          sudo -u testuser bash -c '
+            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+            echo "=== Verifying Codespace Profile ==="
+
+            # GPG signing disabled
+            echo "--- GPG Signing ---"
+            test -f "$HOME/.config/git/config" || { echo "FAIL: git config missing"; exit 1; }
+            grep -q "gpgsign = false" "$HOME/.config/git/config" || { echo "FAIL: GPG signing should be disabled"; exit 1; }
+            echo "OK: GPG signing disabled"
+
+            # SSH config with ForwardAgent no
+            echo "--- SSH Config ---"
+            grep -q "ForwardAgent no" "$HOME/.ssh/config" || { echo "FAIL: ForwardAgent should be disabled"; exit 1; }
+            echo "OK: SSH ForwardAgent disabled"
+
+            echo "=== Codespace Profile Verified ==="
+          '
+
+      - name: Verify Profile - Server
+        if: ${{ matrix.profile == 'server' && steps.verify_core.outcome == 'success' }}
         run: |
           sudo -u testuser bash -c '
             source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
@@ -318,9 +572,14 @@ jobs:
       - name: Lint bootstrap.sh
         run: shellcheck bootstrap.sh
 
-      - name: Lint Shell Files
+      - name: Lint All Shell Files
         run: |
-          find . -name "*.sh" -type f | while read -r file; do
+          exit_code=0
+          while IFS= read -r file; do
             echo "Checking $file..."
-            shellcheck "$file" || true
-          done
+            if ! shellcheck "$file"; then
+              echo "ERROR: shellcheck failed for $file"
+              exit_code=1
+            fi
+          done < <(find . -name "*.sh" -type f)
+          exit $exit_code
