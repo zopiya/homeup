@@ -42,13 +42,13 @@ docs/
 
 {{- if ne $profile "workstation" }}
 # Non-Workstation: Exclude GUI and Desktop configurations
-dot_config/vscode/
+.config/vscode/
 {{- end }}
 
 {{- if eq $profile "server" }}
 # Server: Exclude security tools that require private keys
-dot_config/security/1password.inc.tmpl
-dot_config/security/yubikey.inc.tmpl
+.config/security/1password.inc
+.config/security/yubikey.inc
 {{- end }}
 
 {{- if eq $profile "codespace" }}

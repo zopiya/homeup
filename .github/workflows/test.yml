@@ -179,6 +179,10 @@ jobs:
           sudo cp -r $GITHUB_WORKSPACE /tmp/dotfiles
           sudo chown -R testuser:testuser /tmp/dotfiles
           sudo chmod +x /tmp/dotfiles/bootstrap.sh
+          # Fix Homebrew permissions for testuser
+          if [ -d "/home/linuxbrew/.linuxbrew" ]; then
+            sudo chown -R testuser:testuser /home/linuxbrew/.linuxbrew
+          fi
 
       - name: Run bootstrap.sh
         id: bootstrap
