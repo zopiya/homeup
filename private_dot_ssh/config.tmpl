@@ -1,63 +1,125 @@
-{{- /* --------------------------------------------------------------------------------
-Logic: Profile Detection
-Default to "workstation" if .profile is not set (Safety net)
---------------------------------------------------------------------------------
-*/ -}}
+{{- /* ==============================================================================
+SSH Configuration - Multi-Profile Support
+
+Profile Matrix:
+  - workstation: Trust anchor, local keys + CA cert, agent forwarding to remotes
+  - codespace:   Borrowed trust, agent forwarded FROM host, no local keys
+  - server:      Zero trust, no keys, no forwarding (CA auth handled server-side)
+
+CA Certificate Strategy:
+  - SSH auto-discovers *-cert.pub next to private key
+  - No need to specify CertificateFile explicitly
+  - Principals in cert control which users can be assumed
+
+============================================================================== */ -}}
 {{- $profile := .profile | default "workstation" -}}
+{{- $isWorkstation := eq $profile "workstation" -}}
+{{- $isCodespace := eq $profile "codespace" -}}
+{{- $isServer := eq $profile "server" -}}
 
-# Managed by chezmoi
-# Profile: {{ $profile }}
-# ------------------------------------------------------------------------------
-# Optimized SSH Configuration (CA + YubiKey FIDO + Multiplexing)
-# ------------------------------------------------------------------------------
+# ==============================================================================
+# SSH Configuration
+# Profile: {{ $profile }} | OS: {{ .chezmoi.os }}
+# ==============================================================================
 
-# 1. Local Extensions
-# Include local configuration if it exists (e.g., for temporary work hosts).
+# ------------------------------------------------------------------------------
+# 1. Local Extensions (highest priority)
+# ------------------------------------------------------------------------------
+# Include local overrides (e.g., temporary work hosts, test environments)
 Include ~/.ssh/config.local
 
-# 2. Service Optimizations (Specific overrides Global)
-# These MUST come before "Host *" to override the default User.
+# ------------------------------------------------------------------------------
+# 2. Git Services (override User before Host *)
+# ------------------------------------------------------------------------------
 Host github.com gitlab.com bitbucket.org
     User git
-    # Less aggressive keepalive for git operations, but ensures stability.
     ServerAliveInterval 30
-    # IdentityFile ~/.ssh/id_ed25519_sk  # Optional: Explicitly use your FIDO key
-
-# 3. Global Settings
-Host *
-    # --- Identity & Auth ---
-{{- if eq $profile "workstation" }}
-    # [Workstation Mode]
-    # Default to 'zopiya' (signed user) for all your personal servers.
-    User zopiya
-    # Allow forwarding your YubiKey agent to remote hosts (crucial for Codespaces/Bastions)
-    ForwardAgent yes
-    # Automatically add keys to agent
-    AddKeysToAgent yes
-{{- else }}
-    # [Server/Codespace Mode]
-    # Do not force 'zopiya' user broadly, respect system default or specific commands.
-    # Do NOT forward agent further for security.
-    ForwardAgent no
+{{- if $isWorkstation }}
+    # Prefer ed25519 key for git operations
+    IdentityFile ~/.ssh/id_ed25519
 {{- end }}
 
+{{- if $isWorkstation }}
+
+# ------------------------------------------------------------------------------
+# 3. Host-Specific Overrides (Workstation only)
+# ------------------------------------------------------------------------------
+# Production servers: use deploy user
+# Host prod-* staging-*
+#     User deploy
+#     ForwardAgent no
+
+# Bastion / Jump hosts
+# Host bastion jump
+#     User zopiya
+#     ForwardAgent yes
+#     # ProxyJump none
+{{- end }}
+
+# ------------------------------------------------------------------------------
+# 4. Global Defaults
+# ------------------------------------------------------------------------------
+Host *
+{{- if $isWorkstation }}
+    # === WORKSTATION PROFILE ===
+    # Trust anchor: local YubiKey + CA-signed certificate
+
+    # Default user (most common login identity)
+    # CA cert principals control which users you can actually assume
+    User zopiya
+
+    # Identity (SSH auto-discovers id_ed25519-cert.pub)
+    IdentityFile ~/.ssh/id_ed25519
+    # IdentityFile ~/.ssh/id_ed25519_sk  # Uncomment for YubiKey FIDO
+
+    # Forward agent to remote hosts (for Codespaces, bastions)
+    ForwardAgent yes
+    AddKeysToAgent yes
+
+{{- else if $isCodespace }}
+    # === CODESPACE PROFILE ===
+    # Borrowed trust: agent forwarded from host machine
+
+    # Don't set default User - rely on command line or host-specific config
+    # The host's agent provides authentication
+
+    # Accept forwarded agent from host (already available)
+    # Do NOT forward further to avoid agent chain attacks
+    ForwardAgent no
+
+{{- else if $isServer }}
+    # === SERVER PROFILE ===
+    # Zero trust: no local keys, no agent forwarding
+    # SSH client config is minimal; auth happens via CA on sshd side
+
+    # No default user - specify explicitly per connection
+    # No agent forwarding - this machine has no keys to forward
+    ForwardAgent no
+
+{{- end }}
     # --- Connection KeepAlive ---
-    # Send a heartbeat every 60 seconds. Disconnect after 30 failed attempts.
     ServerAliveInterval 60
     ServerAliveCountMax 30
 
     # --- Connection Multiplexing ---
-    # Accelerate subsequent connections by reusing the existing master connection.
     ControlMaster auto
-    # Store sockets in the directory managed by chezmoi (private_sockets -> ~/.ssh/sockets)
     ControlPath ~/.ssh/sockets/%C
+{{- if $isWorkstation }}
     ControlPersist 4h
+{{- else }}
+    ControlPersist 1h
+{{- end }}
 
     # --- Performance ---
     Compression yes
 
+    # --- Security ---
+    HashKnownHosts yes
+    VisualHostKey no
+    StrictHostKeyChecking ask
+
 {{- if eq .chezmoi.os "darwin" }}
-    # --- macOS Specific ---
+    # --- macOS Keychain Integration ---
     IgnoreUnknown UseKeychain
     UseKeychain yes
 {{- end }}

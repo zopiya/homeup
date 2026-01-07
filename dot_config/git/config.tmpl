@@ -1,26 +1,35 @@
-# ------------------------------------------------------------------------------
-# Core Git Configuration
-# ------------------------------------------------------------------------------
+{{- /* ==============================================================================
+Git Configuration - Profile-Aware
+
+Profile Matrix:
+  - workstation: Full config with GPG signing
+  - codespace:   Full config, GPG signing DISABLED
+  - server:      Full config, GPG signing DISABLED
+============================================================================== */ -}}
+{{- $profile := .profile | default "workstation" -}}
+{{- $isWorkstation := eq $profile "workstation" -}}
+
+# ==============================================================================
+# Git Configuration
+# Profile: {{ $profile }} | OS: {{ .chezmoi.os }}
+# ==============================================================================
 
 [include]
     # Load identity and aliases from separate files
     path = ~/.config/git/identity.gitconfig
     path = ~/.config/git/aliases.gitconfig
 
+# ------------------------------------------------------------------------------
+# Core Settings
+# ------------------------------------------------------------------------------
 [core]
     editor = nvim
-    # Use delta for fancy diffs
     pager = delta
 
-    # Line Endings:
-    # 'input' = Convert CRLF to LF on commit, keep LF on checkout.
-# Best for cross-platform projects if you are on macOS/Linux.
-autocrlf = input
+    # Line Endings: Convert CRLF to LF on commit, keep LF on checkout
+    autocrlf = input
     safecrlf = true
     eol = lf
-
-    # Optimize performance for filesystem operations
-    # fsmonitor = true
 
 {{- if eq .chezmoi.os "darwin" }}
     # macOS Specific: Handle filename normalization (NFC vs NFD)
@@ -34,17 +43,22 @@ autocrlf = input
 [credential]
 {{- if eq .chezmoi.os "darwin" }}
     helper = osxkeychain
+{{- else if eq $profile "codespace" }}
+    # Codespace: Short cache for ephemeral environment
+    helper = cache --timeout=3600
+{{- else if eq $profile "server" }}
+    # Server: Minimal cache
+    helper = cache --timeout=900
 {{- else }}
-    # Cache credentials for 24 hours (86400 seconds) on Linux for convenience
+    # Workstation Linux: 24-hour cache
     helper = cache --timeout=86400
 {{- end }}
 
 [protocol]
- # Use Git wire protocol v2 (faster fetching)
+    # Use Git wire protocol v2 (faster fetching)
     version = 2
 
 # Force SSH for GitHub/GitLab to use your optimized ~/.ssh/config
-# This replaces 'https://' with 'git@' automatically.
 [url "git@github.com:"]
     insteadOf = https://github.com/
 [url "git@gitlab.com:"]
@@ -57,18 +71,15 @@ autocrlf = input
     diffFilter = delta --color-only
 
 [delta]
-    navigate = true    # use n/N to jump between changes
-    light = false      # set to true if you use a light terminal theme
+    navigate = true
+    light = false
     side-by-side = true
     line-numbers = true
-    # Visual styling
     syntax-theme = Dracula
     plus-style = "syntax #012800"
- minus-style = "syntax #340001"
+    minus-style = "syntax #340001"
 
 [merge]
-    # zdiff3 shows the common ancestor but compresses common lines.
-# Much easier to resolve conflicts than standard diff3.
     conflictstyle = zdiff3
 
 [diff]
@@ -81,45 +92,48 @@ autocrlf = input
     defaultBranch = main
 
 [pull]
-    # Avoid unnecessary merge commits on pull
     rebase = true
 
 [push]
-    # Automatically set upstream branch on first push
     autoSetupRemote = true
-    # safer: only push the current branch to its upstream
     default = simple
 
 # ------------------------------------------------------------------------------
-# Signing & Security (Primary: GPG)
+# Commit Signing
 # ------------------------------------------------------------------------------
 [commit]
+{{- if $isWorkstation }}
     gpgsign = true
-    # Show diff statistics in the commit message template
- verbose = true
+{{- else }}
+    # {{ $profile | title }}: GPG signing disabled
+    # To enable manually: git config --global commit.gpgsign true
+    gpgsign = false
+{{- end }}
+    verbose = true
 
 [tag]
+{{- if $isWorkstation }}
     gpgsign = true
-
-[gpg]
-    # Default to GPG (OpenPGP) behavior
-    format = openpgp
-
-{{- if eq .chezmoi.os "darwin" }}
-    # macOS: Explicit path to fix "signing failed" in GUI apps (SourceTree, VS Code, etc.)
-    {{- if eq .chezmoi.arch "arm64" }}
-    program = /opt/homebrew/bin/gpg
-    {{- else }}
-    program = /usr/local/bin/gpg
-    {{- end }}
 {{- else }}
-    # Linux: Default system path
-    program = gpg
+    gpgsign = false
 {{- end }}
 
-# --- FUTURE PROOFING: SSH SIGNING BACKUP ---
-# If you ever want to switch to SSH signing, uncomment these lines
-# and comment out the [gpg] block above.
+{{- if $isWorkstation }}
+
+[gpg]
+    format = openpgp
+{{-   if eq .chezmoi.os "darwin" }}
+{{-     if eq .chezmoi.arch "arm64" }}
+    program = /opt/homebrew/bin/gpg
+{{-     else }}
+    program = /usr/local/bin/gpg
+{{-     end }}
+{{-   else }}
+    program = gpg
+{{-   end }}
+{{- end }}
+
+# --- FUTURE: SSH SIGNING ---
 # [gpg]
 #     format = ssh
 # [gpg "ssh"]

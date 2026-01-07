@@ -1,8 +1,21 @@
-# Universal (OS, Editor, Git)
+# ==============================================================================
+# Chezmoi Ignore Configuration
+# Profile: {{ .profile | default "workstation" }}
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Universal (Always Ignored)
+# ------------------------------------------------------------------------------
+
+# Version Control
 .git/
 .gitignore
+
+# OS Artifacts
 .DS_Store
 **/.DS_Store
+
+# Editor Artifacts
 .vscode/
 .idea/
 *.swp
@@ -11,9 +24,33 @@
 *.tmp
 *.log
 
-# Project Specific (Homeup)
+# Project Meta (Not Dotfiles)
 .github/
 .chezmoiversion
 README.md
+PLAN.md
+PROFILES.md
 bootstrap.sh
 packages/
+
+# ------------------------------------------------------------------------------
+# Profile-Based Exclusions
+# ------------------------------------------------------------------------------
+
+{{- $profile := .profile | default "workstation" }}
+
+{{- if ne $profile "workstation" }}
+# Non-Workstation: Exclude GUI and Desktop configurations
+dot_config/vscode/
+{{- end }}
+
+{{- if eq $profile "server" }}
+# Server: Exclude security tools that require private keys
+dot_config/security/1password.inc.tmpl
+dot_config/security/yubikey.inc.tmpl
+{{- end }}
+
+{{- if eq $profile "codespace" }}
+# Codespace: Exclude items handled by devcontainer
+# (Currently none - shell experience should be consistent)
+{{- end }}

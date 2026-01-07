@@ -1,7 +1,10 @@
 # ==============================================================================
-# Linux Brewfile - Workstation Profile
+# Core Brewfile - Shared Across ALL Profiles
 # ==============================================================================
-# Full development environment with container tools. GUI apps via Flatpak.
+# This file contains essential CLI tools that provide a consistent shell
+# experience across workstation, codespace, and server environments.
+#
+# Included in: workstation, codespace, server
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -13,7 +16,6 @@ brew "sheldon"
 brew "zoxide"
 brew "fzf"
 brew "atuin"
-brew "fastfetch"
 
 # ------------------------------------------------------------------------------
 # Modern Unix Tools
@@ -26,63 +28,27 @@ brew "jq"
 brew "yq"
 brew "git-delta"
 brew "dust"
-brew "bottom"
 brew "procs"
 brew "sd"
-brew "choose"
 brew "tldr"
 
 # ------------------------------------------------------------------------------
-# Development & Productivity
+# Core Development
 # ------------------------------------------------------------------------------
 brew "git"
 brew "gh"
 brew "lazygit"
 brew "neovim"
 brew "tmux"
-brew "zellij"
-brew "yazi"
-brew "just"
-brew "watchexec"
-brew "aider"
 
 # ------------------------------------------------------------------------------
-# Containers & Cloud
-# ------------------------------------------------------------------------------
-brew "k9s"
-brew "lazydocker"
-brew "dive"
-
-# ------------------------------------------------------------------------------
-# Network & Transfer
+# Networking Essentials
 # ------------------------------------------------------------------------------
 brew "curl"
 brew "wget"
-brew "httpie"
-brew "xh"
-brew "doggo"
-brew "gping"
-brew "trippy"
-
-# ------------------------------------------------------------------------------
-# Runtime & Package Management
-# ------------------------------------------------------------------------------
-brew "mise"
-brew "uv"
-brew "pnpm"
-
-# ------------------------------------------------------------------------------
-# Security & Identity
-# ------------------------------------------------------------------------------
-brew "gnupg"
-brew "age"
-brew "ykman"
-brew "1password-cli"
-brew "gitleaks"
 
 # ------------------------------------------------------------------------------
 # System Maintenance
 # ------------------------------------------------------------------------------
 brew "chezmoi"
 brew "topgrade"
-brew "restic"

@@ -1,4 +1,8 @@
-# General
+# ==============================================================================
+# Zsh Aliases
+# ==============================================================================
+
+# --- General ---
 alias ls="eza --group-directories-first"
 alias ll="eza --group-directories-first -l"
 alias la="eza --group-directories-first -la"
@@ -9,26 +13,26 @@ alias f="fd"
 alias cd="z"
 alias zi="z -i"
 
-# Navigation
+# --- Navigation ---
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
 alias -- -="cd -"
 
-# Utils
+# --- Utils ---
 alias path='echo $PATH | tr ":" "\n"'
 
-# Safety
+# --- Safety ---
 alias cp="cp -i"
 alias mv="mv -i"
 alias rm="rm -i"
 
-# Network & System
+# --- Network & System ---
 alias ports="lsof -i -P -n | grep LISTEN"
 alias myip="curl http://ipecho.net/plain; echo"
 alias serve="python3 -m http.server"
 
-# Git
+# --- Git ---
 alias g="git"
 alias ga="git add"
 alias gaa="git add --all"
@@ -42,15 +46,15 @@ alias gundo="git reset --soft HEAD~1"
 alias glog="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 alias lg="lazygit"
 
-# Neovim
+# --- Neovim ---
 alias v="nvim"
 alias vim="nvim"
 
-# Chezmoi
+# --- Chezmoi ---
 alias cm="chezmoi"
 alias cma="chezmoi apply"
 alias cmu="chezmoi update"
 alias cme="chezmoi edit"
 
-# Misc
-alias reload="source ~/.zshrc && echo '✅ Shell config reloaded.'"
+# --- Misc ---
+alias reload="source ~/.zshrc && echo 'Shell config reloaded.'"

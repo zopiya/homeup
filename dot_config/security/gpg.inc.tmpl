@@ -1,4 +1,23 @@
-# GPG Configuration Snippet
+{{- /* GPG Shell Integration - Profile-Aware */ -}}
+{{- $profile := .profile | default "workstation" -}}
+{{- $isWorkstation := eq $profile "workstation" -}}
+
+# GPG Configuration (Profile: {{ $profile }})
+{{- if $isWorkstation }}
+# Workstation: Full GPG agent integration with YubiKey support
 export GPG_TTY=$(tty)
-export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
-gpgconf --launch gpg-agent
+
+# Use GPG agent for SSH authentication (if using GPG-based SSH keys)
+# Uncomment if you use GPG subkeys for SSH instead of regular SSH keys:
+# export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
+
+# Launch GPG agent
+if command -v gpgconf &>/dev/null; then
+    gpgconf --launch gpg-agent 2>/dev/null
+fi
+{{- else }}
+# {{ $profile | title }}: GPG signing disabled
+# Agent not launched. To enable manually:
+#   export GPG_TTY=$(tty)
+#   gpgconf --launch gpg-agent
+{{- end }}

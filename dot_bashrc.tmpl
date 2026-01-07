@@ -1,32 +1,37 @@
-# Homebrew Configuration
+# ==============================================================================
+# Bash Configuration
+# ==============================================================================
+
+# --- Homebrew ---
 if [[ -x /opt/homebrew/bin/brew ]]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
+    eval "$(/opt/homebrew/bin/brew shellenv)"
 elif [[ -x /usr/local/bin/brew ]]; then
-  eval "$(/usr/local/bin/brew shellenv)"
+    eval "$(/usr/local/bin/brew shellenv)"
 elif [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
-  eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+    eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
 fi
 
+# --- Path ---
 export PATH="$HOME/.local/bin:$PATH"
 
-# Starship
+# --- Starship ---
 if command -v starship &> /dev/null; then
     eval "$(starship init bash)"
 fi
 
-# Zoxide
+# --- Zoxide ---
 if command -v zoxide &> /dev/null; then
     eval "$(zoxide init bash)"
 fi
 
-# Mise
+# --- Mise ---
 if command -v mise &> /dev/null; then
     eval "$(mise activate bash)"
 fi
 
-# Aliases (Assuming compatible zsh aliases)
-if [ -f "$HOME/.config/shell/aliases.zsh" ]; then
-    source "$HOME/.config/shell/aliases.zsh"
+# --- Aliases ---
+if [ -f "$HOME/.config/zsh/aliases.zsh" ]; then
+    source "$HOME/.config/zsh/aliases.zsh"
 fi

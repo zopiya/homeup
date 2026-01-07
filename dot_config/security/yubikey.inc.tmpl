@@ -1,10 +1,16 @@
-# YubiKey Configuration Snippet
-# This file is sourced by zshrc if security module is enabled
+{{- /* YubiKey Integration - Workstation Only */ -}}
+{{- $profile := .profile | default "workstation" -}}
 
-# Check if YubiKey is inserted
+# YubiKey Integration (Profile: {{ $profile }})
+{{- if eq $profile "workstation" }}
 if command -v ykman &> /dev/null; then
-    if ! ykman list &> /dev/null; then
-        # echo "YubiKey not detected."
-        :
-    fi
+    # YubiKey Manager is available
+    # Uncomment to show warning if YubiKey not inserted:
+    # if ! ykman list &> /dev/null 2>&1; then
+    #     echo "[YubiKey] Not detected"
+    # fi
+    :
 fi
+{{- else }}
+# YubiKey integration disabled for {{ $profile }} profile
+{{- end }}

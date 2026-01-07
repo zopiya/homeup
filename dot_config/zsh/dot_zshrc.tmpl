@@ -1,23 +1,31 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-# if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-#   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-# fi
+{{- /* ==============================================================================
+Zsh Configuration - Profile-Aware
 
-# Homebrew Configuration
+Shell experience is CONSISTENT across all profiles.
+Only security modules (GPG, 1Password, YubiKey) differ by profile.
+============================================================================== */ -}}
+{{- $profile := .profile | default "workstation" -}}
+{{- $isWorkstation := eq $profile "workstation" -}}
+
+# ==============================================================================
+# Zsh Configuration (Profile: {{ $profile }})
+# ==============================================================================
+
+# --- Homebrew Environment ---
 if [[ -x /opt/homebrew/bin/brew ]]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
+    eval "$(/opt/homebrew/bin/brew shellenv)"
 elif [[ -x /usr/local/bin/brew ]]; then
-  eval "$(/usr/local/bin/brew shellenv)"
+    eval "$(/usr/local/bin/brew shellenv)"
 elif [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
-  eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
+    eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
 fi
 
-# Path Configuration
+# --- Path ---
 export PATH="$HOME/.local/bin:$PATH"
+
+# --- Core Tools (Consistent Across All Profiles) ---
 
 # Sheldon (Plugin Manager)
 if command -v sheldon &> /dev/null; then
@@ -39,17 +47,32 @@ if command -v mise &> /dev/null; then
     eval "$(mise activate zsh)"
 fi
 
-# FZF
+# FZF (Fuzzy Finder)
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-# Load Modular Configs
+# Atuin (Shell History)
+if command -v atuin &> /dev/null; then
+    eval "$(atuin init zsh)"
+fi
+
+# --- Modular Configs ---
 [ -f "$ZDOTDIR/exports.zsh" ] && source "$ZDOTDIR/exports.zsh"
 [ -f "$ZDOTDIR/aliases.zsh" ] && source "$ZDOTDIR/aliases.zsh"
 [ -f "$ZDOTDIR/functions.zsh" ] && source "$ZDOTDIR/functions.zsh"
 
-# Security Module (GPG Agent)
-if command -v gpgconf &> /dev/null; then
-    export GPG_TTY=$(tty)
-    export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
-    gpgconf --launch gpg-agent 2>/dev/null || true
-fi
+# --- Security Modules (Profile-Dependent) ---
+{{- if $isWorkstation }}
+# [Workstation] Full security integration
+
+# GPG Agent
+[ -f "$XDG_CONFIG_HOME/security/gpg.inc" ] && source "$XDG_CONFIG_HOME/security/gpg.inc"
+
+# 1Password CLI
+[ -f "$XDG_CONFIG_HOME/security/1password.inc" ] && source "$XDG_CONFIG_HOME/security/1password.inc"
+
+# YubiKey
+[ -f "$XDG_CONFIG_HOME/security/yubikey.inc" ] && source "$XDG_CONFIG_HOME/security/yubikey.inc"
+{{- else }}
+# [{{ $profile | title }}] Security modules disabled
+# GPG agent not launched, 1Password/YubiKey integration skipped
+{{- end }}

@@ -1,47 +1,36 @@
-# Managed by chezmoi
-# ------------------------------------------------------------------------------
-# Personal Chezmoi Configuration
-# ------------------------------------------------------------------------------
+# ==============================================================================
+# Chezmoi Configuration
+# ==============================================================================
 
-# 1. Source Directory
-# Explicitly define where source files are kept.
+# --- Source Directory ---
 sourceDir = "{{ .chezmoi.homeDir }}/.local/share/chezmoi"
 
-# 2. Global Variables (Data)
-# These variables are available in all your templates (e.g., {{ .email }}).
-# This allows you to share dotfiles while keeping personal data dynamic.
+# --- Global Variables ---
 [data]
     name = "zopiya"
     email = "i@zopiya.com"
     signingkey = "4520C731F79D0C82"
-    # Optional: logic flag for templates (e.g., {{ if eq .type "personal" }})
-    # type = "personal"
 
-# 3. Editor Settings
-# Ensure 'chezmoi edit' uses Neovim instead of the system default (nano/vi).
+    # Profile: workstation | codespace | server
+    # Override via: HOMEUP_PROFILE env var or set manually after init
+    profile = "{{ env "HOMEUP_PROFILE" | default "workstation" }}"
+
+# --- Editor ---
 [edit]
     command = "nvim"
 
-# 4. Diff Configuration
-# Use 'delta' for syntax-highlighted, side-by-side diffs.
+# --- Diff ---
 [diff]
     command = "delta"
     pager = "delta"
-    # Exclude large or binary files from diff output to reduce noise.
     exclude = ["scripts/**", "externals/**"]
 
-# 5. Merge Configuration
-# Use Neovim as the merge tool to resolve conflicts.
+# --- Merge ---
 [merge]
     command = "nvim"
-    # Opens Neovim in diff mode with 3 windows:
-    # Destination (Local) | Source (Remote) | Target (Final Result)
     args = ["-d", "{{ .Destination }}", "{{ .Source }}", "{{ .Target }}"]
 
-# 6. Update Policy
+# --- Update ---
 [update]
-    # Safety First: Do not automatically apply changes after pulling.
-    # You must run 'chezmoi apply' manually to verify changes first.
     apply = false
-    # Use Homebrew to manage external packages defined in .chezmoiexternal.toml
     method = "brew"

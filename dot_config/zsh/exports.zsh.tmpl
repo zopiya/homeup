@@ -1,14 +1,19 @@
+# ==============================================================================
+# Zsh Exports
+# ==============================================================================
+
+# --- Locale ---
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
-# FZF
+# --- FZF ---
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
-# History
+# --- History ---
 export HISTFILE="$HOME/.zsh_history"
 export HISTSIZE=10000
 export SAVEHIST=10000
 
-# Homebrew
+# --- Homebrew ---
 export HOMEBREW_NO_ANALYTICS=1

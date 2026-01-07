@@ -1,7 +1,18 @@
-# ------------------------------------------------------------------------------
-# GPG Agent Configuration
-# ------------------------------------------------------------------------------
+{{- /* ==============================================================================
+GPG Agent Configuration - Profile-Aware
 
+Only workstation profile uses full GPG with YubiKey.
+Codespace/Server profiles get minimal config (file exists but no active agent).
+============================================================================== */ -}}
+{{- $profile := .profile | default "workstation" -}}
+{{- $isWorkstation := eq $profile "workstation" -}}
+
+# ==============================================================================
+# GPG Agent Configuration
+# Profile: {{ $profile }}
+# ==============================================================================
+
+{{- if $isWorkstation }}
 # --- Cache Settings ---
 # PIN is cached for 1 hour (3600s).
 # Signature verification still requires physical touch (UIF) on YubiKey.
@@ -13,24 +24,33 @@ max-cache-ttl 86400
 allow-loopback-pinentry
 
 # --- Pinentry Program Selection ---
-# Automatically selects the best pinentry program based on OS.
-
-{{- if eq .chezmoi.os "darwin" }}
+{{-   if eq .chezmoi.os "darwin" }}
 # macOS: Use Homebrew pinentry-mac
-{{-   if eq .chezmoi.arch "arm64" }}
+{{-     if eq .chezmoi.arch "arm64" }}
 pinentry-program /opt/homebrew/bin/pinentry-mac
-{{-   else }}
+{{-     else }}
 pinentry-program /usr/local/bin/pinentry-mac
-{{-   end }}
-
-{{- else if eq .chezmoi.os "linux" }}
+{{-     end }}
+{{-   else if eq .chezmoi.os "linux" }}
 # Linux: Priority Homebrew > System Default
-{{-   if stat "/home/linuxbrew/.linuxbrew/bin/pinentry" }}
+{{-     if stat "/home/linuxbrew/.linuxbrew/bin/pinentry" }}
 pinentry-program /home/linuxbrew/.linuxbrew/bin/pinentry
-{{-   else if stat (printf "%s/.linuxbrew/bin/pinentry" .chezmoi.homeDir) }}
+{{-     else if stat (printf "%s/.linuxbrew/bin/pinentry" .chezmoi.homeDir) }}
 pinentry-program {{ .chezmoi.homeDir }}/.linuxbrew/bin/pinentry
-{{-   else }}
+{{-     else }}
 pinentry-program /usr/bin/pinentry
+{{-     end }}
 {{-   end }}
 
+{{- else }}
+# [{{ $profile | upper }} PROFILE]
+# GPG signing disabled. This file exists for compatibility.
+# To enable GPG signing manually:
+#   1. Set profile to "workstation" in chezmoi config
+#   2. Or configure GPG manually for this environment
+
+# Minimal settings (no active agent expected)
+default-cache-ttl 600
+max-cache-ttl 1800
+allow-loopback-pinentry
 {{- end }}

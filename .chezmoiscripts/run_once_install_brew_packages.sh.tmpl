@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-#
-# Homeup Installation Script (Managed by chezmoi)
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ==============================================================================
+# Homeup Installation Script
+# ==============================================================================
 # Purpose: Core installation logic (Brew, Runtimes, Shell, Security)
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Profile: {{ .profile | default "workstation" }}
+# ==============================================================================
 
 set -Eeuo pipefail
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Profile configuration (from chezmoi)
+readonly PROFILE="{{ .profile | default "workstation" }}"
+
+# ------------------------------------------------------------------------------
 # Constants & Helpers
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
 
 readonly SPINNER_FRAMES='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
 
@@ -63,9 +67,9 @@ require_cmd() {
     command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"
 }
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
 # 1. Environment Initialization
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
 
 init_environment() {
     header "Environment"
@@ -77,65 +81,95 @@ init_environment() {
     elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then eval "$($HOME/.linuxbrew/bin/brew shellenv)";
     fi
 
-    if ! command -v brew >/dev/null 2>&1;
- then
+    if ! command -v brew >/dev/null 2>&1; then
         die "Homebrew is not installed. Please run ./bootstrap.sh first."
     fi
 
     msg_ok "Homebrew found"
 }
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
 # 2. Package Installation (Brewfile)
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
+# Profile-based package installation:
+#   - core: Essential CLI tools (all profiles)
+#   - workstation: Full toolset + GUI + security hardware
+#   - codespace: Dev tools, no GUI, no hardware keys
+#   - server: Minimal additions
+# ------------------------------------------------------------------------------
 
 install_packages() {
-    header "Packages (Homebrew)"
+    header "Packages (Homebrew) [Profile: $PROFILE]"
 
-    local brewfile
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        brewfile="{{ .chezmoi.sourceDir }}/packages/Brewfile.macos"
-    else
-        brewfile="{{ .chezmoi.sourceDir }}/packages/Brewfile.linux"
-    fi
+    local source_dir="{{ .chezmoi.sourceDir }}"
+    local brewfiles=()
 
-    if [[ ! -f "$brewfile" ]]; then
-        die "Brewfile not found: $brewfile"
-    fi
+    # Always start with core packages
+    brewfiles+=("$source_dir/packages/Brewfile.core")
 
-    msg_info "Using Brewfile: $(basename "$brewfile")"
-    
-    # We use a subshell and redirection to suppress verbose output unless it fails
-    (
-        HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --file="$brewfile" --no-lock >/dev/null 2>&1
-    ) &
-    
-    if spinner $! "Installing packages (this may take a while)"; then
-        msg_ok "Packages installed"
-    else
-        # If it failed, run it again without suppression to show errors
-        msg_fail "Package installation failed. Retrying with verbose output..."
-        brew bundle --file="$brewfile" --no-lock
-        exit 1
-    fi
+    # Add profile-specific packages
+    case "$PROFILE" in
+        workstation)
+            if [[ "$(uname -s)" == "Darwin" ]]; then
+                brewfiles+=("$source_dir/packages/Brewfile.macos")
+            else
+                brewfiles+=("$source_dir/packages/Brewfile.linux")
+            fi
+            ;;
+        codespace)
+            brewfiles+=("$source_dir/packages/Brewfile.codespace")
+            ;;
+        server)
+            brewfiles+=("$source_dir/packages/Brewfile.server")
+            ;;
+        *)
+            msg_fail "Unknown profile: $PROFILE"
+            brewfiles+=("$source_dir/packages/Brewfile.core")
+            ;;
+    esac
+
+    # Install each Brewfile
+    for brewfile in "${brewfiles[@]}"; do
+        if [[ ! -f "$brewfile" ]]; then
+            msg_skip "Brewfile not found: $(basename "$brewfile")"
+            continue
+        fi
+
+        msg_info "Installing: $(basename "$brewfile")"
+
+        (
+            HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --file="$brewfile" --no-lock >/dev/null 2>&1
+        ) &
+
+        if spinner $! "Processing $(basename "$brewfile")"; then
+            msg_ok "$(basename "$brewfile") completed"
+        else
+            msg_fail "$(basename "$brewfile") failed. Retrying with verbose output..."
+            brew bundle --file="$brewfile" --no-lock || true
+        fi
+    done
 }
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 3. Flatpak Installation (Linux Only)
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
+# 3. Flatpak Installation (Linux Workstation Only)
+# ------------------------------------------------------------------------------
 
 install_flatpaks() {
+    # Only install on Linux workstation profile
     if [[ "$(uname -s)" != "Linux" ]]; then return; fi
+    if [[ "$PROFILE" != "workstation" ]]; then
+        return
+    fi
+
     header "GUI Applications (Flatpak)"
 
-    # Headless Detection
+    # Headless Detection (extra safety)
     if [[ -z "${DISPLAY:-}" && -z "${WAYLAND_DISPLAY:-}" ]]; then
         msg_skip "Headless environment detected (Skipping GUI apps)"
         return
     fi
 
-    if ! command -v flatpak >/dev/null 2>&1;
- then
+    if ! command -v flatpak >/dev/null 2>&1; then
         msg_skip "Flatpak not installed (Skipping)"
         return
     fi
@@ -175,15 +209,19 @@ install_flatpaks() {
     done < "$flatpak_list"
 }
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 4. Security Tools (GPG)
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
+# 4. Security Tools (GPG - Workstation Only)
+# ------------------------------------------------------------------------------
 
 configure_security() {
-    header "Security"
+    header "Security [Profile: $PROFILE]"
 
-    if command -v gpgconf >/dev/null 2>&1;
- then
+    if [[ "$PROFILE" != "workstation" ]]; then
+        msg_skip "GPG agent not needed for $PROFILE profile"
+        return
+    fi
+
+    if command -v gpgconf >/dev/null 2>&1; then
         gpgconf --kill gpg-agent >/dev/null 2>&1 || true
         gpgconf --launch gpg-agent >/dev/null 2>&1 || true
         msg_ok "GPG Agent reloaded"
@@ -192,15 +230,14 @@ configure_security() {
     fi
 }
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
 # 5. Runtimes (Mise)
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
 
 configure_runtimes() {
     header "Runtimes"
 
-    if ! command -v mise >/dev/null 2>&1;
- then
+    if ! command -v mise >/dev/null 2>&1; then
         msg_info "Installing Mise..."
         curl -fsSL https://mise.run | sh >/dev/null 2>&1
         export PATH="$HOME/.local/bin:$PATH"
@@ -212,14 +249,12 @@ configure_runtimes() {
         mise use -g python@3.12 node@lts -y >/dev/null 2>&1
         
         # Python tools
-        if ! command -v uv >/dev/null 2>&1;
- then
+        if ! command -v uv >/dev/null 2>&1; then
             mise exec python@3.12 -- pip install uv >/dev/null 2>&1
         fi
         
         # Node tools
-        if ! command -v pnpm >/dev/null 2>&1;
- then
+        if ! command -v pnpm >/dev/null 2>&1; then
              mise exec node@lts -- npm install -g pnpm >/dev/null 2>&1
         fi
     ) &
@@ -231,9 +266,9 @@ configure_runtimes() {
     fi
 }
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
 # 6. Shell Configuration
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
 
 configure_shell() {
     header "Shell"
@@ -255,11 +290,9 @@ configure_shell() {
     fi
 
     # Ensure in /etc/shells
-    if ! grep -q "$target_shell" /etc/shells;
- then
+    if ! grep -q "$target_shell" /etc/shells; then
         msg_info "Adding $target_shell to /etc/shells..."
-        if command -v sudo >/dev/null 2>&1;
-        then
+        if command -v sudo >/dev/null 2>&1; then
             echo "$target_shell" | sudo tee -a /etc/shells >/dev/null
         else
              echo "$target_shell" | tee -a /etc/shells >/dev/null
@@ -274,8 +307,7 @@ configure_shell() {
 
     if [[ "$current_shell" != "$target_shell" ]]; then
         msg_info "Changing default shell to $target_shell..."
-        if command -v sudo >/dev/null 2>&1;
-        then
+        if command -v sudo >/dev/null 2>&1; then
              sudo chsh -s "$target_shell" "$USER"
         else
              chsh -s "$target_shell"
@@ -297,9 +329,9 @@ configure_shell() {
     fi
 }
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
 # Main
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ------------------------------------------------------------------------------
 
 main() {
     init_environment

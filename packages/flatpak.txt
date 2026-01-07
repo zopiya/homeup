@@ -1,20 +1,20 @@
-# Linux Flatpak List (GUI Applications)
+# ==============================================================================
+# Linux Flatpak List - GUI Applications
+# ==============================================================================
 # Usage: flatpak install -y flathub <package_id>
+# ==============================================================================
 
-# Browsers
-# Web browsing and web apps
+# --- Browsers ---
 com.google.Chrome
 org.mozilla.firefox
 
-# Communication & Sync
-# Email, file transfer, and cloud synchronization
+# --- Communication & Sync ---
 org.mozilla.Thunderbird
 org.localsend.LocalSend_Flutter
 com.nextcloud.desktopclient.nextcloud
 chat.delta.desktop
 
-# Development
-# IDEs, database managers, and terminal emulators
+# --- Development ---
 com.visualstudio.code
 com.jetbrains.Toolbox
 io.dbeaver.DBeaverCommunity
@@ -22,18 +22,15 @@ org.electerm.electerm
 io.podman_desktop.PodmanDesktop
 com.usebruno.Bruno
 
-# Productivity & Office
-# Note taking, writing, and password management
+# --- Productivity & Office ---
 com.1password.1Password
 md.obsidian.Obsidian
 io.typora.Typora
 
-# Multimedia
-# Audio and video playback utilities
+# --- Multimedia ---
 org.videolan.VLC
 
-# System & Utilities
-# System monitoring, archives, and flatpak management
+# --- System & Utilities ---
 com.github.tchx84.Flatseal
 io.missioncenter.MissionCenter
 org.peazip.PeaZip
