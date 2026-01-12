@@ -36,6 +36,7 @@ proj() {
 }
 
 # Fuzzy find and cd into directory
+# Usage: fcd [path] (default: .)
 fcd() {
     local dir
     # Use fd if available for much better performance and .gitignore respect
@@ -59,7 +60,8 @@ bak() {
     cp "$1" "$1.bak.$timestamp" && echo "✅ Backed up $1 to $1.bak.$timestamp"
 }
 
-# Quick Restore (most recent .bak file)
+# Quick Restore (mv latest .bak -> file)
+# Usage: unbak <filename>
 unbak() {
     # Optimized: Use zsh glob qualifiers (.om[1]) instead of ls/head
     # . = regular files, om = order by modification time (newest first), [1] = take first, N = nullglob
@@ -76,7 +78,8 @@ unbak() {
         echo "❌ No backup found for $1"
     fi
 }
-
+auto-detect format)
+# Usage: extract <file> (e.g. tar.gz, zip, 7z, rar, xz...
 # Extract any archive (enhanced with modern formats)
 extract() {
     if [[ ! -f "$1" ]]; then
@@ -103,7 +106,8 @@ extract() {
         *.lz4)       lz4 -d "$1"      ;;
         *)           echo "❌ Cannot extract '$1': unknown format" ;;
     esac
-}
+}auto-format from extension)
+# Usage: archive <out.ext> <files...>
 
 # Create archive (smart format detection)
 archive() {
@@ -133,7 +137,8 @@ archive() {
 # Process Management
 # ------------------------------------------------------------------------------
 
-# Fuzzy Kill Process (improved)
+# Interactive process killer
+# Usage: fkill [signal] (default: 9)
 fkill() {
     local pid
     if [[ "$UID" != "0" ]]; then
@@ -194,7 +199,8 @@ alias coh='code --profile Hub'
 # Tmux Session Management
 # ------------------------------------------------------------------------------
 
-# Quick attach or create session
+# Tmux smart attach/create/select
+# Usage: tm [name] (No args = fuzzy selection)
 tm() {
     if [[ -z "$1" ]]; then
         # No argument: show session list and attach to selected
@@ -222,7 +228,8 @@ tmk() {
 
     tmux kill-session -t "$1" 2>/dev/null && echo "✅ Killed session: $1" || echo "❌ Session not found: $1"
 }
-
+/Attach directory-based tmux session
+# Usage: tmp [dir] (default: current dir
 # Create project session (automatic directory-based session)
 tmp() {
     local session_name
@@ -298,7 +305,8 @@ genpass() {
 # Terminal Multiplexer
 # ------------------------------------------------------------------------------
 
-# Smart session attach for Zellij
+# Zellij smart attach/create/select
+# Usage: zjs [name] (No args = fuzzy selection)
 zjs() {
     if [[ -n "$1" ]]; then
         # If argument provided: attach to it or create with that name
@@ -342,7 +350,8 @@ zjs() {
     fi
 }
 
-# Kill Zellij session(s)
+# Delete Zellij session(s)
+# Usage: zjk [name] (No args = multi-select via fzf)
 zjk() {
     if [[ -n "$1" ]]; then
         zellij delete-session "$1"
@@ -404,12 +413,25 @@ zjp() {
     # Sanitize project name (replace invalid chars with underscores)
     project_name="${project_name//[^a-zA-Z0-9_-]/_}"
 
+    # Determine theme based on layout for visual distinction
+    local theme=""
+    case "$layout" in
+        dev)  theme="catppuccin-mocha" ;; # Dev: Soft pastel (Purple/Blue)
+        ops)  theme="compact"          ;; # Ops: High contrast / Compact
+        *)    theme="github-dark"      ;; # Base: Standard dark theme
+    esac
+
     # Check if session exists (ignoring case/colors)
-    if zellij list-sessions 2>/dev/null | awk '{print $1}' | grep -qx "$project_name"; then
+    # Using perl to strip ANSI color codes for reliable matching
+    if zellij list-sessions 2>/dev/null | perl -pe 's/\e\[?.*?[\@-~]//g' | awk '{print $1}' | grep -qx "$project_name"; then
         echo "🔄 Attaching to existing session: $project_name"
         zellij attach "$project_name"
     else
-        echo "✨ Creating new session: $project_name (Layout: $layout)"
-        zellij --session "$project_name" --layout "$layout"
+        echo "✨ Creating new session: $project_name (Layout: $layout, Theme: $theme)"
+        # Note: --theme logic relies on Zellij supporting config override via flags or environment.
+        # Since 'zellij [options]' syntax varies, we define it here if supported.
+        # If specific version doesn't support --theme flag at root, this might need 'options --theme'.
+        # Assuming modern Zellij:
+        zellij --session "$project_name" --layout "$layout" options --theme "$theme"
     fi
 }

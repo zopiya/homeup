@@ -16,7 +16,7 @@ layout {
     // =========================================================================
     // Tab 1: Code - Primary Development Environment
     // =========================================================================
-    tab name="Code" focus=true {
+    tab name="DEV 🧑‍💻" focus=true {
         pane split_direction="vertical" {
             // Code Editor (62% - Golden Ratio)
             // Dominant space for Neovim or your preferred editor.

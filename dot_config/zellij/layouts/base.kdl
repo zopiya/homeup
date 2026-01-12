@@ -17,7 +17,7 @@ layout {
     // =========================================================================
     // Tab 1: Main - General Daily Workflow
     // =========================================================================
-    tab name="Main" focus=true {
+    tab name="BASE 🏠" focus=true {
         pane split_direction="vertical" {
             // Main Workspace (62% - Golden Ratio)
             // Primary focus area for shell interactions.
@@ -30,8 +30,10 @@ layout {
             // Utility pane for system monitoring and scratchpad.
             pane size="38%" split_direction="horizontal" {
                 // System Monitor (Top Half)
-                // Uses btop for visual resource tracking.
-                pane command="btop" size="50%"
+                // Changed from btop to shell because pane width (38%) is often too small for btop (requires 80 cols)
+                pane size="50%" {
+                    cwd "~/workspace"
+                }
 
                 // Scratchpad (Bottom Half)
                 // Secondary shell for quick commands.

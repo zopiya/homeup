@@ -16,7 +16,7 @@ layout {
     // =========================================================================
     // Tab 1: Dashboard - System Overview
     // =========================================================================
-    tab name="Dashboard" focus=true {
+    tab name="OPS 🚀" focus=true {
         pane split_direction="horizontal" {
             // Top: High Level Monitors (38% - Golden Ratio)
             pane size="38%" split_direction="vertical" {
