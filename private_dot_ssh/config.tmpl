@@ -31,9 +31,11 @@ Include ~/.ssh/config.local
 # ------------------------------------------------------------------------------
 # 2. Git Services (override User before Host *)
 # ------------------------------------------------------------------------------
-Host github.com gitlab.com bitbucket.org
+Host github.com
     User git
     ServerAliveInterval 30
+    # Use standard key for public git (ignores CA cert automatically on GitHub side)
+    IdentityFile ~/.ssh/MainZopiyaSSH
 
 {{- if $isWorkstation }}
 
@@ -64,9 +66,10 @@ Host *
     # CA cert principals control which users you can actually assume
     User zopiya
 
-    # Identity (SSH auto-discovers id_ed25519-cert.pub)
-    # IdentityFile ~/.ssh/id_ed25519
-    IdentityFile ~/.ssh/id_ed25519_sk
+    # Identity (SSH auto-discovers MainZopiyaSSH-cert.pub)
+    IdentityFile ~/.ssh/MainZopiyaSSH
+    # Fallback for standard keys if needed
+    # IdentityFile ~/.ssh/id_ed25519_sk
 
     # Forward agent cautiously; strict off by default
     ForwardAgent no
@@ -120,7 +123,24 @@ Host *
 
 {{- if eq .chezmoi.os "darwin" }}
     # --- macOS Keychain Integration ---
-    IgnoreUnknown UseKeychain AppleUseKeychain
+    # IgnoreUnknown must use comma-separated list, no spaces
+    IgnoreUnknown UseKeychain,AppleUseKeychain
     UseKeychain yes
     AppleUseKeychain yes
 {{- end }}
+
+# ------------------------------------------------------------------------------
+# 5. Secured Remotes (Homelab)
+# ------------------------------------------------------------------------------
+# Applies to all home servers (*.hs)
+# Requirement: Remote servers have 'StreamLocalBindUnlink yes' in /etc/ssh/sshd_config
+
+Host *.hs
+    User zopiya
+
+    # Forward SSH Identity (Git push support)
+    ForwardAgent yes
+
+    # Forward GPG Signing (Git commit -S support)
+    # Mapping: Local Extra Socket -> Remote Standard Socket (UID 1000)
+    RemoteForward /run/user/1000/gnupg/S.gpg-agent /Users/zopiya/.gnupg/S.gpg-agent.extra
