@@ -1,0 +1,162 @@
+# ==============================================================================
+# Zellij Configuration
+# ==============================================================================
+# Modern terminal multiplexer with built-in layouts and sessions.
+# Requires: zellij >= 0.39
+#
+# Quick Start:
+#   zj              - Start default session
+#   zjs <name>      - Smart session attach/create
+#   zjd             - Start with dev layout
+#   zjf             - Start with full layout
+#
+# Keybinds:
+#   Ctrl+A          - Enter tmux mode (familiar for tmux users)
+#   Ctrl+G          - Lock/unlock session
+#   Alt+N           - New pane
+#   Alt+H/J/K/L     - Navigate panes
+#   Alt+1-9         - Switch to tab 1-9
+# ==============================================================================
+
+# --- Theme ---
+# Unified GitHub theme for consistent visual experience across all profiles
+theme "github-dark"
+default_layout "base"
+
+# --- Keybinds ---
+keybinds clear-defaults=true {
+    normal {
+        bind "Ctrl a" { SwitchToMode "tmux"; }
+    }
+
+    tmux {
+        bind "[" { SwitchToMode "scroll"; }
+        bind "Ctrl a" { Write 1; SwitchToMode "normal"; }
+        bind "\"" { NewPane "down"; SwitchToMode "normal"; }
+        bind "%" { NewPane "right"; SwitchToMode "normal"; }
+        bind "z" { ToggleFocusFullscreen; SwitchToMode "normal"; }
+        bind "c" { NewTab; SwitchToMode "normal"; }
+        bind "," { SwitchToMode "renamepane"; }
+        bind "p" { GoToPreviousTab; SwitchToMode "normal"; }
+        bind "n" { GoToNextTab; SwitchToMode "normal"; }
+        bind "Left" { MoveFocus "left"; SwitchToMode "normal"; }
+        bind "Right" { MoveFocus "right"; SwitchToMode "normal"; }
+        bind "Down" { MoveFocus "down"; SwitchToMode "normal"; }
+        bind "Up" { MoveFocus "up"; SwitchToMode "normal"; }
+        bind "h" { MoveFocus "left"; SwitchToMode "normal"; }
+        bind "l" { MoveFocus "right"; SwitchToMode "normal"; }
+        bind "j" { MoveFocus "down"; SwitchToMode "normal"; }
+        bind "k" { MoveFocus "up"; SwitchToMode "normal"; }
+        bind "o" { FocusNextPane; SwitchToMode "normal"; }
+        bind "d" { Detach; }
+        bind "Space" { NextSwapLayout; SwitchToMode "normal"; }
+        bind "x" { CloseFocus; SwitchToMode "normal"; }
+        bind "w" { ToggleFloatingPanes; SwitchToMode "normal"; }
+    }
+
+    scroll {
+        bind "Ctrl c" { SwitchToMode "normal"; }
+        bind "j" "Down" { ScrollDown; }
+        bind "k" "Up" { ScrollUp; }
+        bind "Ctrl f" "PageDown" "Right" "l" { PageScrollDown; }
+        bind "Ctrl b" "PageUp" "Left" "h" { PageScrollUp; }
+        bind "d" { HalfPageScrollDown; }
+        bind "u" { HalfPageScrollUp; }
+    }
+
+    renamepane {
+        bind "Ctrl c" { SwitchToMode "normal"; }
+        bind "Esc" { UndoRenamePane; SwitchToMode "normal"; }
+    }
+
+    shared_except "tmux" "locked" {
+        bind "Ctrl g" { SwitchToMode "locked"; }
+        bind "Ctrl q" { Quit; }
+        bind "Alt n" { NewPane; }
+        bind "Alt h" "Alt Left" { MoveFocusOrTab "left"; }
+        bind "Alt l" "Alt Right" { MoveFocusOrTab "right"; }
+        bind "Alt j" "Alt Down" { MoveFocus "down"; }
+        bind "Alt k" "Alt Up" { MoveFocus "up"; }
+        bind "Alt =" "Alt +" { Resize "increase"; }
+        bind "Alt -" { Resize "decrease"; }
+        bind "Alt [" { PreviousSwapLayout; }
+        bind "Alt ]" { NextSwapLayout; }
+    }
+
+    shared_except "locked" {
+        bind "Ctrl g" { SwitchToMode "locked"; }
+        bind "Alt 1" { GoToTab 1; SwitchToMode "normal"; }
+        bind "Alt 2" { GoToTab 2; SwitchToMode "normal"; }
+        bind "Alt 3" { GoToTab 3; SwitchToMode "normal"; }
+        bind "Alt 4" { GoToTab 4; SwitchToMode "normal"; }
+        bind "Alt 5" { GoToTab 5; SwitchToMode "normal"; }
+        bind "Alt 6" { GoToTab 6; SwitchToMode "normal"; }
+        bind "Alt 7" { GoToTab 7; SwitchToMode "normal"; }
+        bind "Alt 8" { GoToTab 8; SwitchToMode "normal"; }
+        bind "Alt 9" { GoToTab 9; SwitchToMode "normal"; }
+    }
+
+    locked {
+        bind "Ctrl g" { SwitchToMode "normal"; }
+    }
+}
+
+# --- Plugins ---
+plugins {
+    tab-bar { path "tab-bar"; }
+    status-bar { path "status-bar"; }
+    strider { path "strider"; }
+    compact-bar { path "compact-bar"; }
+}
+
+# --- Options ---
+simplified_ui false
+pane_frames true
+auto_layout true
+session_serialization false
+pane_viewport_serialization false
+
+# --- Themes ---
+themes {
+    catppuccin-mocha {
+        bg "#585b70"
+        fg "#cdd6f4"
+        red "#f38ba8"
+        green "#a6e3a1"
+        blue "#89b4fa"
+        yellow "#f9e2af"
+        magenta "#f5c2e7"
+        orange "#fab387"
+        cyan "#89dceb"
+        black "#181825"
+        white "#cdd6f4"
+    }
+
+    github-dark {
+        bg "#21262d"
+        fg "#f0f6fc"
+        red "#f85149"
+        green "#56d364"
+        blue "#79c0ff"
+        yellow "#e3b341"
+        magenta "#d2a8ff"
+        orange "#ffa657"
+        cyan "#39c5cf"
+        black "#0d1117"
+        white "#f0f6fc"
+    }
+
+    compact {
+        bg "#2d3748"
+        fg "#e2e8f0"
+        red "#fc8181"
+        green "#68d391"
+        blue "#63b3ed"
+        yellow "#f6e05e"
+        magenta "#b794f6"
+        orange "#ed8936"
+        cyan "#4fd1c7"
+        black "#1a202c"
+        white "#f7fafc"
+    }
+}

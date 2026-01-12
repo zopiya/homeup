@@ -31,6 +31,12 @@ brew "dust"
 brew "procs"
 brew "sd"
 brew "tldr"
+brew "duf"
+brew "ncdu"
+brew "htop"
+brew "bmon"
+brew "btop"
+brew "lazydocker"
 
 # ------------------------------------------------------------------------------
 # Core Development
@@ -40,6 +46,7 @@ brew "gh"
 brew "lazygit"
 brew "neovim"
 brew "tmux"
+brew "zellij"
 
 # ------------------------------------------------------------------------------
 # Development Workflow

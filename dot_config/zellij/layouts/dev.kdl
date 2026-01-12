@@ -1,0 +1,188 @@
+layout {
+    // =========================================================================
+    // Development Workspace
+    // =========================================================================
+    // Optimized for coding, testing, and version control.
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+
+    // =========================================================================
+    // Tab 1: Code - Primary Development Environment
+    // =========================================================================
+    tab name="Code" focus=true {
+        pane split_direction="vertical" {
+            // Code Editor (62% - Golden Ratio)
+            // Dominant space for Neovim or your preferred editor.
+            pane command="nvim" size="62%" {
+                cwd "~/workspace"
+                focus true
+            }
+
+            // Tool Sidebar (38%)
+            pane size="38%" split_direction="horizontal" {
+                // Terminal (Top Half)
+                // For running building commands or server logs.
+                pane size="50%" {
+                    cwd "~/workspace"
+                }
+
+                // Git Client (Bottom Half)
+                // Uses lazygit for quick version control operations.
+                pane command="lazygit" size="50%" {
+                    cwd "~/workspace"
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Tab 2: Test - Test Runner & Output
+    // =========================================================================
+    tab name="Test" {
+        pane split_direction="vertical" {
+            // Code Context (62%)
+            // View source code while running tests.
+            pane size="62%" {
+                cwd "~/workspace"
+                name "Context View"
+            }
+
+            // Test Execution (38%)
+            pane size="38%" split_direction="horizontal" {
+                // Unit Tests
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "Unit Tests"
+                    // e.g., go test, cargo test, npm test
+                }
+
+                // Watch Mode
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "Watch Mode"
+                    // e.g., npm run watch
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Tab 3: Debug - Debugging & Logs
+    // =========================================================================
+    tab name="Debug" {
+        pane split_direction="horizontal" {
+            // Source Code View (38%)
+            pane size="38%" {
+                cwd "~/workspace"
+                name "Source View"
+            }
+
+            // Debugger Console (62%)
+            pane size="62%" split_direction="vertical" {
+                // Debugger Interface
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "Debugger"
+                    // e.g., dlv, gdb, node inspector
+                }
+
+                // Application Logs
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "App Logs"
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Tab 4: Git - Advanced Version Control
+    // =========================================================================
+    tab name="Git" {
+        pane split_direction="vertical" {
+            // Lazygit Interface (62%)
+            pane command="lazygit" size="62%" {
+                cwd "~/workspace"
+            }
+
+            // Git CLI (38%)
+            pane size="38%" split_direction="horizontal" {
+                // Status / Diff Watcher
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "Git Status"
+                }
+
+                // Interactive Rebase / CLI
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "Git CLI"
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Tab 5: Docker - Container Management
+    // =========================================================================
+    tab name="Docker" {
+        pane split_direction="vertical" {
+            // Lazydocker Interface (62%)
+            pane command="lazydocker" size="62%" {
+                cwd "~/workspace"
+            }
+
+            // Docker CLI (38%)
+            pane size="38%" {
+                cwd "~/workspace"
+                name "Docker CLI"
+            }
+        }
+    }
+
+    // =========================================================================
+    // Floating Panes
+    // =========================================================================
+    floating_panes {
+        pane {
+            name "Quick Terminal"
+            cwd "~/workspace"
+            x "10%"
+            y "10%"
+            width "80%"
+            height "80%"
+        }
+    }
+
+    // =========================================================================
+    // Swap Layouts
+    // =========================================================================
+    swap_tiled_layout name="fullscreen" {
+        tab {
+            pane
+        }
+    }
+    swap_tiled_layout name="horizontal" {
+        tab {
+            pane split_direction="horizontal" {
+                pane
+                pane
+            }
+        }
+    }
+    swap_tiled_layout name="vertical" {
+        tab {
+            pane split_direction="vertical" {
+                pane size="62%"
+                pane size="38%"
+            }
+        }
+    }
+}

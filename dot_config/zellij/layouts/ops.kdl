@@ -1,0 +1,188 @@
+layout {
+    // =========================================================================
+    // Operations Workspace
+    // =========================================================================
+    // Dedicated to system monitoring, logging, and infrastructure management.
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+
+    // =========================================================================
+    // Tab 1: Dashboard - System Overview
+    // =========================================================================
+    tab name="Dashboard" focus=true {
+        pane split_direction="horizontal" {
+            // Top: High Level Monitors (38% - Golden Ratio)
+            pane size="38%" split_direction="vertical" {
+                // System Resources
+                pane command="btop" size="50%"
+                // Container Status
+                pane command="lazydocker" size="50%"
+            }
+
+            // Bottom: Operations Workbench (62%)
+            pane size="62%" split_direction="vertical" {
+                // Primary Terminal
+                pane {
+                    cwd "~/workspace"
+                    focus true
+                }
+                // Secondary Terminal
+                pane {
+                    cwd "~/workspace"
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Tab 2: Containers - Deep Dive
+    // =========================================================================
+    tab name="Containers" {
+        pane split_direction="vertical" {
+            // Lazydocker UI (62%)
+            pane command="lazydocker" size="62%" {
+                cwd "~/workspace"
+            }
+
+            // Container CLI Tools (38%)
+            pane size="38%" split_direction="horizontal" {
+                // Docker CLI
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "Docker CLI"
+                }
+
+                // Docker Compose Logs
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "Compose Logs"
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Tab 3: Logs - Aggregated Logging
+    // =========================================================================
+    tab name="Logs" {
+        pane split_direction="horizontal" {
+            // Top: System Logs (38%)
+            pane size="38%" {
+                cwd "~/workspace"
+                name "System Logs"
+                // Suggested: journalctl -f, dmesg -w
+            }
+
+            // Bottom: Application Logs (62%)
+            pane size="62%" split_direction="vertical" {
+                // App Log Stream 1
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "App Logs"
+                }
+
+                // Log Search / Grep
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "Search"
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Tab 4: System - Detailed Metrics
+    // =========================================================================
+    tab name="System" {
+        pane split_direction="horizontal" {
+            // Top: Process Monitors (38%)
+            pane size="38%" split_direction="vertical" {
+                pane command="btop" size="50%"
+                pane command="htop" size="50%"
+            }
+
+            // Bottom: I/O Monitors (62%)
+            pane size="62%" split_direction="vertical" {
+                // Disk Usage
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "Disk Usage"
+                    // Suggested: duf, ncdu
+                }
+
+                // Network Usage
+                pane size="50%" {
+                    cwd "~/workspace"
+                    name "Network"
+                    // Suggested: bmon, nethogs
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Tab 5: Services - Service Control
+    // =========================================================================
+    tab name="Services" {
+        pane split_direction="vertical" {
+            // Service Status List (38%)
+            pane size="38%" {
+                cwd "~/workspace"
+                name "Service Status"
+                // Suggested: systemctl list-units, brew services list
+            }
+
+            // Control Console (62%)
+            pane size="62%" split_direction="horizontal" {
+                // Start/Stop Commands
+                pane {
+                    cwd "~/workspace"
+                    name "Control"
+                }
+                // Status Output
+                pane {
+                    cwd "~/workspace"
+                    name "Output"
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Floating Panes - Quick Actions
+    // =========================================================================
+    floating_panes {
+        pane {
+            name "Quick Command"
+            cwd "~/workspace"
+            x "10%"
+            y "10%"
+            width "80%"
+            height "80%"
+        }
+    }
+
+    // =========================================================================
+    // Swap Layouts
+    // =========================================================================
+    swap_tiled_layout name="fullscreen" {
+        tab {
+            pane
+        }
+    }
+    swap_tiled_layout name="horizontal" {
+        tab {
+            pane split_direction="horizontal" {
+                pane
+                pane
+            }
+        }
+    }
+}

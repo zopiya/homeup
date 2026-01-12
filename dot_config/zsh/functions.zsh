@@ -287,3 +287,66 @@ genpass() {
     LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^&*' </dev/urandom | head -c "$length"
     echo
 }
+
+# ------------------------------------------------------------------------------
+# Terminal Multiplexer
+# ------------------------------------------------------------------------------
+
+# Smart session attach for Zellij
+zjs() {
+    if [[ -n "$1" ]]; then
+        # If session name provided, attach to it or create it
+        zellij attach "$1" 2>/dev/null || zellij --session "$1"
+    else
+        # No session name, show picker or create default
+        local sessions
+        sessions=$(zellij list-sessions 2>/dev/null)
+
+        if [[ -n "$sessions" ]]; then
+            echo "Available sessions:"
+            echo "$sessions"
+            echo ""
+            read -r "session?Enter session name (or press Enter for new): "
+            if [[ -n "$session" ]]; then
+                zellij attach "$session"
+            else
+                zellij
+            fi
+        else
+            zellij
+        fi
+    fi
+}
+
+# Kill Zellij session
+zjk() {
+    if [[ -n "$1" ]]; then
+        zellij delete-session "$1"
+    else
+        local sessions
+        sessions=$(zellij list-sessions 2>/dev/null | awk '{print $1}')
+
+        if [[ -n "$sessions" ]]; then
+            echo "Available sessions:"
+            echo "$sessions"
+            echo ""
+            read -r "session?Enter session name to kill: "
+            if [[ -n "$session" ]]; then
+                zellij delete-session "$session"
+            fi
+        else
+            echo "No active Zellij sessions found."
+        fi
+    fi
+}
+
+# Create project-specific Zellij session
+zjproj() {
+    local project_name
+    project_name="${1:-$(basename "$PWD")}"
+
+    # Sanitize project name (replace invalid chars with underscores)
+    project_name="${project_name//[^a-zA-Z0-9_-]/_}"
+
+    zellij --session "$project_name" --layout dev
+}

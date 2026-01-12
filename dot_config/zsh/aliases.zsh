@@ -50,7 +50,18 @@ alias lg="lazygit"
 alias v="nvim"
 alias vim="nvim"
 
-# --- Chezmoi ---
+# --- Terminal Multiplexers ---
+alias tm="tmux"
+alias tma="tmux attach"
+alias tmn="tmux new-session"
+alias zj="zellij"                    # Default layout
+alias zja="zellij attach"
+alias zjl="zellij list-sessions"
+# Core layouts
+alias zjz="zellij --layout zen"     # Focus: Minimalist concentration
+alias zjh="zellij --layout hub"     # Hub: Complete workspace
+alias zjd="zellij --layout dev"     # Dev: AI-first development
+# Legacy compatibility
 alias cm="chezmoi"
 alias cma="chezmoi apply"
 alias cmu="chezmoi update"

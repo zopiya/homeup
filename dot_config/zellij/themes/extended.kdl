@@ -1,0 +1,81 @@
+// ==============================================================================
+// Zellij Themes Collection
+// ==============================================================================
+// Additional theme definitions for different preferences
+
+themes {
+    // GitHub Dark theme
+    github-dark {
+        bg "#21262d"
+        fg "#f0f6fc"
+        red "#f85149"
+        green "#56d364"
+        blue "#79c0ff"
+        yellow "#e3b341"
+        magenta "#d2a8ff"
+        orange "#ffa657"
+        cyan "#39c5cf"
+        black "#0d1117"
+        white "#f0f6fc"
+    }
+
+    // Tokyo Night theme
+    tokyo-night {
+        bg "#24283b"
+        fg "#c0caf5"
+        red "#f7768e"
+        green "#9ece6a"
+        blue "#7aa2f7"
+        yellow "#e0af68"
+        magenta "#bb9af7"
+        orange "#ff9e64"
+        cyan "#7dcfff"
+        black "#1a1b26"
+        white "#c0caf5"
+    }
+
+    // Dracula theme
+    dracula {
+        bg "#44475a"
+        fg "#f8f8f2"
+        red "#ff5555"
+        green "#50fa7b"
+        blue "#8be9fd"
+        yellow "#f1fa8c"
+        magenta "#ff79c6"
+        orange "#ffb86c"
+        cyan "#8be9fd"
+        black "#282a36"
+        white "#f8f8f2"
+    }
+
+    // Nord theme
+    nord {
+        bg "#434c5e"
+        fg "#d8dee9"
+        red "#bf616a"
+        green "#a3be8c"
+        blue "#81a1c1"
+        yellow "#ebcb8b"
+        magenta "#b48ead"
+        orange "#d08770"
+        cyan "#88c0d0"
+        black "#2e3440"
+        white "#eceff4"
+    }
+
+    // Gruvbox Dark theme
+    gruvbox-dark {
+        bg "#504945"
+        fg "#fbf1c7"
+        red "#fb4934"
+        green "#b8bb26"
+        blue "#83a598"
+        yellow "#fabd2f"
+        magenta "#d3869b"
+        orange "#fe8019"
+        cyan "#8ec07c"
+        black "#282828"
+        white "#fbf1c7"
+    }
+}

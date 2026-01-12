@@ -1,0 +1,134 @@
+layout {
+    // =========================================================================
+    // Default Workspace
+    // =========================================================================
+    // Creates a workspace starting at ~/workspace if it doesn't exist.
+    // Includes consistent tab bar and status bar plugins.
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+
+    // =========================================================================
+    // Tab 1: Main - General Daily Workflow
+    // =========================================================================
+    tab name="Main" focus=true {
+        pane split_direction="vertical" {
+            // Main Workspace (62% - Golden Ratio)
+            // Primary focus area for shell interactions.
+            pane size="62%" {
+                cwd "~/workspace"
+                focus true
+            }
+
+            // Sidebar (38%)
+            // Utility pane for system monitoring and scratchpad.
+            pane size="38%" split_direction="horizontal" {
+                // System Monitor (Top Half)
+                // Uses btop for visual resource tracking.
+                pane command="btop" size="50%"
+
+                // Scratchpad (Bottom Half)
+                // Secondary shell for quick commands.
+                pane size="50%" {
+                    cwd "~/workspace"
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Tab 2: Files - File Exploration
+    // =========================================================================
+    tab name="Files" {
+        pane split_direction="vertical" {
+            // File Explorer (38%)
+            // Intended for file navigation tools like yazi, lf, or broot.
+            pane size="38%" {
+                cwd "~/workspace"
+                name "File Explorer"
+                // Tip: Install 'yazi' or 'lf' and run it here.
+            }
+
+            // Main Terminal (62%)
+            // Large terminal for file operations.
+            pane size="62%" {
+                cwd "~/workspace"
+            }
+        }
+    }
+
+    // =========================================================================
+    // Tab 3: Monitor - Reduced Monitor
+    // =========================================================================
+    tab name="Monitor" {
+        pane split_direction="horizontal" {
+            // Top: Resource Visualization (38%)
+            pane split_direction="vertical" size="38%" {
+                pane command="btop" size="50%"
+                pane command="htop" size="50%"
+            }
+
+            // Bottom: Network & I/O (62%)
+            pane split_direction="vertical" size="62%" {
+                // Network Traffic
+                pane {
+                    cwd "~/workspace"
+                    name "Network"
+                    // Suggested: nethogs, bmon, iftop
+                }
+                // Disk Usage
+                pane {
+                    cwd "~/workspace"
+                    name "Disk"
+                    // Suggested: duf, ncdu, df -h
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Floating Panes - Quick Access
+    // =========================================================================
+    // Toggle with: Ctrl+A w
+    floating_panes {
+        pane {
+            name "Quick Terminal"
+            cwd "~/workspace"
+            x "10%"
+            y "10%"
+            width "80%"
+            height "80%"
+        }
+    }
+
+    // =========================================================================
+    // Swap Layouts - Layout Switcher
+    // =========================================================================
+    swap_tiled_layout name="horizontal" {
+        tab {
+            pane split_direction="horizontal" {
+                pane
+                pane
+            }
+        }
+    }
+    swap_tiled_layout name="vertical" {
+        tab {
+            pane split_direction="vertical" {
+                pane
+                pane
+            }
+        }
+    }
+    swap_tiled_layout name="stacked" {
+        tab {
+            pane
+        }
+    }
+}

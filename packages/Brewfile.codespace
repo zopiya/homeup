@@ -17,7 +17,6 @@ brew "fastfetch"
 brew "yazi"
 brew "just"
 brew "watchexec"
-brew "zellij"
 brew "aider"
 
 # ------------------------------------------------------------------------------
