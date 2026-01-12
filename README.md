@@ -2,16 +2,44 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![chezmoi](https://img.shields.io/badge/powered%20by-chezmoi-blue)](https://www.chezmoi.io/)
+[![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-green)](#profiles)
 
-Opinionated dotfiles for macOS & Linux with multi-profile support.
+Opinionated dotfiles for macOS & Linux with multi-profile safety, YubiKey-ready security, and a one-command bootstrap (script v6.0.0).
 
-## Features
+## Quick Links
+- [Why Homeup](#why-homeup)
+- [Profiles](#profiles)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [Security Defaults](#security-defaults)
+- [What's Inside](#whats-inside)
+- [Project Layout](#project-layout)
+- [Customize](#customize)
+- [Developer Tasks](#developer-tasks)
+- [License](#license)
 
-- **Multi-Profile** - Workstation, Codespace, Server configurations
-- **Cross-Platform** - macOS and Linux (Debian, Fedora, Arch, Alpine)
-- **Secure** - Profile-based secret isolation, no private keys in repo
-- **YubiKey-Ready** - GPG signing and SSH authentication support
-- **One Command** - Fully automated bootstrap process
+## Why Homeup
+- **Multi-profile**: Workstation, Codespace, and Server tracks keep trust boundaries clear.
+- **Cross-platform**: macOS plus Debian/Fedora/Arch/Alpine Linux with auto detection and sensible defaults.
+- **Secure-first**: No private keys in repo; profile-based secret isolation and credential TTLs baked in.
+- **YubiKey-ready**: GPG signing + SSH auth paths ready for hardware keys.
+- **One-command bootstrap**: `curl | bash` installer sets up Homebrew, chezmoi, and profile packages.
+- **Reviewable setup**: Chezmoi templates and `just` tasks make it easy to diff before applying.
+
+## Profiles
+
+| Profile | Trust Model | Use On | Highlights |
+|---------|-------------|--------|------------|
+| **workstation** | Full | Personal laptop/desktop | GPG signing, YubiKey, GUI apps, full package set |
+| **codespace** | Borrowed | Dev containers / temporary hosts | SSH forwarding, CLI tools, no GPG |
+| **server** | Zero | Production / CI | Minimal packages, no private keys or GUI |
+
+Set a profile via environment variable or installer flag:
+
+```bash
+export HOMEUP_PROFILE=workstation     # environment override
+./bootstrap.sh -p server              # CLI flag
+```
 
 ## Quick Start
 
@@ -19,46 +47,44 @@ Opinionated dotfiles for macOS & Linux with multi-profile support.
 # Interactive (auto-detects profile)
 curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/bootstrap.sh | bash
 
-# Specify profile
+# Specify profile and auto-apply chezmoi
 curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/bootstrap.sh | bash -s -- -p workstation -r zopiya/homeup -a
 ```
 
-> 默认仅允许从 GitHub 仓库初始化；如需其他来源，设置 `HOMEUP_ALLOW_UNTRUSTED_REPO=1` 后再运行。
+> Initialization is restricted to GitHub by default. To allow other sources, set `HOMEUP_ALLOW_UNTRUSTED_REPO=1`.
 
-### Manual Installation
+## Bootstrap Commands
 
-```bash
-# 1. Install chezmoi and initialize
-chezmoi init https://github.com/zopiya/homeup.git
+- Interactive with auto-detect: `./bootstrap.sh`
+- Force profile: `./bootstrap.sh -p workstation`
+- Override repo + auto-apply: `./bootstrap.sh -p workstation -r zopiya/homeup -a`
+- Non-interactive/CI friendly: `./bootstrap.sh -p server -r zopiya/homeup -a -y`
+- Run from remote: `curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/bootstrap.sh | bash -s -- -p codespace -r zopiya/homeup`
 
-# 2. Review changes
-chezmoi diff
+## Installation
 
-# 3. Apply
-chezmoi apply
-```
+- **Requirements**: `bash`, `curl`, `git` (bootstrap will install Homebrew + chezmoi automatically when missing).
+- **Non-interactive**: `./bootstrap.sh -p server -r zopiya/homeup -a -y` (suitable for CI/remote).
+- **Manual (chezmoi)**:
+  ```bash
+  # 1) Initialize
+  chezmoi init https://github.com/zopiya/homeup.git
 
-## Profiles
+  # 2) Review
+  chezmoi diff
 
-| Profile | Trust Level | Use Case | Features |
-|---------|-------------|----------|----------|
-| **workstation** | Full | Personal machine | GPG signing, YubiKey, GUI apps, all packages |
-| **codespace** | Borrowed | Dev containers | SSH forwarding, CLI tools, no GPG |
-| **server** | Zero | Production/CI | Minimal packages, no private keys |
-
-Set profile via environment variable:
-```bash
-export HOMEUP_PROFILE=workstation
-```
+  # 3) Apply
+  chezmoi apply
+  ```
 
 ## Security Defaults
 
-- SSH agent：workstation 默认 `ForwardAgent ask`（按连接确认）；codespace/server 禁用转发。
-- SSH CA：如需证书信任，在目标主机放置 CA 公钥于 `~/.ssh/ssh_ca.pub`（客户端 workstation 可手动处理）。
-- 凭据缓存：workstation 900 秒；codespace/server 60 秒。
-- 安全模块：非 workstation 不同步 `.gnupg/**` 和 `.config/security/*.inc`。
+- SSH agent: workstation uses `ForwardAgent ask` (prompt per connection); codespace/server disable forwarding.
+- SSH CA: to trust an SSH CA, place the CA public key at `~/.ssh/ssh_ca.pub` on the target host (workstation clients can manage this manually).
+- Credential cache TTL: workstation 900s; codespace/server 60s.
+- Sensitive payloads: non-workstation profiles skip syncing `.gnupg/**` and `.config/security/*.inc`.
 
-## What's Included
+## What's Inside
 
 | Category | Tools |
 |----------|-------|
@@ -69,7 +95,7 @@ export HOMEUP_PROFILE=workstation
 | Runtime | mise, uv, pnpm |
 | Security | gnupg, age, 1password-cli, ykman |
 
-## Structure
+## Project Layout
 
 ```
 homeup/
@@ -91,18 +117,26 @@ homeup/
 └── private_dot_gnupg/           # GPG configuration
 ```
 
-## Customization
+## Customize
 
 ```bash
-# Edit packages
+# Edit package lists
 chezmoi edit packages/Brewfile.macos
 
-# Edit git identity
+# Update git identity template
 chezmoi edit dot_config/git/identity.gitconfig.tmpl
 
-# Apply changes
+# Apply changes locally
 chezmoi apply
 ```
+
+## Developer Tasks
+
+- `just diff` — review templated changes before applying.
+- `just apply` / `just apply-verbose` — apply dotfiles.
+- `just validate` — dry-run all profiles with `chezmoi init --dry-run`.
+- `just install-hooks` — install lefthook-managed git hooks.
+- `just clean` — purge chezmoi cache and temp test directories.
 
 ## License
 

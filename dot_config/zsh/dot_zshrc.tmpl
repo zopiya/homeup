@@ -32,6 +32,11 @@ if command -v sheldon &> /dev/null; then
     eval "$(sheldon source)"
 fi
 
+# Initialize Completion System
+# Must be initialized after plugins (like zsh-completions) update fpath
+autoload -Uz compinit
+compinit
+
 # Starship (Prompt)
 if command -v starship &> /dev/null; then
     eval "$(starship init zsh)"

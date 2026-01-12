@@ -1,29 +1,29 @@
-# ==============================================================================
-# Zellij Configuration
-# ==============================================================================
-# Modern terminal multiplexer with built-in layouts and sessions.
-# Requires: zellij >= 0.39
-#
-# Quick Start:
-#   zj              - Start default session
-#   zjs <name>      - Smart session attach/create
-#   zjd             - Start with dev layout
-#   zjf             - Start with full layout
-#
-# Keybinds:
-#   Ctrl+A          - Enter tmux mode (familiar for tmux users)
-#   Ctrl+G          - Lock/unlock session
-#   Alt+N           - New pane
-#   Alt+H/J/K/L     - Navigate panes
-#   Alt+1-9         - Switch to tab 1-9
-# ==============================================================================
+// ==============================================================================
+// Zellij Configuration
+// ==============================================================================
+// Modern terminal multiplexer with built-in layouts and sessions.
+// Requires: zellij >= 0.39
+//
+// Quick Start:
+//   zj              - Start default session
+//   zjs <name>      - Smart session attach/create
+//   zjd             - Start with dev layout
+//   zjf             - Start with full layout
+//
+// Keybinds:
+//   Ctrl+A          - Enter tmux mode (familiar for tmux users)
+//   Ctrl+G          - Lock/unlock session
+//   Alt+N           - New pane
+//   Alt+H/J/K/L     - Navigate panes
+//   Alt+1-9         - Switch to tab 1-9
+// ==============================================================================
 
-# --- Theme ---
-# Unified GitHub theme for consistent visual experience across all profiles
+// --- Theme ---
+// Unified GitHub theme for consistent visual experience across all profiles
 theme "github-dark"
 default_layout "base"
 
-# --- Keybinds ---
+// --- Keybinds ---
 keybinds clear-defaults=true {
     normal {
         bind "Ctrl a" { SwitchToMode "tmux"; }
@@ -101,7 +101,7 @@ keybinds clear-defaults=true {
     }
 }
 
-# --- Plugins ---
+// --- Plugins ---
 plugins {
     tab-bar { path "tab-bar"; }
     status-bar { path "status-bar"; }
@@ -109,14 +109,14 @@ plugins {
     compact-bar { path "compact-bar"; }
 }
 
-# --- Options ---
+// --- Options ---
 simplified_ui false
 pane_frames true
 auto_layout true
 session_serialization false
 pane_viewport_serialization false
 
-# --- Themes ---
+// --- Themes ---
 themes {
     catppuccin-mocha {
         bg "#585b70"

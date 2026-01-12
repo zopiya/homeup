@@ -7,7 +7,7 @@
 
 # Cleanup potential aliases that conflict with function definitions
 # This prevents "defining function based on alias" errors
-unalias mkcd cl proj fcd bak unbak extract archive fkill port killport serve genpass 2>/dev/null
+unalias mkcd cl proj fcd bak unbak extract archive fkill port killport serve genpass tm tmk tmp tml tmw tmka zjs zjk zjproj 2>/dev/null
 
 # ------------------------------------------------------------------------------
 # Directory & Navigation
@@ -295,58 +295,115 @@ genpass() {
 # Smart session attach for Zellij
 zjs() {
     if [[ -n "$1" ]]; then
-        # If session name provided, attach to it or create it
+        # If argument provided: attach to it or create with that name
         zellij attach "$1" 2>/dev/null || zellij --session "$1"
     else
-        # No session name, show picker or create default
+        # No argument provided: interactive selection
         local sessions
-        sessions=$(zellij list-sessions 2>/dev/null)
+        # Strip ANSI codes from output just in case
+        sessions=$(zellij list-sessions 2>/dev/null | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g')
 
-        if [[ -n "$sessions" ]]; then
-            echo "Available sessions:"
-            echo "$sessions"
-            echo ""
-            read -r "session?Enter session name (or press Enter for new): "
+        if [[ -z "$sessions" ]]; then
+            # No active sessions, start a new one
+            zellij
+            return
+        fi
+
+        if command -v fzf &> /dev/null; then
+            local session
+            # Extract session name (first column) and select via fzf
+            session=$(echo "$sessions" | fzf --prompt="Select Zellij session: " --height=40% --layout=reverse --border | awk '{print $1}')
+
             if [[ -n "$session" ]]; then
                 zellij attach "$session"
             else
-                zellij
+                # If selection cancelled, do nothing (comment out next line to auto-create)
+                # echo "No session selected."
+                :
             fi
         else
-            zellij
+            # Fallback if fzf is missing
+            echo "Available sessions:"
+            echo "$sessions"
+            echo ""
+            read -r "sname?Enter session name (or press Enter for new): "
+            if [[ -n "$sname" ]]; then
+                zellij attach "$sname"
+            else
+                zellij
+            fi
         fi
     fi
 }
 
-# Kill Zellij session
+# Kill Zellij session(s)
 zjk() {
     if [[ -n "$1" ]]; then
         zellij delete-session "$1"
     else
-        local sessions
-        sessions=$(zellij list-sessions 2>/dev/null | awk '{print $1}')
+        if command -v fzf &> /dev/null; then
+            local sessions
+            # Allow multiple selection with Tab
+            sessions=$(zellij list-sessions 2>/dev/null | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' | fzf --multi --prompt="Delete Zellij session(s): " | awk '{print $1}')
 
-        if [[ -n "$sessions" ]]; then
-            echo "Available sessions:"
-            echo "$sessions"
-            echo ""
-            read -r "session?Enter session name to kill: "
-            if [[ -n "$session" ]]; then
-                zellij delete-session "$session"
+            if [[ -n "$sessions" ]]; then
+                echo "$sessions" | xargs -I{} zellij delete-session "{}"
+                echo "✅ Deleted session(s)"
             fi
         else
-            echo "No active Zellij sessions found."
+            # Fallback
+            local sname
+            zellij list-sessions 2>/dev/null
+            read -r "sname?Enter session name to kill: "
+            [[ -n "$sname" ]] && zellij delete-session "$sname"
         fi
     fi
 }
 
-# Create project-specific Zellij session
+# Kill ALL Zellij sessions
+zjka() {
+    local sessions
+    sessions=$(zellij list-sessions 2>/dev/null)
+
+    if [[ -z "$sessions" ]]; then
+        echo "❌ No active Zellij sessions"
+        return
+    fi
+
+    read -q "REPLY?⚠️  Kill ALL Zellij sessions? (y/n) "
+    echo
+    if [[ "$REPLY" == "y" ]]; then
+        echo "$sessions" | awk '{print $1}' | xargs -I{} zellij delete-session "{}" 2>/dev/null
+        echo "✅ All sessions killed"
+    else
+        echo "❌ Aborted"
+    fi
+}
+
+# Create/Attach project-specific Zellij session
+# Usage: zjproj [project_name] [layout]
+# Examples:
+#   zjproj              # Current dir, dev layout
+#   zjproj my-app       # Named session, dev layout
+#   zjproj . ops        # Current dir, ops layout
 zjproj() {
-    local project_name
-    project_name="${1:-$(basename "$PWD")}"
+    local project_name="${1:-$(basename "$PWD")}"
+    local layout="${2:-base}"
+
+    # Handle "." as explicitly using current dir name
+    if [[ "$project_name" == "." ]]; then
+        project_name="$(basename "$PWD")"
+    fi
 
     # Sanitize project name (replace invalid chars with underscores)
     project_name="${project_name//[^a-zA-Z0-9_-]/_}"
 
-    zellij --session "$project_name" --layout dev
+    # Check if session exists (ignoring case/colors)
+    if zellij list-sessions 2>/dev/null | awk '{print $1}' | grep -qx "$project_name"; then
+        echo "🔄 Attaching to existing session: $project_name"
+        zellij attach "$project_name"
+    else
+        echo "✨ Creating new session: $project_name (Layout: $layout)"
+        zellij --session "$project_name" --layout "$layout"
+    fi
 }
