@@ -4,6 +4,9 @@
 # Full development environment with GUI apps, security tools, and fonts.
 # ==============================================================================
 
+tap "homebrew/cask-fonts"
+tap "1password/tap"
+
 # ------------------------------------------------------------------------------
 # Shell Essentials
 # ------------------------------------------------------------------------------
@@ -87,7 +90,7 @@ brew "restic"
 cask "font-jetbrains-mono-nerd-font"
 cask "font-hack-nerd-font"
 cask "font-noto-sans"
-cask "font-source-han-serif-vf"
+cask "font-source-han-serif"
 
 # ------------------------------------------------------------------------------
 # GUI Applications - Browsers

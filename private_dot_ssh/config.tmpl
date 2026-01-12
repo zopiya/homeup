@@ -72,8 +72,8 @@ Host *
     IdentityFile ~/.ssh/id_ed25519
     # IdentityFile ~/.ssh/id_ed25519_sk  # Uncomment for YubiKey FIDO
 
-    # Forward agent to remote hosts (for Codespaces, bastions)
-    ForwardAgent yes
+    # Forward agent cautiously; prompt per-connection by default
+    ForwardAgent ask
     AddKeysToAgent yes
 
 {{- else if $isCodespace }}
@@ -103,7 +103,7 @@ Host *
 
     # --- Connection Multiplexing ---
     ControlMaster auto
-    ControlPath ~/.ssh/sockets/%C
+    ControlPath ~/.ssh/ssh_mux_%C
 {{- if $isWorkstation }}
     ControlPersist 4h
 {{- else }}
@@ -117,6 +117,10 @@ Host *
     HashKnownHosts yes
     VisualHostKey no
     StrictHostKeyChecking ask
+
+    # Optional host CA bundle (public). Place host CA pubkey at ~/.ssh/ssh_ca.pub
+    # and add @cert-authority lines there; keeps known_hosts clean.
+    UserKnownHostsFile ~/.ssh/known_hosts ~/.ssh/ssh_ca.pub
 
 {{- if eq .chezmoi.os "darwin" }}
     # --- macOS Keychain Integration ---

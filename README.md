@@ -23,6 +23,8 @@ curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/bootstrap.sh | b
 curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/bootstrap.sh | bash -s -- -p workstation -r zopiya/homeup -a
 ```
 
+> 默认仅允许从 GitHub 仓库初始化；如需其他来源，设置 `HOMEUP_ALLOW_UNTRUSTED_REPO=1` 后再运行。
+
 ### Manual Installation
 
 ```bash
@@ -48,6 +50,13 @@ Set profile via environment variable:
 ```bash
 export HOMEUP_PROFILE=workstation
 ```
+
+## Security Defaults
+
+- SSH agent：workstation 默认 `ForwardAgent ask`（按连接确认）；codespace/server 禁用转发。
+- SSH CA：如需证书信任，在目标主机放置 CA 公钥于 `~/.ssh/ssh_ca.pub`（客户端 workstation 可手动处理）。
+- 凭据缓存：workstation 900 秒；codespace/server 60 秒。
+- 安全模块：非 workstation 不同步 `.gnupg/**` 和 `.config/security/*.inc`。
 
 ## What's Included
 

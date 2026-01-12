@@ -43,15 +43,17 @@ Profile Matrix:
 [credential]
 {{- if eq .chezmoi.os "darwin" }}
     helper = osxkeychain
-{{- else if eq $profile "codespace" }}
-    # Codespace: Short cache for ephemeral environment
-    helper = cache --timeout=3600
-{{- else if eq $profile "server" }}
-    # Server: Minimal cache
+{{- else if $isWorkstation }}
+    # Workstation Linux: short-lived cache to reduce credential exposure
     helper = cache --timeout=900
+{{- else if eq $profile "codespace" }}
+    # Codespace: Minimal cache for borrowed environments
+    helper = cache --timeout=60
+{{- else if eq $profile "server" }}
+    # Server: Minimal cache for zero-trust hosts
+    helper = cache --timeout=60
 {{- else }}
-    # Workstation Linux: 24-hour cache
-    helper = cache --timeout=86400
+    helper = cache --timeout=900
 {{- end }}
 
 [protocol]

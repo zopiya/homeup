@@ -43,6 +43,13 @@ docs/
 {{- if ne $profile "workstation" }}
 # Non-Workstation: Exclude GUI and Desktop configurations
 .config/vscode/
+# Non-Workstation: Block private key and GPG material
+.ssh/id_*
+.ssh/id_*.*
+.gnupg/
+.gnupg/**
+.config/security/
+.config/security/*.inc
 {{- end }}
 
 {{- if eq $profile "server" }}

@@ -3,6 +3,6 @@
 # ==============================================================================
 
 [user]
-    name = {{ .name }}
-    email = {{ .email }}
-    signingkey = {{ .signingkey }}
+    name = {{ .name | default "" }}
+    email = {{ .email | default "" }}
+    signingkey = {{ .signingkey | default "" }}

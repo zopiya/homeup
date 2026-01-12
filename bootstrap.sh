@@ -203,6 +203,32 @@ normalize_repo_url() {
     echo "$repo"
 }
 
+validate_repo_host() {
+    local repo_url="$1"
+    local allow_untrusted="${HOMEUP_ALLOW_UNTRUSTED_REPO:-}"
+    [[ -n "$allow_untrusted" ]] && return 0
+
+    local allowed_hosts=("github.com")
+    local host=""
+
+    if [[ "$repo_url" =~ ^https?://([^/]+)/ ]]; then
+        host="${BASH_REMATCH[1]}"
+    elif [[ "$repo_url" =~ ^git@([^:]+): ]]; then
+        host="${BASH_REMATCH[1]}"
+    fi
+
+    # If host not detected, skip validation (e.g., local path)
+    [[ -z "$host" ]] && return 0
+
+    for allowed in "${allowed_hosts[@]}"; do
+        if [[ "$host" == "$allowed" ]]; then
+            return 0
+        fi
+    done
+
+    die "Repository host not allowed: $host (allowed: ${allowed_hosts[*]}; set HOMEUP_ALLOW_UNTRUSTED_REPO=1 to override)"
+}
+
 # ------------------------------------------------------------------------------
 # Pre-flight Checks
 # ------------------------------------------------------------------------------
@@ -879,6 +905,7 @@ main() {
     fi
 
     if [[ -n "$repo_url" ]]; then
+        validate_repo_host "$repo_url"
         printf "\n"
         msg_info "Initializing dotfiles from: $repo_url"
 
