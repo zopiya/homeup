@@ -1,0 +1,19 @@
+{{- /* ==============================================================================
+SSH Authorized Keys - Profile Aware
+============================================================================== */ -}}
+{{- $profile := .profile | default "workstation" -}}
+{{- $isServer := eq $profile "server" -}}
+
+{{- if $isServer }}
+# === SERVER PROFILE: CA TRUST ===
+# Trust the User CA. Any SSH key signed by this CA is allowed to log in.
+# Replace the placeholder below with your actual User CA Public Key (e.g., contents of user_ca.pub).
+# Format: cert-authority <algorithm> <key-content> [comment]
+
+cert-authority ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINW4wGZTsFp3o2Yy0iO5lNTo45N/nQ/28NRqDgLRJMDb OpenSSH CA of Zopiya Infrastructure
+
+{{- else }}
+# === {{ $profile | title }} PROFILE ===
+# No authorized_keys managed by chezmoi for this profile.
+# (Usually workstation uses local keys to connect OUT, doesn't accept connections IN)
+{{- end }}

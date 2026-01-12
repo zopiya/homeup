@@ -34,10 +34,6 @@ Include ~/.ssh/config.local
 Host github.com gitlab.com bitbucket.org
     User git
     ServerAliveInterval 30
-{{- if $isWorkstation }}
-    # Prefer ed25519 key for git operations
-    IdentityFile ~/.ssh/id_ed25519
-{{- end }}
 
 {{- if $isWorkstation }}
 
@@ -69,11 +65,11 @@ Host *
     User zopiya
 
     # Identity (SSH auto-discovers id_ed25519-cert.pub)
-    IdentityFile ~/.ssh/id_ed25519
-    # IdentityFile ~/.ssh/id_ed25519_sk  # Uncomment for YubiKey FIDO
+    # IdentityFile ~/.ssh/id_ed25519
+    IdentityFile ~/.ssh/id_ed25519_sk
 
-    # Forward agent cautiously; prompt per-connection by default
-    ForwardAgent ask
+    # Forward agent cautiously; strict off by default
+    ForwardAgent no
     AddKeysToAgent yes
 
 {{- else if $isCodespace }}
@@ -103,7 +99,7 @@ Host *
 
     # --- Connection Multiplexing ---
     ControlMaster auto
-    ControlPath ~/.ssh/ssh_mux_%C
+    ControlPath ~/.ssh/sockets/ssh_mux_%C
 {{- if $isWorkstation }}
     ControlPersist 4h
 {{- else }}
@@ -124,6 +120,7 @@ Host *
 
 {{- if eq .chezmoi.os "darwin" }}
     # --- macOS Keychain Integration ---
-    IgnoreUnknown UseKeychain
+    IgnoreUnknown UseKeychain AppleUseKeychain
     UseKeychain yes
+    AppleUseKeychain yes
 {{- end }}

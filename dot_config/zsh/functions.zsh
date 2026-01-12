@@ -7,7 +7,7 @@
 
 # Cleanup potential aliases that conflict with function definitions
 # This prevents "defining function based on alias" errors
-unalias mkcd cl proj fcd bak unbak extract archive fkill port killport serve genpass tm tmk tmp tml tmw tmka zjs zjk zjproj 2>/dev/null
+unalias mkcd cl proj fcd bak unbak extract archive fkill port killport serve genpass tm tmk tmp tml tmw tmka zjs zjk zjp 2>/dev/null
 
 # ------------------------------------------------------------------------------
 # Directory & Navigation
@@ -38,8 +38,13 @@ proj() {
 # Fuzzy find and cd into directory
 fcd() {
     local dir
-    # SC2086: Double quote to prevent globbing and word splitting
-    dir=$(find "${1:-.}" -type d 2>/dev/null | fzf +m) && cd "$dir" || return
+    # Use fd if available for much better performance and .gitignore respect
+    if command -v fd &> /dev/null; then
+        dir=$(fd --type d --hidden --exclude .git "${1:-.}" | fzf +m)
+    else
+        dir=$(find "${1:-.}" -type d 2>/dev/null | fzf +m)
+    fi
+    [[ -n "$dir" ]] && cd "$dir" || return
 }
 
 # ------------------------------------------------------------------------------
@@ -117,6 +122,7 @@ archive() {
         *.tar.zst)   tar --zstd -cf "$archive" "$@" ;;
         *.zip)       zip -r "$archive" "$@" ;;
         *.7z)        7z a "$archive" "$@" ;;
+        *.tar)       tar cf "$archive" "$@" ;;  # Added basic tar support
         *)           echo "❌ Unknown format: $archive" && return 1 ;;
     esac
 
@@ -381,14 +387,14 @@ zjka() {
 }
 
 # Create/Attach project-specific Zellij session
-# Usage: zjproj [project_name] [layout]
+# Usage: zjp [project_name] [layout]
 # Examples:
-#   zjproj              # Current dir, dev layout
-#   zjproj my-app       # Named session, dev layout
-#   zjproj . ops        # Current dir, ops layout
-zjproj() {
+#   zjp              # Current dir, base layout
+#   zjp my-app       # Named session, base layout
+#   zjp . ops        # Current dir, ops layout
+zjp() {
     local project_name="${1:-$(basename "$PWD")}"
-    local layout="${2:-base}"
+    local layout="${2:-base}"  # Default: Base layout (Minimal)
 
     # Handle "." as explicitly using current dir name
     if [[ "$project_name" == "." ]]; then

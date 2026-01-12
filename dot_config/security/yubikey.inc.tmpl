@@ -4,12 +4,19 @@
 # YubiKey Integration (Profile: {{ $profile }})
 {{- if eq $profile "workstation" }}
 if command -v ykman &> /dev/null; then
-    # YubiKey Manager is available
-    # Uncomment to show warning if YubiKey not inserted:
+    # --- Aliases ---
+    # Fast access to 2FA codes (Requires touch by default for OATH)
+    alias yk="ykman oath accounts code"
+    # Device info
+    alias yki="ykman info"
+    # Smart Card info
+    alias ykg="ykman openpgp info"
+
+    # --- Safety Check (Optional) ---
+    # Login shell warning if Key is missing (Uncomment if desired)
     # if ! ykman list &> /dev/null 2>&1; then
-    #     echo "[YubiKey] Not detected"
+    #     echo "[YubiKey] Warning: Not detected!"
     # fi
-    :
 fi
 {{- else }}
 # YubiKey integration disabled for {{ $profile }} profile
