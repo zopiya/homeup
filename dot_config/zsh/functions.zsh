@@ -66,22 +66,21 @@ unbak() {
     # Optimized: Use zsh glob qualifiers (.om[1]) instead of ls/head
     # . = regular files, om = order by modification time (newest first), [1] = take first, N = nullglob
     local latest
+    # FIX: Use simple assignment + array expansion to avoid parse errors in some zsh versions
+    # When combined with complicated globs inside ()
+    local -a files
+    files=("${1}.bak."*(.om[1]N))
+    latest="${files[1]}"
 
-    # SC2039/SC3054: Disable warnings for Zsh-specific glob qualifiers
-    # shellcheck disable=SC2039,SC3054
-    # Ensure glob expansion happens correctly in array assignment
-    latest=("${1}.bak."*(.om[1]N))
-
-    # SC2128/SC2199/SC2145: Use [*] to expand array as a single string (safe here as we strictly target 1 file)
-    if [[ -f "${latest[*]}" ]]; then
-        mv "${latest[*]}" "$1" && echo "✅ Restored $1 from ${latest[*]}"
+    if [[ -f "$latest" ]]; then
+        mv "$latest" "$1" && echo "✅ Restored $1 from $latest"
     else
         echo "❌ No backup found for $1"
     fi
 }
-auto-detect format)
-# Usage: extract <file> (e.g. tar.gz, zip, 7z, rar, xz...
+
 # Extract any archive (enhanced with modern formats)
+# Usage: extract <file> (e.g. tar.gz, zip, 7z, rar, xz...)
 extract() {
     if [[ ! -f "$1" ]]; then
         echo "❌ '$1' is not a valid file"
@@ -107,10 +106,10 @@ extract() {
         *.lz4)       lz4 -d "$1"      ;;
         *)           echo "❌ Cannot extract '$1': unknown format" ;;
     esac
-}auto-format from extension)
-# Usage: archive <out.ext> <files...>
+}
 
 # Create archive (smart format detection)
+# Usage: archive <out.ext> <files...>
 archive() {
     if [[ $# -lt 2 ]]; then
         echo "Usage: archive <archive_name> <files...>"
@@ -229,9 +228,9 @@ tmk() {
 
     tmux kill-session -t "$1" 2>/dev/null && echo "✅ Killed session: $1" || echo "❌ Session not found: $1"
 }
-/Attach directory-based tmux session
-# Usage: tmp [dir] (default: current dir
-# Create project session (automatic directory-based session)
+
+# Create/Attach directory-based tmux session
+# Usage: tmp [dir] (default: current dir)
 tmp() {
     local session_name
     local target_dir="${1:-.}"
@@ -273,6 +272,7 @@ tmw() {
 # Kill all tmux sessions (nuclear option)
 tmka() {
     if tmux list-sessions 2>/dev/null; then
+        # shellcheck disable=SC2162 # read -q is specific to zsh
         read -q "REPLY?⚠️  Kill ALL tmux sessions? (y/n) "
         echo
         if [[ "$REPLY" == "y" ]]; then
@@ -386,6 +386,7 @@ zjka() {
         return
     fi
 
+    # shellcheck disable=SC2162 # read -q is specific to zsh
     read -q "REPLY?⚠️  Kill ALL Zellij sessions? (y/n) "
     echo
     if [[ "$REPLY" == "y" ]]; then
