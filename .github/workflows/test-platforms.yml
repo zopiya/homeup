@@ -9,6 +9,8 @@
 #   - Debian + linux (headless server/workstation)
 #   - Fedora + mini (dev containers, minimal)
 #   - Fedora + linux (headless server/workstation)
+#   - Alpine + mini (lightweight container)
+#   - Arch   + linux (rolling release)
 # ==============================================================================
 
 name: Platform Tests
@@ -29,7 +31,7 @@ on:
 
 # Limit concurrent runs per branch
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -220,7 +222,7 @@ jobs:
         run: |
           sudo -u testuser bash -c "
             export HOMEUP_PROFILE=${{ matrix.profile }}
-            source \"\$HOME/.config/homebrew/shellenv\" 2>/dev/null || eval \"\$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\"
+            source \"$HOME/.config/homebrew/shellenv\" 2>/dev/null || eval \"$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\" 
             cd $GITHUB_WORKSPACE
             chezmoi init --apply --source .
           "
@@ -392,7 +394,7 @@ jobs:
         run: |
           sudo -u testuser bash -c "
             export HOMEUP_PROFILE=${{ matrix.profile }}
-            source \"\$HOME/.config/homebrew/shellenv\" 2>/dev/null || eval \"\$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\"
+            source \"$HOME/.config/homebrew/shellenv\" 2>/dev/null || eval \"$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\" 
             cd $GITHUB_WORKSPACE
             chezmoi init --apply --source .
           "
@@ -472,4 +474,202 @@ jobs:
             echo "OK: Security configs properly excluded"
 
             echo "=== Linux Profile Verified ==="
+          '
+
+  # ----------------------------------------------------------------------------
+  # Alpine (mini profile)
+  # ----------------------------------------------------------------------------
+  test-alpine:
+    name: Alpine / mini
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
+      options: --user root
+    timeout-minutes: 45
+    if: ${{ !github.event.inputs.profile || github.event.inputs.profile == 'mini' }}
+
+    steps:
+      - name: Install Dependencies
+        run: |
+          apk add --no-cache \
+            git \
+            bash \
+            curl \
+            sudo \
+            shadow \
+            gcompat \
+            libstdc++ \
+            procps \
+            ncurses \
+            coreutils
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Homebrew
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/linuxbrew/.linuxbrew
+            ~/.cache/Homebrew
+          key: alpine-homebrew-mini-${{ hashFiles('bootstrap.sh') }}
+          restore-keys: |
+            alpine-homebrew-mini-
+            alpine-homebrew-
+
+      - name: Setup Test User
+        run: |
+          useradd -m -s /bin/bash testuser
+          echo "testuser ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/testuser
+          chmod +x bootstrap.sh
+          chown -R testuser:testuser $GITHUB_WORKSPACE
+
+      - name: Run bootstrap.sh
+        id: bootstrap
+        run: |
+          sudo -u testuser bash -c "
+            export HOMEUP_PROFILE=mini
+            export NONINTERACTIVE=1
+            export CI=true
+            cd $GITHUB_WORKSPACE
+            ./bootstrap.sh -p mini -y
+          "
+
+      - name: Verify Bootstrap
+        if: steps.bootstrap.outcome == 'success'
+        run: |
+          sudo -u testuser bash -c '
+            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            echo "--- Homebrew ---"
+            brew --version
+            echo "--- Chezmoi ---"
+            chezmoi --version
+          '
+
+      - name: Apply Chezmoi
+        id: apply_chezmoi
+        run: |
+          sudo -u testuser bash -c "
+            export HOMEUP_PROFILE=mini
+            source \"$HOME/.config/homebrew/shellenv\" 2>/dev/null || eval \"$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\" 
+            cd $GITHUB_WORKSPACE
+            chezmoi init --apply --source .
+          "
+
+      - name: Verify Profile - Core
+        if: steps.apply_chezmoi.outcome == 'success'
+        run: |
+          sudo -u testuser bash -c '
+            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            export PATH="$HOME/.local/bin:$PATH"
+
+            echo "=== Verifying Core (Alpine) ==="
+
+            # Config files
+            echo "--- Config Files ---"
+            test -f "$HOME/.config/starship.toml" || { echo "FAIL: starship.toml"; exit 1; }
+            test -f "$HOME/.config/zsh/.zshrc" || test -f "$HOME/.zshrc" || { echo "FAIL: zshrc"; exit 1; }
+            echo "OK: Core config files present"
+
+            # Core tools
+            # Note: On Alpine, some tools might be missing if brew failed, 
+            # but we check if chezmoi managed to configure them.
+            echo "--- Core Tools ---"
+            command -v zsh || { echo "FAIL: zsh"; exit 1; }
+            command -v starship || { echo "FAIL: starship"; exit 1; }
+            
+            echo "OK: Basic tools present"
+          '
+
+  # ----------------------------------------------------------------------------
+  # Arch Linux (linux profile)
+  # ----------------------------------------------------------------------------
+  test-arch:
+    name: Arch Linux / linux
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --user root
+    timeout-minutes: 45
+    if: ${{ !github.event.inputs.profile || github.event.inputs.profile == 'linux' }}
+
+    steps:
+      - name: Install Dependencies
+        run: |
+          pacman -Syu --noconfirm git sudo base-devel curl which inetutils
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Homebrew
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/linuxbrew/.linuxbrew
+            ~/.cache/Homebrew
+          key: arch-homebrew-linux-${{ hashFiles('bootstrap.sh') }}
+          restore-keys: |
+            arch-homebrew-linux-
+            arch-homebrew-
+
+      - name: Setup Test User
+        run: |
+          useradd -m -s /bin/bash testuser
+          echo "testuser ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/testuser
+          chmod +x bootstrap.sh
+          chown -R testuser:testuser $GITHUB_WORKSPACE
+
+      - name: Run bootstrap.sh
+        id: bootstrap
+        run: |
+          sudo -u testuser bash -c "
+            export HOMEUP_PROFILE=linux
+            export NONINTERACTIVE=1
+            export CI=true
+            cd $GITHUB_WORKSPACE
+            ./bootstrap.sh -p linux -y
+          "
+
+      - name: Verify Bootstrap
+        if: steps.bootstrap.outcome == 'success'
+        run: |
+          sudo -u testuser bash -c '
+            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            echo "--- Homebrew ---"
+            brew --version
+            echo "--- Chezmoi ---"
+            chezmoi --version
+          '
+
+      - name: Apply Chezmoi
+        id: apply_chezmoi
+        run: |
+          sudo -u testuser bash -c "
+            export HOMEUP_PROFILE=linux
+            source \"$HOME/.config/homebrew/shellenv\" 2>/dev/null || eval \"$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\" 
+            cd $GITHUB_WORKSPACE
+            chezmoi init --apply --source .
+          "
+
+      - name: Verify Profile - Core
+        if: steps.apply_chezmoi.outcome == 'success'
+        run: |
+          sudo -u testuser bash -c '
+            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            export PATH="$HOME/.local/bin:$PATH"
+
+            echo "=== Verifying Core (Arch) ==="
+
+            # Config files
+            echo "--- Config Files ---"
+            test -f "$HOME/.config/starship.toml" || { echo "FAIL: starship.toml"; exit 1; }
+            test -f "$HOME/.config/zsh/.zshrc" || test -f "$HOME/.zshrc" || { echo "FAIL: zshrc"; exit 1; }
+            echo "OK: Core config files present"
+
+            # Core tools
+            echo "--- Core Tools ---"
+            command -v zsh || { echo "FAIL: zsh"; exit 1; }
+            command -v starship || { echo "FAIL: starship"; exit 1; }
+            command -v nvim || { echo "FAIL: nvim"; exit 1; }
+            echo "OK: Core tools installed"
           '
