@@ -233,6 +233,75 @@ validate_repo_host() {
 # Pre-flight Checks
 # ------------------------------------------------------------------------------
 
+check_prerequisites() {
+    local failed=0
+
+    # Check disk space (require at least 5GB free)
+    local required_space=$((5 * 1024 * 1024))  # 5GB in KB
+    local available_space
+    if [[ "$_OS" == "darwin" ]]; then
+        available_space=$(df -k ~ | awk 'NR==2 {print $4}')
+    else
+        available_space=$(df -k ~ | awk 'NR==2 {print $4}')
+    fi
+
+    if [[ -n "$available_space" ]] && [[ "$available_space" -lt "$required_space" ]]; then
+        msg_fail "Insufficient disk space: $(( available_space / 1024 / 1024 ))GB available, 5GB required"
+        failed=1
+    fi
+
+    # Check Bash version (4.0+)
+    if [[ -z "${BASH_VERSION:-}" ]] || [[ ${BASH_VERSINFO[0]} -lt 4 ]]; then
+        msg_fail "Bash version check failed: 4.0+ required (found: ${BASH_VERSION:-none})"
+        msg_info "Install newer Bash: brew install bash (macOS) or update your system (Linux)"
+        failed=1
+    fi
+
+    # Check Git version (2.0+)
+    if command -v git >/dev/null 2>&1; then
+        local git_version
+        git_version=$(git --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+' | head -1)
+        local git_major="${git_version%%.*}"
+        if [[ -n "$git_major" ]] && [[ "$git_major" -lt 2 ]]; then
+            msg_fail "Git version check failed: 2.0+ required (found: $git_version)"
+            msg_info "Update Git: brew install git (macOS) or use your package manager (Linux)"
+            failed=1
+        fi
+    else
+        msg_fail "Git is not installed"
+        msg_info "Install Git: brew install git (macOS) or apt/yum/pacman install git (Linux)"
+        failed=1
+    fi
+
+    # Check curl or wget availability
+    if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+        msg_fail "Neither curl nor wget is installed"
+        msg_info "Install curl: brew install curl (macOS) or apt/yum/pacman install curl (Linux)"
+        failed=1
+    fi
+
+    # Check network connectivity
+    if command -v curl >/dev/null 2>&1; then
+        if ! curl --max-time 5 --head -fsSL https://github.com >/dev/null 2>&1; then
+            msg_fail "Network connectivity check failed: cannot reach github.com"
+            msg_info "Check your internet connection or proxy settings"
+            failed=1
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        if ! wget --timeout=5 --spider -q https://github.com 2>/dev/null; then
+            msg_fail "Network connectivity check failed: cannot reach github.com"
+            msg_info "Check your internet connection or proxy settings"
+            failed=1
+        fi
+    fi
+
+    if [[ $failed -eq 1 ]]; then
+        die "Prerequisites check failed. Please fix the issues above and try again."
+    fi
+
+    msg_ok "Prerequisites check passed"
+}
+
 check_dependencies() {
     local deps=("curl" "git")
     local missing=()
@@ -293,10 +362,37 @@ spinner() {
 # Cleanup
 # ------------------------------------------------------------------------------
 
+# Log file for debugging
+LOG_DIR="$HOME/.homeup/logs"
+LOG_FILE="$LOG_DIR/bootstrap.log"
+
+setup_logging() {
+    if [[ "${HOMEUP_ENABLE_LOGGING:-0}" == "1" ]]; then
+        mkdir -p "$LOG_DIR"
+        touch "$LOG_FILE"
+        exec > >(tee -a "$LOG_FILE")
+        exec 2>&1
+        msg_info "Logging enabled: $LOG_FILE"
+    fi
+}
+
 cleanup() {
+    local exit_code=$?
     trap - EXIT INT TERM
+
     if [[ -n "${SUDO_KEEP_ALIVE_PID:-}" ]] && kill -0 "$SUDO_KEEP_ALIVE_PID" 2>/dev/null; then
         kill "$SUDO_KEEP_ALIVE_PID" 2>/dev/null || true
+    fi
+
+    # Clean up temporary files
+    if [[ -n "${TEMP_FILES:-}" ]]; then
+        for temp_file in $TEMP_FILES; do
+            [[ -f "$temp_file" ]] && rm -f "$temp_file" 2>/dev/null || true
+        done
+    fi
+
+    if [[ $exit_code -ne 0 ]] && [[ "${HOMEUP_ENABLE_LOGGING:-0}" == "1" ]]; then
+        msg_info "Error occurred. Check log file: $LOG_FILE"
     fi
 }
 
@@ -737,19 +833,35 @@ install_brew() {
     require_cmd curl
     require_cmd bash
 
-    (
-        NONINTERACTIVE=1 bash -c "$(curl -fsSL "$BREW_INSTALL_URL")" >/dev/null 2>&1
-    ) &
+    local max_attempts=3
+    local attempt=1
+    local success=false
 
-    if spinner $! "Installing Homebrew"; then
-        if find_brew && setup_brew_env; then
-            persist_brew_env
-            msg_ok "Homebrew installed"
-            return 0
+    while [[ $attempt -le $max_attempts ]]; do
+        if [[ $attempt -gt 1 ]]; then
+            msg_info "Retry attempt $attempt of $max_attempts..."
+            sleep 2
         fi
-    fi
 
-    die "Homebrew installation failed"
+        (
+            NONINTERACTIVE=1 bash -c "$(curl --max-time 30 -fsSL "$BREW_INSTALL_URL")" >/dev/null 2>&1
+        ) &
+
+        if spinner $! "Installing Homebrew (attempt $attempt/$max_attempts)"; then
+            if find_brew && setup_brew_env; then
+                persist_brew_env
+                msg_ok "Homebrew installed"
+                success=true
+                break
+            fi
+        fi
+
+        ((attempt++))
+    done
+
+    if [[ "$success" != true ]]; then
+        die "Homebrew installation failed after $max_attempts attempts. Check your network connection and try again."
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -813,29 +925,75 @@ print_summary() {
     printf "\n"
 }
 
+print_progress() {
+    local step=$1
+    local total=$2
+    local message=$3
+    printf "\n%s[%d/%d]%s %s\n" "$C_CYAN" "$step" "$total" "$C_RESET" "$message"
+}
+
 main() {
     # Parse CLI arguments first
     parse_args "$@"
 
+    setup_logging
+    print_banner
+
+    local total_steps=7
+    local current_step=0
+
+    # Step 1: Check prerequisites
+    ((current_step++))
+    print_progress $current_step $total_steps "Checking prerequisites..."
     check_dependencies
     check_bash_version
-    print_banner
-    setup_sudo
-    detect_system
+    detect_os
+    detect_arch
+    detect_distro
+    check_prerequisites
 
+    # Step 2: Setup sudo
+    ((current_step++))
+    print_progress $current_step $total_steps "Setting up sudo access..."
+    setup_sudo
+
+    # Step 3: Detect system and profile
+    ((current_step++))
+    print_progress $current_step $total_steps "Detecting system configuration..."
+    if [[ "$_OS" == "darwin" ]]; then
+        msg_ok "System: macOS ($_ARCH)"
+    else
+        msg_ok "System: Linux/$_DISTRO ($_ARCH)"
+    fi
+    detect_profile
+
+    # Step 4: Platform-specific dependencies
+    ((current_step++))
+    print_progress $current_step $total_steps "Installing platform dependencies..."
     if [[ "$_OS" == "darwin" ]]; then
         check_xcode_tools
     elif [[ "$_OS" == "linux" ]]; then
         install_linux_deps
     fi
 
+    # Step 5: Install Homebrew
+    ((current_step++))
+    print_progress $current_step $total_steps "Installing Homebrew..."
     install_brew
+
+    # Step 6: Install Chezmoi
+    ((current_step++))
+    print_progress $current_step $total_steps "Installing Chezmoi..."
     install_chezmoi
+
+    # Step 7: Summary
+    ((current_step++))
+    print_progress $current_step $total_steps "Finalizing setup..."
 
     print_summary
 
-    printf "%sBootstrap complete.%s\n" "$C_GREEN" "$C_RESET"
-    printf "Restart your shell or run: source %s\n\n" "$BREW_SHELLENV_FILE"
+    printf "\n%s✓ Bootstrap complete!%s\n" "$C_GREEN" "$C_RESET"
+    printf "Restart your shell or run: %ssource %s%s\n\n" "$C_CYAN" "$BREW_SHELLENV_FILE" "$C_RESET"
 
     # Initialize dotfiles if --repo is specified
     local repo_url=""
@@ -866,20 +1024,38 @@ main() {
             msg_ok "Dotfiles initialized"
             if [[ "$ARG_APPLY" == true ]]; then
                 msg_ok "Configuration applied"
+                printf "\n%s━━━ Next Steps ━━━%s\n" "$C_CYAN" "$C_RESET"
+                printf "\n%s1. Restart your shell%s or source the configuration:\n" "$C_GREEN" "$C_RESET"
+                printf "   source %s\n" "$BREW_SHELLENV_FILE"
+                printf "\n%s2. Update your dotfiles:%s\n" "$C_GREEN" "$C_RESET"
+                printf "   chezmoi update\n"
+                printf "\n%s3. Edit configuration:%s\n" "$C_GREEN" "$C_RESET"
+                printf "   chezmoi edit --apply\n"
+                printf "\n"
             else
-                printf "\nTo apply configuration, run:\n"
-                printf "  chezmoi apply\n"
+                printf "\n%s━━━ Next Steps ━━━%s\n" "$C_CYAN" "$C_RESET"
+                printf "\n%sTo apply configuration:%s\n" "$C_GREEN" "$C_RESET"
+                printf "   chezmoi apply\n"
+                printf "\n"
             fi
         else
             msg_fail "Failed to initialize dotfiles"
+            msg_info "Check your repository URL and network connection"
+            msg_info "Repository: $repo_url"
             exit 1
         fi
     else
-        printf "\n%sNext steps:%s\n" "$C_CYAN" "$C_RESET"
-        printf "  Initialize dotfiles:\n"
-        printf "    chezmoi init --apply <your-repo>\n"
-        printf "\n  Or re-run with --repo:\n"
-        printf "    ./bootstrap.sh --repo <your-repo> --apply\n"
+        printf "\n%s━━━ Next Steps ━━━%s\n" "$C_CYAN" "$C_RESET"
+        printf "\n%s1. Initialize your dotfiles:%s\n" "$C_GREEN" "$C_RESET"
+        printf "   chezmoi init --apply <your-repo>\n"
+        printf "\n%s2. Or use the quick setup:%s\n" "$C_GREEN" "$C_RESET"
+        printf "   ./bootstrap.sh --repo <your-repo> --apply\n"
+        printf "\n%s3. Configure your shell:%s\n" "$C_GREEN" "$C_RESET"
+        printf "   source %s\n" "$BREW_SHELLENV_FILE"
+        printf "\n%s4. Verify installation:%s\n" "$C_GREEN" "$C_RESET"
+        printf "   brew --version && chezmoi --version\n"
+        printf "\n%sTip:%s Set HOMEUP_ENABLE_LOGGING=1 to enable debug logging\n" "$C_CYAN" "$C_RESET"
+        printf "\n"
     fi
 }
 
