@@ -2,7 +2,8 @@
 # Brewfile.core - Essential Tools for ALL Environments
 # ==============================================================================
 # This file contains the minimal set of CLI tools required across all profiles.
-# These are core utilities that every machine (workstation/codespace/server) needs.
+# These are core utilities that every machine (macos/linux) needs.
+# Note: 'mini' profile is standalone and does not inherit this file.
 #
 # Design Principle: Less is More
 # Only include tools that are:
@@ -10,7 +11,7 @@
 #   2. Have no platform-specific alternatives
 #   3. Are truly essential for basic shell workflow
 #
-# Profiles: workstation | codespace | server
+# Profiles: macos | linux
 # Dependencies: None (this is the foundation)
 # ==============================================================================
 

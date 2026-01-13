@@ -14,7 +14,7 @@
 #   3. Security-first approach (hardware keys, encryption)
 #   4. Modern GUI applications (native macOS experience)
 #
-# Profile: workstation (macOS)
+# Profile: macos (GUI / Main)
 # Dependencies: Brewfile.core
 # ==============================================================================
 
