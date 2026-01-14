@@ -32,7 +32,7 @@ Homeup 是一套面向独立开发者和技术团队的生产级 Dotfiles 管理
 ### 一键安装
 
 ```bash
-# 自动检测环境并安装（推荐）
+# 默认安装 Mini Profile（安全模式），如需完整环境请参阅下方手动安装
 curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/bootstrap.sh | bash
 ```
 
@@ -44,7 +44,12 @@ git clone https://github.com/zopiya/homeup.git
 cd homeup
 
 # 2. 运行 bootstrap
+# 默认安装 Mini Profile
 ./bootstrap.sh
+
+# 或指定 Profile 安装完整环境
+# ./bootstrap.sh -p macos
+# ./bootstrap.sh -p linux
 
 # 3. 查看变化
 just diff

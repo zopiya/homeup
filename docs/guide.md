@@ -26,16 +26,16 @@ curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/bootstrap.sh | b
 
 #### 步骤 2：运行 Bootstrap（自动检测环境）
 
-Bootstrap 脚本会自动检测你的操作系统并推荐合适的 Profile：
+Bootstrap 脚本会自动检测你的环境。默认情况下（无参数），它会安装 **Mini Profile**（安全模式），这非常适合首次尝试或容器环境。
 
 ```bash
-# 交互式模式（推荐首次使用）
+# 默认安装 Mini Profile（推荐首次使用，安全快速）
 ./bootstrap.sh
 
-# 指定 Profile
-./bootstrap.sh -p macos        # macOS 完整工作站
-./bootstrap.sh -p linux        # Linux 服务器（无头）
-./bootstrap.sh -p mini         # 轻量级容器/Codespaces
+# 指定 Profile 安装完整环境
+./bootstrap.sh -p macos        # macOS 完整工作站（含 GUI 应用）
+./bootstrap.sh -p linux        # Linux 服务器（无头模式）
+./bootstrap.sh -p mini         # 显式指定 Mini Profile
 
 # 非交互式自动应用
 ./bootstrap.sh -p macos -a
@@ -1985,7 +1985,13 @@ just install-packages
 
 **可能原因和解决方案：**
 
-**1. Homebrew 安装卡住**
+**1. 网络连接问题**
+
+Bootstrap 脚本现在包含超时控制。如果它因网络慢而失败，请检查你的连接或代理设置。
+
+**2. Homebrew 安装卡住**
+
+Bootstrap 会重试 Homebrew 安装 3 次。如果仍然失败：
 
 ```bash
 # 手动安装 Homebrew
@@ -1995,9 +2001,13 @@ just install-packages
 ./bootstrap.sh -p macos
 ```
 
-**2. 网络连接问题**
+**3. 查看详细日志**
+
+Bootstrap 现在会将详细日志写入文件。检查日志以获取更多线索：
 
 ```bash
+tail -f ~/.homeup/logs/bootstrap.log
+```
 # 测试网络连接
 curl -I https://github.com
 ping -c 3 github.com

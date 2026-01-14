@@ -18,7 +18,6 @@
 # Dependencies: Brewfile.core
 # ==============================================================================
 
-tap "homebrew/cask-fonts"
 tap "1password/tap"
 
 # Note: Enhanced CLI tools (fastfetch, zellij, bottom, choose) moved to Brewfile.core
@@ -69,7 +68,7 @@ brew "pinentry-mac"    # macOS native pinentry for GPG
 cask "font-jetbrains-mono-nerd-font"
 cask "font-hack-nerd-font"
 cask "font-noto-sans"
-cask "font-source-han-serif"
+cask "font-source-han-serif-vf"
 
 # ==============================================================================
 # GUI Applications
