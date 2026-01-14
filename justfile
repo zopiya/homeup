@@ -274,13 +274,25 @@ pkg-validate:
         # Check formulae
         while read -r pkg; do
             [ -z "$pkg" ] && continue
-            brew info "$pkg" &>/dev/null && echo "  ✓ $pkg" || { echo "  ✗ $pkg"; failed=1; }
+            if brew info "$pkg" &>/dev/null; then
+                echo "  ✓ $pkg"
+            else
+                echo "  ✗ $pkg (not found in brew)"
+                # Try to get more info for debugging
+                brew search "$pkg" 2>/dev/null | head -3 | sed 's/^/      /' || true
+                failed=1
+            fi
         done < <(grep '^brew "' "$brewfile" 2>/dev/null | sed 's/^brew "\([^"]*\)".*/\1/' || true)
 
         # Check casks
         while read -r pkg; do
             [ -z "$pkg" ] && continue
-            brew info --cask "$pkg" &>/dev/null && echo "  ✓ [cask] $pkg" || { echo "  ✗ [cask] $pkg"; failed=1; }
+            if brew info --cask "$pkg" &>/dev/null; then
+                echo "  ✓ [cask] $pkg"
+            else
+                echo "  ✗ [cask] $pkg (not found in brew)"
+                failed=1
+            fi
         done < <(grep '^cask "' "$brewfile" 2>/dev/null | sed 's/^cask "\([^"]*\)".*/\1/' || true)
     done
 

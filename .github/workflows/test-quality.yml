@@ -142,11 +142,16 @@ jobs:
         run: brew install just
 
       - name: Update Homebrew
-        run: brew update
+        run: |
+          echo "Updating Homebrew..."
+          brew update
+          echo "Homebrew updated successfully"
 
       - name: Validate packages
         run: |
           echo "=== Validating Packages ==="
+          # Ensure brew is ready
+          brew --version
           just pkg-validate
           echo "✓ All packages valid"
 

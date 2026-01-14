@@ -13,8 +13,8 @@ sourceDir = "{{ .chezmoi.homeDir }}/.local/share/chezmoi"
 
     # Profile: macos | linux | mini
     # Default: mini (safe mode - minimal tools, no GPG/SSH keys)
-    # Set via: bootstrap.sh --promptString or HOMEUP_PROFILE env var
-    profile = "{{ .profile | default (env "HOMEUP_PROFILE") | default "mini" }}"
+    # Set via: HOMEUP_PROFILE env var
+    profile = "{{ env "HOMEUP_PROFILE" | default "mini" }}"
 
 # --- Editor ---
 [edit]

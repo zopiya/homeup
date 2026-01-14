@@ -611,9 +611,6 @@ build_chezmoi_command() {
     local is_local=$2
     local -a cmd=(chezmoi init)
 
-    # Add profile prompt string
-    cmd+=(--promptString "profile=$HOMEUP_PROFILE")
-
     # Add apply flag if requested
     if [[ "$ARG_APPLY" == true ]]; then
         cmd+=(--apply)

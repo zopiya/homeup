@@ -137,6 +137,8 @@ jobs:
         run: |
           sudo -u testuser bash -c "
             export HOMEUP_PROFILE=${{ matrix.profile }}
+            export HOMEUP_DOWNLOAD_TIMEOUT=300
+            export HOMEUP_RETRY_COUNT=5
             cd $GITHUB_WORKSPACE
             ./bootstrap.sh -p ${{ matrix.profile }} -y
           "
@@ -258,6 +260,8 @@ jobs:
         run: |
           sudo -u testuser bash -c "
             export HOMEUP_PROFILE=${{ matrix.profile }}
+            export HOMEUP_DOWNLOAD_TIMEOUT=300
+            export HOMEUP_RETRY_COUNT=5
             cd $GITHUB_WORKSPACE
             ./bootstrap.sh -p ${{ matrix.profile }} -y
           "
