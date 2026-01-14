@@ -113,7 +113,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y git sudo curl ca-certificates file procps
+          apt-get install -y build-essential git sudo curl ca-certificates file procps
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -234,7 +234,8 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          dnf install -y git sudo curl which tar gzip procps-ng hostname findutils
+          dnf groupinstall -y "Development Tools"
+          dnf install -y git sudo curl which tar gzip procps-ng hostname findutils file
 
       - name: Checkout
         uses: actions/checkout@v4

@@ -545,11 +545,14 @@ install_homebrew() {
     msg_info "Timeout: ${DOWNLOAD_TIMEOUT}s, Retries: ${RETRY_COUNT} (configurable via HOMEUP_* env vars)"
 
     local count=0
+    local last_error=""
 
     while [[ $count -lt $RETRY_COUNT ]]; do
         ((count++))
 
-        if NONINTERACTIVE=1 bash -c "$(curl -fsSL --max-time "$DOWNLOAD_TIMEOUT" "$BREW_INSTALL_URL")"; then
+        # Capture output for error reporting
+        local install_output
+        if install_output=$(NONINTERACTIVE=1 bash -c "$(curl -fsSL --max-time "$DOWNLOAD_TIMEOUT" "$BREW_INSTALL_URL")" 2>&1); then
             # Determine installation prefix
             if [[ "$_OS" == "darwin" ]]; then
                 if [[ -x "/opt/homebrew/bin/brew" ]]; then
@@ -564,15 +567,24 @@ install_homebrew() {
             configure_homebrew_env "$brew_prefix"
             msg_ok "Homebrew installed successfully."
             return 0
+        else
+            last_error="$install_output"
         fi
 
         if [[ $count -lt $RETRY_COUNT ]]; then
             msg_warn "Homebrew installation failed (Attempt $count/$RETRY_COUNT). Retrying in ${RETRY_DELAY}s..."
             sleep "$RETRY_DELAY"
+        else
+            # Last attempt - show error details
+            msg_fail "Homebrew installation failed after $RETRY_COUNT attempts."
+            if [[ -n "$last_error" ]]; then
+                echo "Last error output:" >&2
+                echo "$last_error" | tail -20 >&2
+            fi
         fi
     done
 
-    die "Failed to install Homebrew after $RETRY_COUNT attempts."
+    die "Failed to install Homebrew. Please check the error output above."
 }
 
 install_chezmoi() {

@@ -9,7 +9,7 @@
 set -Eeuo pipefail
 
 # Profile configuration (from chezmoi)
-readonly PROFILE="{{ .profile | default \"mini\" }}"
+readonly PROFILE='{{ .profile | default "mini" }}'
 
 # ------------------------------------------------------------------------------
 # Constants & Helpers
