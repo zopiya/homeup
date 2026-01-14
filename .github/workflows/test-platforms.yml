@@ -230,8 +230,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          dnf groupinstall -y "Development Tools"
-          dnf install -y git sudo curl which tar gzip procps-ng hostname findutils file
+          dnf install -y @development-tools git sudo curl which tar gzip procps-ng hostname findutils file
 
       - name: Checkout
         uses: actions/checkout@v4

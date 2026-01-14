@@ -461,10 +461,11 @@ install_debian_deps() {
 install_fedora_deps() {
     # Homebrew official requirements for Fedora/RHEL
     # https://docs.brew.sh/Homebrew-on-Linux
+    # Note: dnf5 syntax - use @group-name instead of groupinstall
     local -r packages=("@development-tools" procps-ng curl file git)
 
     msg_info "Installing system build dependencies..."
-    if ! sudo dnf install -y -q "${packages[@]}" >/dev/null 2>&1; then
+    if ! sudo dnf install -y -q "${packages[@]}" 2>&1 | grep -v "^Last metadata" >/dev/null; then
         msg_warn "Failed to install some system dependencies."
         return 1
     fi
