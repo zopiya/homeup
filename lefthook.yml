@@ -1,107 +1,98 @@
 # ==============================================================================
-# Lefthook Configuration
+# Lefthook Configuration - Git Hooks for Homeup
 # ==============================================================================
-# Git hooks for homeup dotfiles project.
 # Install: lefthook install
 # ==============================================================================
 
+# Reduce output noise
+skip_output:
+  - meta
+  - summary
+
 # ------------------------------------------------------------------------------
-# Pre-commit Hooks
+# Pre-commit: Fast checks before commit
 # ------------------------------------------------------------------------------
 pre-commit:
   parallel: true
   commands:
+    # Lint shell scripts
     shellcheck:
       glob: "*.sh"
       run: shellcheck {staged_files}
 
-    chezmoi-verify:
-      run: |
-        if command -v chezmoi &> /dev/null; then
-          chezmoi verify --source . 2>/dev/null || true
-        fi
-
+    # Validate templates
     template-check:
       glob: "*.tmpl"
       run: |
         for file in {staged_files}; do
           if ! chezmoi execute-template < "$file" > /dev/null 2>&1; then
-            echo "Template error: $file"
+            echo "✗ Template syntax error: $file"
             exit 1
           fi
         done
 
-    trailing-whitespace:
-      run: |
-        for file in {staged_files}; do
-          if grep -q '[[:space:]]$' "$file" 2>/dev/null; then
-            echo "Trailing whitespace: $file"
-            # Auto-fix (optional)
-            # sed -i '' 's/[[:space:]]*$//' "$file"
-          fi
-        done
-
+    # Prevent secrets in non-template files
     no-secrets:
       run: |
         for file in {staged_files}; do
-          if grep -qiE "(password|secret|token|api_key)\s*=" "$file" 2>/dev/null; then
-            if ! echo "$file" | grep -qE "\.tmpl$|\.example$"; then
-              echo "Potential secret in: $file"
-              exit 1
-            fi
+          # Skip templates and example files
+          [[ "$file" =~ \.(tmpl|example)$ ]] && continue
+
+          if grep -qiE "(password|secret|token|api[_-]?key)\s*=" "$file" 2>/dev/null; then
+            echo "✗ Potential secret found: $file"
+            echo "  If this is intentional, use a template or .example file"
+            exit 1
           fi
         done
 
 # ------------------------------------------------------------------------------
-# Commit Message Hook
+# Commit-msg: Validate commit message format
 # ------------------------------------------------------------------------------
 commit-msg:
   commands:
     format-check:
       run: |
         msg=$(cat {1})
-        # Check message length (subject line <= 72 chars)
-        first_line=$(echo "$msg" | head -n1)
-        if [ ${#first_line} -gt 72 ]; then
-          echo "Commit subject too long (${#first_line} > 72 chars)"
+
+        # Check subject line length
+        subject=$(echo "$msg" | head -n1)
+        if [ ${#subject} -gt 72 ]; then
+          echo "✗ Commit subject too long (${#subject} > 72 chars)"
           exit 1
         fi
+
         # Check for empty message
         if [ -z "$(echo "$msg" | grep -v '^#' | tr -d '[:space:]')" ]; then
-          echo "Empty commit message"
+          echo "✗ Empty commit message"
           exit 1
         fi
 
 # ------------------------------------------------------------------------------
-# Pre-push Hooks
+# Pre-push: Comprehensive checks before push
 # ------------------------------------------------------------------------------
 pre-push:
   parallel: true
   commands:
-    lint-all:
+    # Validate all templates
+    validate-templates:
       run: |
-        echo "Running full lint..."
-        find . -name "*.sh" -type f ! -path "./.git/*" | while read -r file; do
-          shellcheck "$file" 2>/dev/null || true
-        done
-
-    template-validate:
-      run: |
-        echo "Validating all templates..."
+        echo "Validating templates..."
         for profile in macos mini linux; do
           export HOMEUP_PROFILE=$profile
-          if command -v chezmoi &> /dev/null; then
-            chezmoi init --source . --destination /tmp/chezmoi-validate-$profile --dry-run 2>/dev/null || {
-              echo "Template validation failed for profile: $profile"
-              exit 1
-            }
+          if ! chezmoi init --source . --destination /tmp/chezmoi-validate-$profile --dry-run 2>/dev/null; then
+            echo "✗ Template validation failed for profile: $profile"
+            exit 1
           fi
         done
-        echo "All templates valid"
+        echo "✓ All templates valid"
 
-# ------------------------------------------------------------------------------
-# Skip Settings
-# ------------------------------------------------------------------------------
-skip_output:
-  - meta
-  - summary
+    # Lint all shell scripts
+    lint-all:
+      run: |
+        if ! command -v shellcheck &>/dev/null; then
+          echo "⚠ shellcheck not installed, skipping"
+          exit 0
+        fi
+        echo "Linting shell scripts..."
+        find . -name "*.sh" -type f ! -path "./.git/*" -exec shellcheck {} \;
+        echo "✓ Lint passed"

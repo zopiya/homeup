@@ -1,50 +1,24 @@
 # ==============================================================================
 # Lefthook Global Configuration
 # ==============================================================================
-# User-level defaults for lefthook across all projects.
+# User-level defaults for all projects
 # Location: ~/.config/lefthook/lefthook.yml
-#
-# Project-level lefthook.yml files override these settings.
+# Project-level configs override these settings
 # ==============================================================================
 
-# ------------------------------------------------------------------------------
-# Output Settings
-# ------------------------------------------------------------------------------
-# Reduce noise in terminal output
+# Output settings - reduce noise
 skip_output:
-  - meta           # Skip "Lefthook v1.x.x" header
-  - summary        # Skip summary table
-  - empty_summary  # Skip "No files to check" messages
-  - skips          # Skip "Skipping hook" messages
+  - meta
+  - summary
+  - empty_summary
+  - skips
 
 colors: true
 
-# ------------------------------------------------------------------------------
-# Execution Settings
-# ------------------------------------------------------------------------------
-# Run hooks in parallel by default for better performance
+# Execution settings
 parallel: true
-
-# Follow symbolic links when searching for hooks
 follow: true
 
-# ------------------------------------------------------------------------------
-# Remote Settings
-# ------------------------------------------------------------------------------
-# Allow projects to use remote hook configs
-remotes:
-  - git_url: https://github.com/evilmartians/lefthook
-    ref: master
-    configs:
-      - examples/
-
-# ------------------------------------------------------------------------------
-# Skip Rules
-# ------------------------------------------------------------------------------
-# Skip hooks in CI environments (they usually have their own checks)
-# Projects can override this by setting LEFTHOOK=1
+# Skip slow hooks by default (use tags in project configs)
 exclude_tags:
   - slow
-
-# Skip certain commands in specific conditions
-# min_version: "1.5.0"

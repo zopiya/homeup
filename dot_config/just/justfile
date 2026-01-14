@@ -1,53 +1,50 @@
 # ==============================================================================
 # Just Global Configuration
 # ==============================================================================
-# User-level recipes for just.
+# User-level global recipes
 # Location: ~/.config/just/justfile
-#
-# These recipes are available globally when running `just` if no project-level
-# justfile is found in the current directory or parents.
 # ==============================================================================
 
-# ------------------------------------------------------------------------------
-# Settings
-# ------------------------------------------------------------------------------
-
-# Use zsh as the default shell
 set shell := ["zsh", "-c"]
 
 # ------------------------------------------------------------------------------
 # Global Recipes
 # ------------------------------------------------------------------------------
 
-# List available global recipes
-default:
-    @just --list --justfile {{justfile()}}
+# List available recipes
+@default:
+    just --list --justfile {{justfile()}}
 
-# Show system information
-info:
-    @echo "OS: {{os()}}"
-    @echo "Arch: {{arch()}}"
-    @echo "Shell: $SHELL"
-    @echo "Just version: $(just --version)"
+# Show system info
+@info:
+    echo "OS: {{os()}}"
+    echo "Arch: {{arch()}}"
+    echo "Shell: $SHELL"
+    echo "Just: $(just --version)"
 
-# Update system (via topgrade if available, otherwise brew)
-update:
-    #!/usr/bin/env zsh
-    if command -v topgrade &> /dev/null; then
-        topgrade
-    else
-        echo "Topgrade not found, falling back to brew update..."
-        brew update && brew upgrade
+# Update system (topgrade or brew)
+@update:
+    if command -v topgrade &>/dev/null; then \
+        topgrade; \
+    else \
+        brew update && brew upgrade && brew cleanup; \
     fi
 
 # ------------------------------------------------------------------------------
-# Utility
+# Utilities
 # ------------------------------------------------------------------------------
 
-# Generate a random password (uses openssl)
+# Generate random password
 gen-pass length="16":
-    openssl rand -base64 48 | cut -c1-{{length}}
+    @openssl rand -base64 48 | cut -c1-{{length}}
 
-# Serve current directory via python
+# Serve current directory
 serve port="8000":
-    python3 -m http.server {{port}}
+    @python3 -m http.server {{port}}
+
+# Create temporary directory and cd into it
+tmpdir:
+    #!/usr/bin/env zsh
+    dir=$(mktemp -d)
+    echo "Created: $dir"
+    cd "$dir" && $SHELL
