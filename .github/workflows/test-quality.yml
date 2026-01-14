@@ -1,65 +1,23 @@
 # ==============================================================================
-# Code Quality & Validation Tests
+# Quality Tests
 # ==============================================================================
-# Tests code quality, shell script linting, and template validation.
-#
-# Jobs:
-#   - validate-templates: Chezmoi template syntax validation
-#   - lint: Shellcheck linting for all shell scripts
+# Code quality, linting, and validation tests
 # ==============================================================================
 
-name: Quality Tests
+name: Quality
 
 on:
   workflow_call:
   workflow_dispatch:
 
-# Limit concurrent runs per branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # ----------------------------------------------------------------------------
-  # Template Syntax Validation
-  # ----------------------------------------------------------------------------
-  validate-templates:
-    name: Validate Templates
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install chezmoi
-        run: |
-          sudo snap install chezmoi --classic
-
-      - name: Validate Template Syntax
-        run: |
-          echo "=== Validating Chezmoi Templates ==="
-
-          # Test each profile
-          for profile in macos mini linux; do
-            echo "--- Testing profile: $profile ---"
-            export HOMEUP_PROFILE=$profile
-
-            # Dry-run to check template rendering
-            chezmoi init --source . --destination /tmp/chezmoi-test-$profile --dry-run || {
-              echo "FAIL: Template error for profile $profile"
-              exit 1
-            }
-            echo "OK: $profile templates valid"
-          done
-
-          echo "=== All Templates Valid ==="
-
-  # ----------------------------------------------------------------------------
-  # Shell Script Linting
-  # ----------------------------------------------------------------------------
+  # Lint shell scripts
   lint:
-    name: Lint Shell Scripts
+    name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -70,25 +28,116 @@ jobs:
       - name: Install shellcheck
         run: sudo apt-get install -y shellcheck
 
-      - name: Lint bootstrap.sh
+      - name: Lint shell scripts
         run: |
-          echo "=== Linting bootstrap.sh ==="
-          shellcheck bootstrap.sh
-
-      - name: Lint All Shell Files
-        run: |
-          echo "=== Linting All Shell Scripts ==="
-          exit_code=0
-          while IFS= read -r file; do
+          echo "=== Linting Shell Scripts ==="
+          find . -name "*.sh" -type f ! -path "./.git/*" | while read -r file; do
             echo "Checking $file..."
-            if ! shellcheck "$file"; then
-              echo "ERROR: shellcheck failed for $file"
-              exit_code=1
-            fi
-          done < <(find . -name "*.sh" -type f)
+            shellcheck "$file"
+          done
+          echo "✓ All scripts passed"
 
-          if [ $exit_code -eq 0 ]; then
-            echo "OK: All shell scripts passed linting"
-          fi
+  # Validate templates
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 
-          exit $exit_code
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install chezmoi
+        run: sudo snap install chezmoi --classic
+
+      - name: Validate templates
+        run: |
+          echo "=== Validating Templates ==="
+          for profile in macos mini linux; do
+            echo "Testing $profile..."
+            export HOMEUP_PROFILE=$profile
+            chezmoi init --source . --destination /tmp/test-$profile --dry-run
+          done
+          echo "✓ All templates valid"
+
+  # Test justfile
+  justfile:
+    name: Justfile
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install just
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
+      - name: Validate justfile syntax
+        run: |
+          echo "=== Validating Justfile ==="
+          just --list > /dev/null
+          echo "✓ Justfile syntax valid"
+
+      - name: Install test dependencies
+        run: |
+          sudo apt-get install -y shellcheck
+          sudo snap install chezmoi --classic
+
+      - name: Test justfile commands
+        run: |
+          echo "=== Testing Justfile Commands ==="
+
+          # Test validation commands
+          echo "Testing validation..."
+          just validate
+
+          # Test lint
+          echo "Testing lint..."
+          just lint
+
+          # Verify help works
+          echo "Testing help..."
+          just help
+
+          echo "✓ All commands work"
+
+  # Package validation
+  packages:
+    name: Packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Homebrew
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo "/home/linuxbrew/.linuxbrew/bin" >> $GITHUB_PATH
+
+      - name: Install just
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew install just
+
+      - name: Update Homebrew
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew update
+
+      - name: Validate packages
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          echo "=== Validating Packages ==="
+          just pkg-validate
+          echo "✓ All packages valid"
+
+      - name: Check duplicates
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          echo "=== Checking Duplicates ==="
+          just pkg-duplicates
+          echo "✓ No duplicates found"

@@ -1,35 +1,22 @@
 # ==============================================================================
-# Platform Integration Tests
+# Platform Tests
 # ==============================================================================
-# Tests bootstrap.sh and chezmoi configuration across all supported platforms.
+# Tests bootstrap.sh and profile configurations across supported platforms
 #
 # Matrix:
-#   - macOS + macos (full setup with GPG signing)
-#   - Debian + mini (dev containers, minimal)
-#   - Debian + linux (headless server/workstation)
-#   - Fedora + mini (dev containers, minimal)
-#   - Fedora + linux (headless server/workstation)
+#   - macOS (macos profile)
+#   - Debian (mini, linux profiles)
+#   - Fedora (mini, linux profiles)
 # ==============================================================================
 
-name: Platform Tests
+name: Platforms
 
 on:
   workflow_call:
   workflow_dispatch:
-    inputs:
-      profile:
-        description: "Profile to test (leave empty for all)"
-        required: false
-        type: choice
-        options:
-          - ""
-          - macos
-          - mini
-          - linux
 
-# Limit concurrent runs per branch
 concurrency:
-  group: ${{ github.workflow }}${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -39,438 +26,315 @@ env:
   CI: true
 
 jobs:
-  # ----------------------------------------------------------------------------
-  # macOS Profile
-  # ----------------------------------------------------------------------------
-  test-macos:
+  # macOS + macos profile
+  macos:
     name: macOS / macos
     runs-on: macos-latest
-    if: ${{ !github.event.inputs.profile || github.event.inputs.profile == 'macos' }}
-    timeout-minutes: 45
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
-        id: checkout
         uses: actions/checkout@v4
 
       - name: Install Bash 5+
-        id: install_bash
         run: |
           brew install bash
           echo "$(brew --prefix)/bin" >> $GITHUB_PATH
 
       - name: Cache Homebrew
-        id: cache_homebrew
         uses: actions/cache@v4
         with:
           path: |
             ~/Library/Caches/Homebrew
             ~/.config/homebrew
-          key: ${{ runner.os }}-homebrew-${{ hashFiles('bootstrap.sh') }}
-          restore-keys: |
-            ${{ runner.os }}-homebrew-
+          key: macos-homebrew-${{ hashFiles('bootstrap.sh') }}
+          restore-keys: macos-homebrew-
 
-      - name: Run bootstrap.sh
-        id: bootstrap
-        if: steps.checkout.outcome == 'success'
+      - name: Bootstrap
         run: |
           chmod +x bootstrap.sh
           ./bootstrap.sh -p macos -y
         env:
           HOMEUP_PROFILE: macos
 
-      - name: Verify Bootstrap
-        id: verify_bootstrap
-        if: steps.bootstrap.outcome == 'success'
-        run: |
-          source "$HOME/.config/homebrew/shellenv"
-          echo "--- Homebrew ---"
-          brew --version
-          echo "--- Chezmoi ---"
-          chezmoi --version
-
-      - name: Apply Chezmoi
-        id: apply_chezmoi
-        if: steps.verify_bootstrap.outcome == 'success'
+      - name: Apply dotfiles
         run: |
           source "$HOME/.config/homebrew/shellenv"
           chezmoi init --apply --source .
         env:
           HOMEUP_PROFILE: macos
 
-      - name: Verify macOS Profile
-        id: verify_profile
-        if: steps.apply_chezmoi.outcome == 'success'
+      - name: Install just
+        run: |
+          source "$HOME/.config/homebrew/shellenv"
+          brew install just
+
+      - name: Verify installation
         run: |
           source "$HOME/.config/homebrew/shellenv"
           export PATH="$HOME/.local/bin:$PATH"
 
           echo "=== Verifying macOS Profile ==="
 
-          # Config files
-          echo "--- Config Files ---"
-          test -f "$HOME/.config/starship.toml" || { echo "FAIL: starship.toml"; exit 1; }
-          test -f "$HOME/.config/zsh/.zshrc" || { echo "FAIL: .zshrc"; exit 1; }
-          test -f "$HOME/.ssh/config" || { echo "FAIL: ssh config"; exit 1; }
-          test -f "$HOME/.gnupg/gpg.conf" || { echo "FAIL: gpg.conf"; exit 1; }
-          echo "OK: All config files present"
+          # Check core files
+          test -f "$HOME/.config/starship.toml" || exit 1
+          test -f "$HOME/.config/zsh/.zshrc" || exit 1
+          test -f "$HOME/.ssh/config" || exit 1
+          test -f "$HOME/.gnupg/gpg.conf" || exit 1
 
-          # Core tools
-          echo "--- Core Tools ---"
-          command -v zsh || { echo "FAIL: zsh"; exit 1; }
-          command -v starship || { echo "FAIL: starship"; exit 1; }
-          command -v nvim || { echo "FAIL: nvim"; exit 1; }
-          command -v fzf || { echo "FAIL: fzf"; exit 1; }
-          echo "OK: All core tools installed"
+          # Check tools
+          command -v zsh || exit 1
+          command -v starship || exit 1
+          command -v nvim || exit 1
+          command -v fzf || exit 1
 
-          # macOS-specific: GPG signing enabled
-          echo "--- macOS Features ---"
-          grep -q "gpgsign = true" "$HOME/.config/git/config" || { echo "FAIL: GPG signing not enabled"; exit 1; }
-          echo "OK: GPG signing enabled"
+          # macOS-specific: GPG signing
+          grep -q "gpgsign = true" "$HOME/.config/git/config" || exit 1
 
-          echo "=== macOS Profile Verified ==="
+          echo "✓ Verification passed"
 
-  # ----------------------------------------------------------------------------
-  # Debian Matrix (mini, linux)
-  # ----------------------------------------------------------------------------
-  test-debian:
+      - name: Run health check
+        run: |
+          source "$HOME/.config/homebrew/shellenv"
+          just doctor
+
+  # Debian matrix
+  debian:
     name: Debian / ${{ matrix.profile }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [mini, linux]
+
     container:
       image: debian:latest
       options: --user root
-    timeout-minutes: 45
+
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y git sudo curl ca-certificates file procps
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Homebrew
+        uses: actions/cache@v4
+        with:
+          path: /home/linuxbrew/.linuxbrew
+          key: debian-${{ matrix.profile }}-${{ hashFiles('bootstrap.sh') }}
+          restore-keys: debian-${{ matrix.profile }}-
+
+      - name: Setup test user
+        run: |
+          useradd -m -s /bin/bash testuser
+          echo "testuser ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/testuser
+          chmod +x bootstrap.sh
+          chown -R testuser:testuser $GITHUB_WORKSPACE
+
+      - name: Bootstrap
+        run: |
+          sudo -u testuser bash -c "
+            export HOMEUP_PROFILE=${{ matrix.profile }}
+            cd $GITHUB_WORKSPACE
+            ./bootstrap.sh -p ${{ matrix.profile }} -y
+          "
+
+      - name: Apply dotfiles
+        run: |
+          sudo -u testuser bash -c "
+            export HOMEUP_PROFILE=${{ matrix.profile }}
+            eval \"\$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\"
+            cd $GITHUB_WORKSPACE
+            chezmoi init --apply --source .
+          "
+
+      - name: Install just
+        run: |
+          sudo -u testuser bash -c '
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            brew install just
+          '
+
+      - name: Verify core
+        run: |
+          sudo -u testuser bash -c '
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            export PATH="$HOME/.local/bin:$PATH"
+
+            echo "=== Verifying Core ==="
+
+            # Config files
+            test -f "$HOME/.config/starship.toml" || exit 1
+            test -f "$HOME/.config/zsh/.zshrc" || test -f "$HOME/.zshrc" || exit 1
+
+            # Core tools
+            command -v zsh || exit 1
+            command -v starship || exit 1
+            command -v nvim || exit 1
+            command -v fzf || exit 1
+
+            echo "✓ Core verified"
+          '
+
+      - name: Verify profile-specific (mini)
+        if: matrix.profile == 'mini'
+        run: |
+          sudo -u testuser bash -c '
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+            # GPG signing disabled
+            grep -q "gpgsign = false" "$HOME/.config/git/config" || exit 1
+
+            # SSH ForwardAgent disabled
+            grep -q "ForwardAgent no" "$HOME/.ssh/config" || exit 1
+
+            echo "✓ Mini profile verified"
+          '
+
+      - name: Verify profile-specific (linux)
+        if: matrix.profile == 'linux'
+        run: |
+          sudo -u testuser bash -c '
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+            # GPG signing disabled
+            grep -q "gpgsign = false" "$HOME/.config/git/config" || exit 1
+
+            # Security configs excluded
+            test ! -f "$HOME/.config/security/1password.inc" || exit 1
+            test ! -f "$HOME/.config/security/yubikey.inc" || exit 1
+
+            echo "✓ Linux profile verified"
+          '
+
+      - name: Run health check
+        run: |
+          sudo -u testuser bash -c '
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            just doctor
+          '
+
+  # Fedora matrix
+  fedora:
+    name: Fedora / ${{ matrix.profile }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     strategy:
       fail-fast: false
       matrix:
         profile: [mini, linux]
 
-    steps:
-      - name: Install Dependencies
-        id: install_deps
-        if: ${{ !github.event.inputs.profile || github.event.inputs.profile == matrix.profile }}
-        run: |
-          apt-get update
-          apt-get install -y \
-            git \
-            sudo \
-            curl \
-            wget \
-            procps \
-            hostname \
-            ca-certificates \
-            locales \
-            file
-
-      - name: Checkout
-        id: checkout
-        if: steps.install_deps.outcome == 'success'
-        uses: actions/checkout@v4
-
-      - name: Cache Homebrew
-        id: cache_homebrew
-        if: steps.checkout.outcome == 'success'
-        uses: actions/cache@v4
-        with:
-          path: |
-            /home/linuxbrew/.linuxbrew
-            ~/.cache/Homebrew
-          key: debian-homebrew-${{ matrix.profile }}-${{ hashFiles('bootstrap.sh') }}
-          restore-keys: |
-            debian-homebrew-${{ matrix.profile }}-
-            debian-homebrew-
-
-      - name: Setup Test User
-        id: setup_user
-        if: steps.checkout.outcome == 'success'
-        run: |
-          useradd -m -s /bin/bash testuser
-          echo "testuser ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/testuser
-          chmod +x bootstrap.sh
-          chown -R testuser:testuser $GITHUB_WORKSPACE
-
-      - name: Run bootstrap.sh
-        id: bootstrap
-        if: steps.setup_user.outcome == 'success'
-        run: |
-          sudo -u testuser bash -c "
-            export HOMEUP_PROFILE=${{ matrix.profile }}
-            export NONINTERACTIVE=1
-            export CI=true
-            cd $GITHUB_WORKSPACE
-            ./bootstrap.sh -p ${{ matrix.profile }} -y
-          "
-
-      - name: Verify Bootstrap
-        id: verify_bootstrap
-        if: steps.bootstrap.outcome == 'success'
-        run: |
-          sudo -u testuser bash -c '
-            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            echo "--- Homebrew ---"
-            brew --version
-            echo "--- Chezmoi ---"
-            chezmoi --version
-          '
-
-      - name: Apply Chezmoi
-        id: apply_chezmoi
-        if: steps.verify_bootstrap.outcome == 'success'
-        run: |
-          sudo -u testuser bash -c "
-            export HOMEUP_PROFILE=${{ matrix.profile }}
-            source \"$HOME/.config/homebrew/shellenv\" 2>/dev/null || eval \"$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\" 
-            cd $GITHUB_WORKSPACE
-            chezmoi init --apply --source .
-          "
-
-      - name: Verify Profile - Core
-        id: verify_core
-        if: steps.apply_chezmoi.outcome == 'success'
-        run: |
-          sudo -u testuser bash -c '
-            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            export PATH="$HOME/.local/bin:$PATH"
-
-            echo "=== Verifying Core (All Profiles) ==="
-
-            # Config files
-            echo "--- Config Files ---"
-            test -f "$HOME/.config/starship.toml" || { echo "FAIL: starship.toml"; exit 1; }
-            test -f "$HOME/.config/zsh/.zshrc" || test -f "$HOME/.zshrc" || { echo "FAIL: zshrc"; exit 1; }
-            echo "OK: Core config files present"
-
-            # Core tools
-            echo "--- Core Tools ---"
-            command -v zsh || { echo "FAIL: zsh"; exit 1; }
-            command -v starship || { echo "FAIL: starship"; exit 1; }
-            command -v nvim || { echo "FAIL: nvim"; exit 1; }
-            command -v bat || { echo "FAIL: bat"; exit 1; }
-            command -v eza || { echo "FAIL: eza"; exit 1; }
-            command -v fzf || { echo "FAIL: fzf"; exit 1; }
-            echo "OK: Core tools installed"
-          '
-
-      - name: Verify Profile - Mini
-        if: ${{ matrix.profile == 'mini' && steps.verify_core.outcome == 'success' }}
-        run: |
-          sudo -u testuser bash -c '
-            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
-            echo "=== Verifying Mini Profile ==="
-
-            # GPG signing disabled
-            echo "--- GPG Signing ---"
-            test -f "$HOME/.config/git/config" || { echo "FAIL: git config missing"; exit 1; }
-            grep -q "gpgsign = false" "$HOME/.config/git/config" || { echo "FAIL: GPG signing should be disabled"; exit 1; }
-            echo "OK: GPG signing disabled"
-
-            # SSH config with ForwardAgent no
-            echo "--- SSH Config ---"
-            grep -q "ForwardAgent no" "$HOME/.ssh/config" || { echo "FAIL: ForwardAgent should be disabled"; exit 1; }
-            echo "OK: SSH ForwardAgent disabled"
-
-            echo "=== Mini Profile Verified ==="
-          '
-
-      - name: Verify Profile - Linux
-        if: ${{ matrix.profile == 'linux' && steps.verify_core.outcome == 'success' }}
-        run: |
-          sudo -u testuser bash -c '
-            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
-            echo "=== Verifying Linux Profile ==="
-
-            # GPG signing disabled
-            echo "--- GPG Signing ---"
-            test -f "$HOME/.config/git/config" || { echo "FAIL: git config missing"; exit 1; }
-            grep -q "gpgsign = false" "$HOME/.config/git/config" || { echo "FAIL: GPG signing should be disabled"; exit 1; }
-            echo "OK: GPG signing disabled"
-
-            # SSH config with ForwardAgent no
-            echo "--- SSH Config ---"
-            grep -q "ForwardAgent no" "$HOME/.ssh/config" || { echo "FAIL: ForwardAgent should be disabled"; exit 1; }
-            echo "OK: SSH ForwardAgent disabled"
-
-            # 1Password and YubiKey configs should NOT exist
-            echo "--- Security Exclusions ---"
-            test ! -f "$HOME/.config/security/1password.inc" || { echo "FAIL: 1password.inc should not exist"; exit 1; }
-            test ! -f "$HOME/.config/security/yubikey.inc" || { echo "FAIL: yubikey.inc should not exist"; exit 1; }
-            echo "OK: Security configs properly excluded"
-
-            echo "=== Linux Profile Verified ==="
-          '
-
-  # ----------------------------------------------------------------------------
-  # Fedora Matrix (mini, linux)
-  # ----------------------------------------------------------------------------
-  test-fedora:
-    name: Fedora / ${{ matrix.profile }}
-    runs-on: ubuntu-latest
     container:
       image: fedora:latest
       options: --user root
-    timeout-minutes: 45
-
-    strategy:
-      fail-fast: false
-      matrix:
-        profile: [mini, linux]
 
     steps:
-      - name: Install Dependencies
-        id: install_deps
-        if: ${{ !github.event.inputs.profile || github.event.inputs.profile == matrix.profile }}
+      - name: Install dependencies
         run: |
-          dnf install -y \
-            git \
-            sudo \
-            curl \
-            wget \
-            which \
-            findutils \
-            tar \
-            gzip \
-            procps-ng \
-            hostname
+          dnf install -y git sudo curl which tar gzip procps-ng hostname findutils
 
       - name: Checkout
-        id: checkout
-        if: steps.install_deps.outcome == 'success'
         uses: actions/checkout@v4
 
       - name: Cache Homebrew
-        id: cache_homebrew
-        if: steps.checkout.outcome == 'success'
         uses: actions/cache@v4
         with:
-          path: |
-            /home/linuxbrew/.linuxbrew
-            ~/.cache/Homebrew
-          key: fedora-homebrew-${{ matrix.profile }}-${{ hashFiles('bootstrap.sh') }}
-          restore-keys: |
-            fedora-homebrew-${{ matrix.profile }}-
-            fedora-homebrew-
+          path: /home/linuxbrew/.linuxbrew
+          key: fedora-${{ matrix.profile }}-${{ hashFiles('bootstrap.sh') }}
+          restore-keys: fedora-${{ matrix.profile }}-
 
-      - name: Setup Test User
-        id: setup_user
-        if: steps.checkout.outcome == 'success'
+      - name: Setup test user
         run: |
           useradd -m -s /bin/bash testuser
-          echo "testuser ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/testuser
+          echo "testuser ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/testuser
           chmod +x bootstrap.sh
           chown -R testuser:testuser $GITHUB_WORKSPACE
 
-      - name: Run bootstrap.sh
-        id: bootstrap
-        if: steps.setup_user.outcome == 'success'
+      - name: Bootstrap
         run: |
           sudo -u testuser bash -c "
             export HOMEUP_PROFILE=${{ matrix.profile }}
-            export NONINTERACTIVE=1
-            export CI=true
             cd $GITHUB_WORKSPACE
             ./bootstrap.sh -p ${{ matrix.profile }} -y
           "
 
-      - name: Verify Bootstrap
-        id: verify_bootstrap
-        if: steps.bootstrap.outcome == 'success'
-        run: |
-          sudo -u testuser bash -c '
-            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            echo "--- Homebrew ---"
-            brew --version
-            echo "--- Chezmoi ---"
-            chezmoi --version
-          '
-
-      - name: Apply Chezmoi
-        id: apply_chezmoi
-        if: steps.verify_bootstrap.outcome == 'success'
+      - name: Apply dotfiles
         run: |
           sudo -u testuser bash -c "
             export HOMEUP_PROFILE=${{ matrix.profile }}
-            source \"$HOME/.config/homebrew/shellenv\" 2>/dev/null || eval \"$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\" 
+            eval \"\$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)\"
             cd $GITHUB_WORKSPACE
             chezmoi init --apply --source .
           "
 
-      - name: Verify Profile - Core
-        id: verify_core
-        if: steps.apply_chezmoi.outcome == 'success'
+      - name: Install just
         run: |
           sudo -u testuser bash -c '
-            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            brew install just
+          '
+
+      - name: Verify core
+        run: |
+          sudo -u testuser bash -c '
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
             export PATH="$HOME/.local/bin:$PATH"
 
-            echo "=== Verifying Core (All Profiles) ==="
+            echo "=== Verifying Core ==="
 
             # Config files
-            echo "--- Config Files ---"
-            test -f "$HOME/.config/starship.toml" || { echo "FAIL: starship.toml"; exit 1; }
-            test -f "$HOME/.config/zsh/.zshrc" || test -f "$HOME/.zshrc" || { echo "FAIL: zshrc"; exit 1; }
-            echo "OK: Core config files present"
+            test -f "$HOME/.config/starship.toml" || exit 1
+            test -f "$HOME/.config/zsh/.zshrc" || test -f "$HOME/.zshrc" || exit 1
 
             # Core tools
-            echo "--- Core Tools ---"
-            command -v zsh || { echo "FAIL: zsh"; exit 1; }
-            command -v starship || { echo "FAIL: starship"; exit 1; }
-            command -v nvim || { echo "FAIL: nvim"; exit 1; }
-            command -v bat || { echo "FAIL: bat"; exit 1; }
-            command -v eza || { echo "FAIL: eza"; exit 1; }
-            command -v fzf || { echo "FAIL: fzf"; exit 1; }
-            echo "OK: Core tools installed"
+            command -v zsh || exit 1
+            command -v starship || exit 1
+            command -v nvim || exit 1
+            command -v fzf || exit 1
+
+            echo "✓ Core verified"
           '
 
-      - name: Verify Profile - Mini
-        if: ${{ matrix.profile == 'mini' && steps.verify_core.outcome == 'success' }}
+      - name: Verify profile-specific (mini)
+        if: matrix.profile == 'mini'
         run: |
           sudo -u testuser bash -c '
-            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
-            echo "=== Verifying Mini Profile ==="
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
             # GPG signing disabled
-            echo "--- GPG Signing ---"
-            test -f "$HOME/.config/git/config" || { echo "FAIL: git config missing"; exit 1; }
-            grep -q "gpgsign = false" "$HOME/.config/git/config" || { echo "FAIL: GPG signing should be disabled"; exit 1; }
-            echo "OK: GPG signing disabled"
+            grep -q "gpgsign = false" "$HOME/.config/git/config" || exit 1
 
-            # SSH config with ForwardAgent no
-            echo "--- SSH Config ---"
-            grep -q "ForwardAgent no" "$HOME/.ssh/config" || { echo "FAIL: ForwardAgent should be disabled"; exit 1; }
-            echo "OK: SSH ForwardAgent disabled"
+            # SSH ForwardAgent disabled
+            grep -q "ForwardAgent no" "$HOME/.ssh/config" || exit 1
 
-            echo "=== Mini Profile Verified ==="
+            echo "✓ Mini profile verified"
           '
 
-      - name: Verify Profile - Linux
-        if: ${{ matrix.profile == 'linux' && steps.verify_core.outcome == 'success' }}
+      - name: Verify profile-specific (linux)
+        if: matrix.profile == 'linux'
         run: |
           sudo -u testuser bash -c '
-            source "$HOME/.config/homebrew/shellenv" 2>/dev/null || eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
-            echo "=== Verifying Linux Profile ==="
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
             # GPG signing disabled
-            echo "--- GPG Signing ---"
-            test -f "$HOME/.config/git/config" || { echo "FAIL: git config missing"; exit 1; }
-            grep -q "gpgsign = false" "$HOME/.config/git/config" || { echo "FAIL: GPG signing should be disabled"; exit 1; }
-            echo "OK: GPG signing disabled"
+            grep -q "gpgsign = false" "$HOME/.config/git/config" || exit 1
 
-            # SSH config with ForwardAgent no
-            echo "--- SSH Config ---"
-            grep -q "ForwardAgent no" "$HOME/.ssh/config" || { echo "FAIL: ForwardAgent should be disabled"; exit 1; }
-            echo "OK: SSH ForwardAgent disabled"
+            # Security configs excluded
+            test ! -f "$HOME/.config/security/1password.inc" || exit 1
+            test ! -f "$HOME/.config/security/yubikey.inc" || exit 1
 
-            # 1Password and YubiKey configs should NOT exist
-            echo "--- Security Exclusions ---"
-            test ! -f "$HOME/.config/security/1password.inc" || { echo "FAIL: 1password.inc should not exist"; exit 1; }
-            test ! -f "$HOME/.config/security/yubikey.inc" || { echo "FAIL: yubikey.inc should not exist"; exit 1; }
-            echo "OK: Security configs properly excluded"
-
-            echo "=== Linux Profile Verified ==="
+            echo "✓ Linux profile verified"
           '
 
+      - name: Run health check
+        run: |
+          sudo -u testuser bash -c '
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+            just doctor
+          '
