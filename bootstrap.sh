@@ -36,6 +36,12 @@ readonly BREW_INSTALL_URL="https://raw.githubusercontent.com/Homebrew/install/HE
 readonly LOG_DIR="$HOME/.homeup/logs"
 readonly LOG_FILE="$LOG_DIR/bootstrap.log"
 
+# Configurable timeouts and retries (best practice defaults)
+readonly CONNECTIVITY_TIMEOUT="${HOMEUP_CONNECTIVITY_TIMEOUT:-10}"
+readonly DOWNLOAD_TIMEOUT="${HOMEUP_DOWNLOAD_TIMEOUT:-120}"
+readonly RETRY_COUNT="${HOMEUP_RETRY_COUNT:-3}"
+readonly RETRY_DELAY="${HOMEUP_RETRY_DELAY:-5}"
+
 # UI Constants
 readonly SPINNER_FRAMES='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
 if [[ -t 1 ]] && [[ "${TERM:-dumb}" != "dumb" ]]; then
@@ -154,16 +160,24 @@ Options:
   -a, --apply             Auto-apply changes after init.
   -y, --yes               Non-interactive mode.
   -h, --help              Show this help.
+  -v, --version           Show version.
 
 Profiles:
   mini   (Default) Minimal tools. No GPG/Secret keys. Safe for any env.
   macos  Full environment for macOS (GUI apps, GPG, YubiKey).
   linux  Headless server environment (No GUI, SSH forwarding).
 
+Environment Variables (Optional):
+  HOMEUP_CONNECTIVITY_TIMEOUT    Network check timeout (default: 10s)
+  HOMEUP_DOWNLOAD_TIMEOUT        Download timeout (default: 120s)
+  HOMEUP_RETRY_COUNT             Retry attempts (default: 3)
+  HOMEUP_RETRY_DELAY             Delay between retries (default: 5s)
+
 Examples:
-  ./bootstrap.sh                  # Installs 'mini' profile
-  ./bootstrap.sh -p macos         # Installs full macOS profile
-  ./bootstrap.sh -p linux -y      # Installs Linux server profile (no prompt)
+  ./bootstrap.sh                           # Installs 'mini' profile
+  ./bootstrap.sh -p macos                  # Installs full macOS profile
+  ./bootstrap.sh -p linux -y               # Installs Linux server (no prompt)
+  HOMEUP_DOWNLOAD_TIMEOUT=300 ./bootstrap.sh  # Use 5 min timeout
 EOF
 }
 
@@ -270,10 +284,10 @@ check_disk_space() {
 
 check_internet_connection() {
     local -r test_url="https://github.com"
-    local -r timeout=5
 
-    if ! curl -Is --max-time "$timeout" "$test_url" >/dev/null 2>&1; then
+    if ! curl -Is --max-time "$CONNECTIVITY_TIMEOUT" "$test_url" >/dev/null 2>&1; then
         msg_fail "Cannot connect to GitHub. Please check your internet connection."
+        msg_info "Timeout: ${CONNECTIVITY_TIMEOUT}s (override with HOMEUP_CONNECTIVITY_TIMEOUT)"
         return 1
     fi
     return 0
@@ -524,15 +538,14 @@ install_homebrew() {
 
     # Install Homebrew
     msg_info "Installing Homebrew..."
+    msg_info "Timeout: ${DOWNLOAD_TIMEOUT}s, Retries: ${RETRY_COUNT} (configurable via HOMEUP_* env vars)"
 
-    local -r retries=3
-    local -r retry_delay=3
     local count=0
 
-    while [[ $count -lt $retries ]]; do
+    while [[ $count -lt $RETRY_COUNT ]]; do
         ((count++))
 
-        if NONINTERACTIVE=1 bash -c "$(curl -fsSL --max-time 60 "$BREW_INSTALL_URL")"; then
+        if NONINTERACTIVE=1 bash -c "$(curl -fsSL --max-time "$DOWNLOAD_TIMEOUT" "$BREW_INSTALL_URL")"; then
             # Determine installation prefix
             if [[ "$_OS" == "darwin" ]]; then
                 if [[ -x "/opt/homebrew/bin/brew" ]]; then
@@ -549,13 +562,13 @@ install_homebrew() {
             return 0
         fi
 
-        if [[ $count -lt $retries ]]; then
-            msg_warn "Homebrew installation failed (Attempt $count/$retries). Retrying in ${retry_delay}s..."
-            sleep "$retry_delay"
+        if [[ $count -lt $RETRY_COUNT ]]; then
+            msg_warn "Homebrew installation failed (Attempt $count/$RETRY_COUNT). Retrying in ${RETRY_DELAY}s..."
+            sleep "$RETRY_DELAY"
         fi
     done
 
-    die "Failed to install Homebrew after $retries attempts."
+    die "Failed to install Homebrew after $RETRY_COUNT attempts."
 }
 
 install_chezmoi() {

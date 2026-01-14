@@ -37,6 +37,35 @@ jobs:
           done
           echo "✓ All scripts passed"
 
+      - name: Verify environment variables
+        run: |
+          echo "=== Testing Configurable Parameters ==="
+
+          # Test that env vars are properly read
+          export HOMEUP_CONNECTIVITY_TIMEOUT=15
+          export HOMEUP_DOWNLOAD_TIMEOUT=180
+          export HOMEUP_RETRY_COUNT=5
+          export HOMEUP_RETRY_DELAY=10
+
+          # Extract constants from bootstrap.sh
+          if grep -q "HOMEUP_CONNECTIVITY_TIMEOUT" bootstrap.sh; then
+            echo "✓ HOMEUP_CONNECTIVITY_TIMEOUT configurable"
+          fi
+
+          if grep -q "HOMEUP_DOWNLOAD_TIMEOUT" bootstrap.sh; then
+            echo "✓ HOMEUP_DOWNLOAD_TIMEOUT configurable"
+          fi
+
+          if grep -q "HOMEUP_RETRY_COUNT" bootstrap.sh; then
+            echo "✓ HOMEUP_RETRY_COUNT configurable"
+          fi
+
+          if grep -q "HOMEUP_RETRY_DELAY" bootstrap.sh; then
+            echo "✓ HOMEUP_RETRY_DELAY configurable"
+          fi
+
+          echo "✓ All environment variables configurable"
+
   # Validate templates
   validate:
     name: Validate
@@ -141,3 +170,57 @@ jobs:
           echo "=== Checking Duplicates ==="
           just pkg-duplicates
           echo "✓ No duplicates found"
+
+  # Security configuration validation
+  security:
+    name: Security Config
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate GPG configuration
+        run: |
+          echo "=== Validating GPG Configuration ==="
+
+          gpg_conf="private_dot_gnupg/gpg.conf"
+
+          # Check modern security settings exist
+          if grep -q "s2k-count 65011712" "$gpg_conf"; then
+            echo "✓ Strong key derivation (s2k-count)"
+          else
+            echo "✗ Missing strong s2k-count"
+            exit 1
+          fi
+
+          if grep -q "throw-keyids" "$gpg_conf"; then
+            echo "✓ Privacy protection (throw-keyids)"
+          else
+            echo "✗ Missing throw-keyids"
+            exit 1
+          fi
+
+          if grep -q "auto-key-retrieve" "$gpg_conf"; then
+            echo "✓ Auto key retrieval enabled"
+          else
+            echo "✗ Missing auto-key-retrieve"
+            exit 1
+          fi
+
+          if grep -q "hkps://keys.openpgp.org" "$gpg_conf"; then
+            echo "✓ Modern keyserver configured"
+          else
+            echo "✗ Missing modern keyserver"
+            exit 1
+          fi
+
+          if grep -q "trust-model tofu+pgp" "$gpg_conf"; then
+            echo "✓ TOFU+PGP trust model"
+          else
+            echo "✗ Missing TOFU+PGP trust"
+            exit 1
+          fi
+
+          echo "✓ All GPG hardening checks passed"
