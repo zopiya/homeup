@@ -12,8 +12,9 @@ sourceDir = "{{ .chezmoi.homeDir }}/.local/share/chezmoi"
     signingkey = "4520C731F79D0C82"
 
     # Profile: macos | linux | mini
-    # Override via: HOMEUP_PROFILE env var or set manually after init
-    profile = "{{ env "HOMEUP_PROFILE" | default "macos" }}"
+    # Default: mini (safe mode - minimal tools, no GPG/SSH keys)
+    # Set via: bootstrap.sh --promptString or HOMEUP_PROFILE env var
+    profile = "{{ .profile | default (env "HOMEUP_PROFILE") | default "mini" }}"
 
 # --- Editor ---
 [edit]
