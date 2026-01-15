@@ -378,3 +378,12 @@ init:
 reset:
     @chezmoi purge --force
     @echo "✓ State cleared"
+
+# Re-initialize environment (Reset + Init)
+[confirm("⚠ This will purge state and re-initialize. Continue?")]
+reinit:
+    @echo "1. Resetting state..."
+    @chezmoi purge --force
+    @echo "2. Re-initializing..."
+    ./bootstrap.sh -p {{PROFILE}} -a
+    @echo "✓ Re-initialization complete"
