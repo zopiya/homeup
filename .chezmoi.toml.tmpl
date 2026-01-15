@@ -16,14 +16,17 @@ sourceDir = "{{ .chezmoi.homeDir }}/.local/share/chezmoi"
     email = "i@zopiya.com"
 
     # --- SSH FIDO2 Keys (YubiKey Hardware Tokens) ---
-    # Format: "key::<algorithm> <public_key_data> <comment>"
-    # The "key::" prefix enables Git's literal key format (supports agent forwarding)
+    # Format: File path to SSH public key (e.g., "~/.ssh/main-ssh.zopiya.com.pub")
+    # Alternatively: "key::<algorithm> <public_key_data>" for agent forwarding
+    #
+    # Using file paths for local FIDO2 keys provides better compatibility with
+    # macOS SSH agent and YubiKey resident keys. The "key::" format is useful
+    # for remote signing scenarios but can cause "agent refused operation" errors
+    # with hardware-backed keys that require user presence (touch).
     #
     # How to Get Your Keys:
     #   1. List SSH public keys: ssh-add -L
     #   2. Or read from file: cat ~/.ssh/main-ssh.zopiya.com.pub
-    #   3. Copy entire line (including algorithm and comment)
-    #   4. Add "key::" prefix for Git config compatibility
     #
     # Key Format Breakdown:
     #   - sk-ssh-ed25519@openssh.com: Algorithm (FIDO2 security key)
@@ -36,12 +39,13 @@ sourceDir = "{{ .chezmoi.homeDir }}/.local/share/chezmoi"
     #   - Both keys uploaded to GitHub/GitLab for verification
 
     # Main YubiKey (primary signing key - currently active)
-    signingkey = "key::sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIGctlOG1aZMZJi5NKHALQArMupDYKxiYudxWUhbJiW3xAAAAF3NzaDptYWluLXNzaC56b3BpeWEuY29t"
+    # Note: Use private key path (without .pub) for signing
+    signingkey = "~/.ssh/main-ssh.zopiya.com"
 
     # Backup YubiKey (alternate signing key - for emergencies)
     # Both keys are always trusted in ~/.ssh/allowed_signers
-    # To switch: Edit ~/.config/git/config and swap the active signingkey
-    backupsigningkey = "key::sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIGIsrImiTnp+s3cwf9Jj5sruHq2C8xSgfWNO9qMDAcRaAAAAF3NzaDpiYWNrLXNzaC56b3BpeWEuY29t"
+    # To switch: Edit this file and swap the active signingkey, then run: chezmoi apply
+    backupsigningkey = "~/.ssh/back-ssh.zopiya.com"
 
     # --- Profile Selection ---
     # Controls which dotfiles are deployed and how tools are configured
