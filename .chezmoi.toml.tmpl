@@ -1,19 +1,57 @@
 # ==============================================================================
 # Chezmoi Configuration
 # ==============================================================================
+# This file defines global variables used across all dotfiles templates
+# Chezmoi processes .tmpl files and replaces {{ .variable }} with values below
 
 # --- Source Directory ---
 sourceDir = "{{ .chezmoi.homeDir }}/.local/share/chezmoi"
 
-# --- Global Variables ---
+# ==============================================================================
+# Global Variables
+# ==============================================================================
 [data]
+    # --- User Identity ---
     name = "zopiya"
     email = "i@zopiya.com"
-    signingkey = "4520C731F79D0C82"
 
-    # Profile: macos | linux | mini
-    # Default: mini (safe mode - minimal tools, no GPG/SSH keys)
-    # Set via: HOMEUP_PROFILE env var
+    # --- SSH FIDO2 Keys (YubiKey Hardware Tokens) ---
+    # Format: "key::<algorithm> <public_key_data> <comment>"
+    # The "key::" prefix enables Git's literal key format (supports agent forwarding)
+    #
+    # How to Get Your Keys:
+    #   1. List SSH public keys: ssh-add -L
+    #   2. Or read from file: cat ~/.ssh/main-ssh.zopiya.com.pub
+    #   3. Copy entire line (including algorithm and comment)
+    #   4. Add "key::" prefix for Git config compatibility
+    #
+    # Key Format Breakdown:
+    #   - sk-ssh-ed25519@openssh.com: Algorithm (FIDO2 security key)
+    #   - AAAA....: Base64-encoded public key data
+    #   - main-ssh.zopiya.com: Comment (identifies the key)
+    #
+    # Security Notes:
+    #   - Public keys only (safe to commit to Git)
+    #   - Private keys stay on YubiKey (never leave hardware)
+    #   - Both keys uploaded to GitHub/GitLab for verification
+
+    # Main YubiKey (primary signing key - currently active)
+    signingkey = "key::sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIGctlOG1aZMZJi5NKHALQArMupDYKxiYudxWUhbJiW3xAAAAF3NzaDptYWluLXNzaC56b3BpeWEuY29t"
+
+    # Backup YubiKey (alternate signing key - for emergencies)
+    # Both keys are always trusted in ~/.ssh/allowed_signers
+    # To switch: Edit ~/.config/git/config and swap the active signingkey
+    backupsigningkey = "key::sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIGIsrImiTnp+s3cwf9Jj5sruHq2C8xSgfWNO9qMDAcRaAAAAF3NzaDpiYWNrLXNzaC56b3BpeWEuY29t"
+
+    # --- Profile Selection ---
+    # Controls which dotfiles are deployed and how tools are configured
+    # Profiles:
+    #   - macos: Trust anchor with local YubiKeys, full tooling, agent forwarding
+    #   - linux: Zero trust remote server, no local keys, minimal tools
+    #   - mini:  Borrowed environment (containers, VMs), agent forwarding from host
+    #
+    # Default: mini (safest for unknown environments)
+    # Override: export HOMEUP_PROFILE=macos && chezmoi apply
     profile = "{{ env "HOMEUP_PROFILE" | default "mini" }}"
 
 # --- Editor ---

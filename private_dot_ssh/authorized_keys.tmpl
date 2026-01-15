@@ -1,28 +1,60 @@
 {{- /* ==============================================================================
 SSH Authorized Keys - Profile Aware
+
+Profile Behavior:
+  - macos:       Empty (no inbound SSH access needed)
+  - mini/linux:  Full configuration (allows remote access)
+
+Purpose:
+  - Controls who can SSH into this machine
+  - Combines CA-based trust + direct key trust
+  - Public keys only (safe to commit to Git)
+
 ============================================================================== */ -}}
 {{- $profile := .profile | default "macos" -}}
-{{- $isLinuxProfile := eq $profile "linux" -}}
-{{- $isLinuxOS := eq .chezmoi.os "linux" -}}
+{{- $isMacos := eq $profile "macos" -}}
+{{- $isMini := eq $profile "mini" -}}
+{{- $isLinux := eq $profile "linux" -}}
+{{- /* Any Linux OS or 'linux'/'mini' profile acts as a destination that needs access control */ -}}
+{{- $needsAuthorizedKeys := or (eq .chezmoi.os "linux") $isLinux $isMini -}}
 
-{{- /*
-Logic:
-1. Linux OS machines (any profile) always act as SSH hosts -> Need CA Public Key.
-2. Explicit 'linux' profile (even if non-Linux OS) -> Need CA Public Key.
-3. macOS profile -> Client only, no authorized_keys needed.
-4. Mini profile on Linux -> Needs CA Public Key (dev containers accept SSH from host).
-*/ -}}
+{{- if $needsAuthorizedKeys }}
+# ==============================================================================
+# SSH Authorized Keys
+# Profile: {{ $profile }} | OS: {{ .chezmoi.os }}
+# ==============================================================================
+# This file controls WHO can SSH into THIS machine
+# Two trust mechanisms: CA-signed certificates + direct public keys
 
-{{- if or $isLinuxOS $isLinuxProfile }}
-# === {{ if $isLinuxProfile }}LINUX PROFILE{{ else }}LINUX OS{{ end }}: CA TRUST ===
+# --- CA Trust (Recommended) ---
 # Trust the User CA. Any SSH key signed by this CA is allowed to log in.
-# Replace the placeholder below with your actual User CA Public Key (e.g., contents of user_ca.pub).
 # Format: cert-authority <algorithm> <key-content> [comment]
-
+# Advantages: Centralized management, automatic key rotation, principal-based access
 cert-authority ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINW4wGZTsFp3o2Yy0iO5lNTo45N/nQ/28NRqDgLRJMDb OpenSSH CA of Zopiya Infrastructure
 
+# --- Direct Key Trust (Fallback) ---
+# Allow access using physical YubiKey tokens (Main & Backup)
+# Use these if: CA cert expired, emergency access, or testing
+# Format: <algorithm> <key-data> [comment]
+sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIGctlOG1aZMZJi5NKHALQArMupDYKxiYudxWUhbJiW3xAAAAF3NzaDptYWluLXNzaC56b3BpeWEuY29t main-ssh.zopiya.com
+sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIGIsrImiTnp+s3cwf9Jj5sruHq2C8xSgfWNO9qMDAcRaAAAAF3NzaDpiYWNrLXNzaC56b3BpeWEuY29t back-ssh.zopiya.com
+
+# --- Options Reference ---
+# Restrict keys further with options (uncomment and customize as needed):
+# restrict,command="/usr/bin/command" <key>     # Force specific command
+# from="192.168.1.0/24" <key>                   # Restrict source IP
+# no-agent-forwarding,no-X11-forwarding <key>   # Disable forwarding
 {{- else }}
-# === {{ $profile | title }} PROFILE ===
-# No authorized_keys managed by chezmoi for this profile.
-# (Usually workstation uses local keys to connect OUT, doesn't accept connections IN)
+# ==============================================================================
+# SSH Authorized Keys
+# Profile: {{ $profile }} | OS: {{ .chezmoi.os }}
+# ==============================================================================
+# This file is EMPTY for the macos profile
+# Reason: macOS is the trust anchor and doesn't accept inbound SSH in this setup
+#
+# If you need to enable SSH access on macOS:
+#   1. Enable Remote Login in System Preferences > Sharing
+#   2. Add authorized keys manually or switch to 'linux' profile
 {{- end }}
+
+

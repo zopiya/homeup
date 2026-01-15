@@ -1,56 +1,62 @@
 {{- /* ==============================================================================
-GPG Agent Configuration - Profile-Aware
+GPG Agent Configuration - Profile Universal
 
-Only macos profile uses full GPG with YubiKey.
-Linux/Mini profiles get minimal config (file exists but no active agent).
+Purpose:
+  - Handle GPG key passphrases and caching
+  - Provide pinentry for GPG operations
+  - Universal across all profiles (macos/linux/mini)
+
+Important Notes:
+  - Git signing: Handled by SSH, not GPG (see ~/.config/git/config)
+  - GPG usage: General encryption/decryption, file signing
+  - Agent restart: gpgconf --kill gpg-agent (auto-restarts on next use)
+
 ============================================================================== */ -}}
-{{- $profile := .profile | default "macos" -}}
-{{- $isMacos := eq $profile "macos" -}}
 
 # ==============================================================================
 # GPG Agent Configuration
-# Profile: {{ $profile }}
+# Profile: Universal (all profiles use same config)
 # ==============================================================================
 
-{{- if $isMacos }}
 # --- Cache Settings ---
-# PIN is cached for 1 hour (3600s).
-# Signature verification still requires physical touch (UIF) on YubiKey.
+# Cache GPG passphrases for convenience vs security balance
+# Default: 1 hour, Max: 24 hours
 default-cache-ttl 3600
 max-cache-ttl 86400
 
 # --- Compatibility ---
-# Essential for VS Code, script usage, or non-GUI environments.
+# Allow pinentry through loopback for non-interactive environments
+# Essential for: VS Code GPG extensions, automated scripts, SSH sessions
 allow-loopback-pinentry
 
 # --- Pinentry Program Selection ---
-{{-   if eq .chezmoi.os "darwin" }}
-# macOS: Use Homebrew pinentry-mac
-{{-     if eq .chezmoi.arch "arm64" }}
+# Pinentry handles passphrase prompts (GUI or terminal-based)
+{{- if eq .chezmoi.os "darwin" }}
+# macOS: Use pinentry-mac for native integration
+{{-   if eq .chezmoi.arch "arm64" }}
+# Apple Silicon (M1/M2/M3)
 pinentry-program /opt/homebrew/bin/pinentry-mac
-{{-     else }}
+{{-   else }}
+# Intel Mac
 pinentry-program /usr/local/bin/pinentry-mac
-{{-     end }}
-{{-   else if eq .chezmoi.os "linux" }}
-# Linux: Priority Homebrew > System Default
-{{-     if stat "/home/linuxbrew/.linuxbrew/bin/pinentry" }}
-pinentry-program /home/linuxbrew/.linuxbrew/bin/pinentry
-{{-     else if stat (printf "%s/.linuxbrew/bin/pinentry" .chezmoi.homeDir) }}
-pinentry-program {{ .chezmoi.homeDir }}/.linuxbrew/bin/pinentry
-{{-     else }}
-pinentry-program /usr/bin/pinentry
-{{-     end }}
 {{-   end }}
-
-{{- else }}
-# [{{ $profile | upper }} PROFILE]
-# GPG signing disabled. This file exists for compatibility.
-# To enable GPG signing manually:
-#   1. Set profile to "macos" in chezmoi config
-#   2. Or configure GPG manually for this environment
-
-# Minimal settings (no active agent expected)
-default-cache-ttl 600
-max-cache-ttl 1800
-allow-loopback-pinentry
+# Install: brew install pinentry-mac
+{{- else if eq .chezmoi.os "linux" }}
+# Linux: Priority order: Homebrew > System package
+{{-   if stat "/home/linuxbrew/.linuxbrew/bin/pinentry" }}
+# Homebrew (multi-user installation)
+pinentry-program /home/linuxbrew/.linuxbrew/bin/pinentry
+{{-   else if stat (printf "%s/.linuxbrew/bin/pinentry" .chezmoi.homeDir) }}
+# Homebrew (user installation)
+pinentry-program {{ .chezmoi.homeDir }}/.linuxbrew/bin/pinentry
+{{-   else }}
+# System package (fallback)
+pinentry-program /usr/bin/pinentry
+{{-   end }}
+# Install: brew install pinentry OR apt/dnf install pinentry-gtk2
 {{- end }}
+
+# --- Security Options ---
+# Uncomment for additional security (requires passphrase more frequently)
+# default-cache-ttl 600
+# max-cache-ttl 7200

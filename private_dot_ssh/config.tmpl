@@ -11,6 +11,15 @@ CA Certificate Strategy:
   - No need to specify CertificateFile explicitly
   - Principals in cert control which users can be assumed
 
+Requirements:
+  - OpenSSH 7.3+ (for Include directive)
+  - OpenSSH 8.2+ (for FIDO2/U2F key support)
+
+Key Files:
+  - ~/.ssh/main-ssh.zopiya.com (YubiKey main, macos only)
+  - ~/.ssh/back-ssh.zopiya.com (YubiKey backup, macos only)
+  - ~/.ssh/private_sockets/ (control socket directory, auto-created)
+
 ============================================================================== */ -}}
 {{- $profile := .profile | default "macos" -}}
 {{- $isMacos := eq $profile "macos" -}}
@@ -26,18 +35,21 @@ CA Certificate Strategy:
 # 1. Local Extensions (highest priority)
 # ------------------------------------------------------------------------------
 # Include local overrides (e.g., temporary work hosts, test environments)
+# Note: File is optional. Create ~/.ssh/config.local for local customizations.
+# OpenSSH will silently ignore if file doesn't exist (OpenSSH 7.3+)
 Include ~/.ssh/config.local
 
 # ------------------------------------------------------------------------------
 # 2. Git Services (override User before Host *)
 # ------------------------------------------------------------------------------
-Host github.com
+# All Git forges use "git" user for SSH authentication
+# ForwardAgent disabled for security (Git operations don't need agent forwarding)
+# Matches Git config URL rewrites in ~/.config/git/config
+Host github.com gitlab.com bitbucket.org gitea.com git.7wate.org
     User git
     ServerAliveInterval 30
-{{- if $isMacos }}
-    # Use standard key for public git (ignores CA cert automatically on GitHub side)
-    IdentityFile ~/.ssh/MainZopiyaSSH
-{{- end }}
+    ForwardAgent no
+
 
 {{- if $isMacos }}
 
@@ -68,14 +80,19 @@ Host *
     # CA cert principals control which users you can actually assume
     User zopiya
 
-    # Identity (SSH auto-discovers MainZopiyaSSH-cert.pub)
-    IdentityFile ~/.ssh/MainZopiyaSSH
-    # Fallback for standard keys if needed
-    # IdentityFile ~/.ssh/id_ed25519_sk
+    # Identity (YubiKey FIDO keys)
+    # Note: These are hardware-backed keys, not regular files
+    # Format: sk-ssh-ed25519@openssh.com (FIDO2/U2F resident keys)
+    # Ensure keys are loaded into agent to avoid repeated PIN entry
+    IdentityFile ~/.ssh/main-ssh.zopiya.com
+    IdentityFile ~/.ssh/back-ssh.zopiya.com
 
-    # Forward agent cautiously; strict off by default
-    ForwardAgent no
+    # Agent Configuration
+    # Forward agent enabled by default (allows remote systems to use local keys)
+    ForwardAgent yes
+    # Add keys to agent on first use (caches authentication)
     AddKeysToAgent yes
+
 
 {{- else if $isMini }}
     # === MINI PROFILE ===
@@ -99,15 +116,22 @@ Host *
 
 {{- end }}
     # --- Connection KeepAlive ---
+    # Send keepalive packets every 60s to prevent connection timeout
     ServerAliveInterval 60
+    # Disconnect after 30 failed keepalives (30min total)
     ServerAliveCountMax 30
 
     # --- Connection Multiplexing ---
+    # Reuse existing connections for multiple sessions (faster reconnects)
     ControlMaster auto
-    ControlPath ~/.ssh/sockets/ssh_mux_%C
+    # Socket path using %C (hash of %l%h%p%r) for unique identification
+    # Directory ~/.ssh/private_sockets/ is created automatically by SSH
+    ControlPath ~/.ssh/private_sockets/ssh_mux_%C
 {{- if $isMacos }}
+    # Keep master connection alive for 4h (macos: frequent reconnects)
     ControlPersist 4h
 {{- else }}
+    # Keep master connection alive for 1h (mini/linux: security-conscious)
     ControlPersist 1h
 {{- end }}
 
@@ -118,6 +142,11 @@ Host *
     HashKnownHosts yes
     VisualHostKey no
     StrictHostKeyChecking ask
+
+    # Modern Crypto Hardening
+    KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
+    Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+    MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
 
     # Optional host CA bundle (public). Place host CA pubkey at ~/.ssh/ssh_ca.pub
     # and add @cert-authority lines there; keeps known_hosts clean.
@@ -131,18 +160,4 @@ Host *
     AppleUseKeychain yes
 {{- end }}
 
-# ------------------------------------------------------------------------------
-# 5. Secured Remotes (Homelab)
-# ------------------------------------------------------------------------------
-# Applies to all home servers (*.hs)
-# Requirement: Remote servers have 'StreamLocalBindUnlink yes' in /etc/ssh/sshd_config
 
-Host *.hs
-    User zopiya
-
-    # Forward SSH Identity (Git push support)
-    ForwardAgent yes
-
-    # Forward GPG Signing (Git commit -S support)
-    # Mapping: Local Extra Socket -> Remote Standard Socket (UID 1000)
-    RemoteForward /run/user/1000/gnupg/S.gpg-agent /Users/zopiya/.gnupg/S.gpg-agent.extra

@@ -2,9 +2,17 @@
 Git Configuration - Profile-Aware
 
 Profile Matrix:
-  - macos: Full config with GPG signing
-  - mini:  Full config, GPG signing DISABLED
-  - linux: Full config, GPG signing DISABLED
+  - all: Default to SSH signing using YubiKey FIDO2 keys
+
+Requirements:
+  - Git 2.34+ (for SSH signing support)
+  - OpenSSH 8.0+ (for ssh-keygen signing)
+  - Delta (optional, for enhanced diffs)
+
+Architecture:
+  - Signing: SSH keys (YubiKey FIDO2) instead of GPG
+  - Authentication: SSH for all Git forges (GitHub, GitLab, etc.)
+  - Verification: ~/.ssh/allowed_signers for signature validation
 ============================================================================== */ -}}
 {{- $profile := .profile | default "macos" -}}
 {{- $isMacos := eq $profile "macos" -}}
@@ -60,11 +68,19 @@ Profile Matrix:
     # Use Git wire protocol v2 (faster fetching)
     version = 2
 
-# Force SSH for GitHub/GitLab to use your optimized ~/.ssh/config
+# Force SSH for common forges (push and pull)
+# This leverages the optimized ~/.ssh/config via the "git" user
+# Note: Corresponding SSH config must exist in ~/.ssh/config
 [url "git@github.com:"]
     insteadOf = https://github.com/
 [url "git@gitlab.com:"]
     insteadOf = https://gitlab.com/
+[url "git@bitbucket.org:"]
+    insteadOf = https://bitbucket.org/
+[url "git@gitea.com:"]
+    insteadOf = https://gitea.com/
+[url "git@git.7wate.org:"]
+    insteadOf = https://git.7wate.org/
 
 # ------------------------------------------------------------------------------
 # Diff & Merge Tool (Delta)
@@ -101,43 +117,52 @@ Profile Matrix:
     default = simple
 
 # ------------------------------------------------------------------------------
-# Commit Signing
+# Commit Signing (SSH)
 # ------------------------------------------------------------------------------
+# Architecture:
+#   - Signing: YubiKey FIDO2 keys (main + backup)
+#   - Format: SSH keys instead of GPG (simpler, works with agent forwarding)
+#   - Verification: ~/.ssh/allowed_signers (both keys registered for validation)
+#
+# Key Switching:
+#   1. Comment out the active signingkey line below
+#   2. Uncomment the backup signingkey line
+#   3. Run: chezmoi apply
+#
+# Verification Setup:
+#   - Both keys are pre-registered in ~/.ssh/allowed_signers
+#   - Signatures from either key will validate successfully
+#   - GitHub/GitLab: Add both public keys to your account settings
+# ------------------------------------------------------------------------------
+[user]
+    # SSH signing key (YubiKey FIDO) - Defined in .chezmoi.toml.tmpl
+    # Using literal key format to support remote signing via agent forwarding
+
+    # Main YubiKey (primary - currently active)
+    signingkey = {{ .signingkey }}
+
+    # Backup YubiKey (uncomment to switch, comment above line)
+    # signingkey = {{ .backupsigningkey }}
+
 [commit]
-{{- if $isMacos }}
+    # Sign all commits automatically
     gpgsign = true
-{{- else }}
-    # {{ $profile | title }}: GPG signing disabled
-    # To enable manually: git config --global commit.gpgsign true
-    gpgsign = false
-{{- end }}
+    # Show full commit message in editor (helps catch errors before committing)
     verbose = true
 
 [tag]
-{{- if $isMacos }}
+    # Sign all tags automatically
     gpgsign = true
-{{- else }}
-    gpgsign = false
-{{- end }}
-
-{{- if $isMacos }}
 
 [gpg]
-    format = openpgp
-{{-   if eq .chezmoi.os "darwin" }}
-{{-     if eq .chezmoi.arch "arm64" }}
-    program = /opt/homebrew/bin/gpg
-{{-     else }}
-    program = /usr/local/bin/gpg
-{{-     end }}
-{{-   else }}
-    program = gpg
-{{-   end }}
-{{- end }}
+    # Use SSH keys instead of GPG for signing
+    format = ssh
 
-# --- FUTURE: SSH SIGNING ---
-# [gpg]
-#     format = ssh
-# [gpg "ssh"]
-#     program = ssh-keygen
-#     allowedSignersFile = ~/.ssh/allowed_signers
+[gpg "ssh"]
+    # Use ssh-keygen for signing operations
+    program = ssh-keygen
+    # File containing trusted signing keys (email -> public key mapping)
+    # Both main and backup YubiKey public keys are registered here
+    allowedSignersFile = ~/.ssh/allowed_signers
+    # Optional: Revoked keys file (uncomment if needed)
+    # revokedKeysFile = ~/.ssh/revoked_keys
