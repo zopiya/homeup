@@ -1,0 +1,68 @@
+# ==============================================================================
+# Development Tools Initialization
+# ==============================================================================
+# Purpose: Initialize shell integrations for development tools.
+#
+# Each tool is initialized only if installed. Order matters for some tools
+# (e.g., completions must be set up before compinit).
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Plugin Manager
+# ------------------------------------------------------------------------------
+
+# Sheldon (zsh plugin manager)
+if command -v sheldon &>/dev/null; then
+    eval "$(sheldon source)"
+fi
+
+# ------------------------------------------------------------------------------
+# Completion System
+# ------------------------------------------------------------------------------
+# Must be initialized after plugins that modify fpath (like zsh-completions)
+
+autoload -Uz compinit
+compinit
+
+# ------------------------------------------------------------------------------
+# Prompt
+# ------------------------------------------------------------------------------
+
+# Starship (cross-shell prompt)
+if command -v starship &>/dev/null; then
+    eval "$(starship init zsh)"
+fi
+
+# ------------------------------------------------------------------------------
+# Navigation
+# ------------------------------------------------------------------------------
+
+# Zoxide (smart cd replacement)
+if command -v zoxide &>/dev/null; then
+    eval "$(zoxide init zsh)"
+fi
+
+# ------------------------------------------------------------------------------
+# Runtime Manager
+# ------------------------------------------------------------------------------
+
+# Mise (polyglot runtime manager - node, python, ruby, etc.)
+if command -v mise &>/dev/null; then
+    eval "$(mise activate zsh)"
+fi
+
+# ------------------------------------------------------------------------------
+# Search & Filtering
+# ------------------------------------------------------------------------------
+
+# FZF (fuzzy finder)
+[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
+
+# ------------------------------------------------------------------------------
+# History
+# ------------------------------------------------------------------------------
+
+# Atuin (shell history sync & search)
+if command -v atuin &>/dev/null; then
+    eval "$(atuin init zsh)"
+fi

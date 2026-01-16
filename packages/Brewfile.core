@@ -1,32 +1,12 @@
 # ==============================================================================
 # Brewfile.core - Essential Tools for ALL Environments
 # ==============================================================================
-# This file contains the minimal set of CLI tools required across all profiles.
-# These are core utilities that every machine (macos/linux) needs.
-# Note: 'mini' profile is standalone and does not inherit this file.
-#
-# Design Principle: Less is More
-# Only include tools that are:
-#   1. Used daily across all environments
-#   2. Have no platform-specific alternatives
-#   3. Are truly essential for basic shell workflow
-#
-# Profiles: macos | linux
-# Dependencies: None (this is the foundation)
-# ==============================================================================
+# NOTE: Shell essentials (zsh, starship, sheldon, zoxide, fzf) are in
+# Brewfile.bootstrap to ensure they're installed first.
 
 # ------------------------------------------------------------------------------
-# Shell & Prompt
+# Navigation & Search (Extended)
 # ------------------------------------------------------------------------------
-brew "zsh"
-brew "starship"
-brew "sheldon"
-
-# ------------------------------------------------------------------------------
-# Navigation & Search
-# ------------------------------------------------------------------------------
-brew "zoxide"
-brew "fzf"
 brew "atuin"
 
 # ------------------------------------------------------------------------------
@@ -58,9 +38,8 @@ brew "zstd"
 brew "ouch"
 
 # ------------------------------------------------------------------------------
-# Version Control
+# Version Control (Extended)
 # ------------------------------------------------------------------------------
-brew "git"
 brew "gh"
 brew "lazygit"
 brew "git-delta"
@@ -75,86 +54,103 @@ brew "tmux"
 # Development Workflow
 # ------------------------------------------------------------------------------
 brew "direnv"
-brew "just"
 brew "lefthook"
 brew "entr"
 
 # ------------------------------------------------------------------------------
 # Network Essentials
 # ------------------------------------------------------------------------------
-brew "curl"
 brew "wget"
 
 # ------------------------------------------------------------------------------
 # System Maintenance
 # ------------------------------------------------------------------------------
-brew "chezmoi"
 brew "topgrade"
 
 # ------------------------------------------------------------------------------
 # Runtime & Package Managers
 # ------------------------------------------------------------------------------
-brew "mise"        # Universal version manager (replaces asdf, nvm, pyenv)
-brew "uv"          # Fast Python package manager
-brew "pnpm"        # Efficient Node.js package manager
+brew "mise"
+brew "uv"
+brew "pnpm"
 
 # ------------------------------------------------------------------------------
 # Enhanced CLI Tools
 # ------------------------------------------------------------------------------
-brew "fastfetch"   # System information tool
-brew "zellij"      # Modern terminal workspace
-brew "bottom"      # System monitor
-brew "choose"      # Better cut/awk for structured data
+brew "fastfetch"
+brew "zellij"
+brew "bottom"
+brew "choose"
 
 # ------------------------------------------------------------------------------
 # File Management & Monitoring
 # ------------------------------------------------------------------------------
-brew "yazi"        # Terminal file manager
-brew "watchexec"   # Execute commands on file changes
+brew "yazi"
+brew "watchexec"
 
 # ------------------------------------------------------------------------------
 # AI-Assisted Development & Documentation
 # ------------------------------------------------------------------------------
-brew "aider"       # AI pair programming
-brew "glow"        # Markdown renderer
-brew "vhs"         # Terminal session recorder
+brew "aider"
+brew "glow"
+brew "vhs"
 
 # ------------------------------------------------------------------------------
 # Network & API Tools
 # ------------------------------------------------------------------------------
-brew "httpie"      # Human-friendly HTTP client
-brew "xh"          # Fast HTTP client (Rust)
-brew "doggo"       # Modern DNS client
-brew "gping"       # Ping with graph
-brew "trippy"      # Network diagnostic tool
-brew "grpcurl"     # gRPC curl
-brew "evans"       # gRPC client
+brew "httpie"
+brew "xh"
+brew "doggo"
+brew "gping"
+brew "trippy"
+brew "grpcurl"
+brew "evans"
 
 # ------------------------------------------------------------------------------
 # Database Tools
 # ------------------------------------------------------------------------------
-brew "pgcli"       # PostgreSQL CLI with autocomplete
+brew "pgcli"
 
 # ------------------------------------------------------------------------------
 # Performance & Code Analysis
 # ------------------------------------------------------------------------------
-brew "hyperfine"   # Command-line benchmarking tool
-brew "tokei"       # Code statistics
-brew "bandwhich"   # Bandwidth monitor by process
+brew "hyperfine"
+brew "tokei"
+brew "bandwhich"
 
 # ------------------------------------------------------------------------------
 # Git Enhancements
 # ------------------------------------------------------------------------------
-brew "git-cliff"   # Changelog generator
-brew "onefetch"    # Git repository summary
-brew "gitleaks"    # Secret scanner for git
+brew "git-cliff"
+brew "onefetch"
+brew "gitleaks"
 
 # ------------------------------------------------------------------------------
 # Security & Encryption
 # ------------------------------------------------------------------------------
-brew "age"         # Modern file encryption tool
+brew "age"
 
 # ------------------------------------------------------------------------------
 # Backup & Disaster Recovery
 # ------------------------------------------------------------------------------
-brew "restic"      # Fast, secure backup program
+brew "restic"
+
+# ------------------------------------------------------------------------------
+# Container & Kubernetes Ecosystem
+# ------------------------------------------------------------------------------
+brew "lazydocker"
+brew "dive"
+brew "k9s"
+brew "helm"
+brew "kubectx"
+brew "stern"
+brew "kustomize"
+
+# ------------------------------------------------------------------------------
+# Infrastructure as Code & DevOps
+# ------------------------------------------------------------------------------
+brew "terraform"
+brew "ansible"
+brew "trivy"
+brew "grype"
+brew "syft"

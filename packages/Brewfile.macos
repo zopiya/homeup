@@ -1,66 +1,22 @@
 # ==============================================================================
 # Brewfile.macos - macOS Workstation Profile
 # ==============================================================================
-# Full-featured development environment for macOS with GUI applications,
-# security tools, enhanced CLI utilities, and complete Kubernetes ecosystem.
-#
-# This file contains INCREMENTAL packages beyond Brewfile.core.
-# All core utilities (git, neovim, fzf, etc.) are inherited from core.
-#
-# Design Principle: AI-Native Modern Development Stack
-# Focus on:
-#   1. Cloud-native development (K8s, containers, IaC)
-#   2. AI-assisted workflows (aider, copilot-ready)
-#   3. Security-first approach (hardware keys, encryption)
-#   4. Modern GUI applications (native macOS experience)
-#
-# Profile: macos (GUI / Main)
-# Dependencies: Brewfile.core
-# ==============================================================================
-
-# tap "1password/tap"  # No longer needed - 1password-cli is now in homebrew-cask
-
-# Note: Enhanced CLI tools (fastfetch, zellij, bottom, choose) moved to Brewfile.core
-# Note: File management tools (yazi, watchexec) moved to Brewfile.core
-# Note: AI development tools (aider, glow, vhs) moved to Brewfile.core
-
-# ------------------------------------------------------------------------------
-# Container & Kubernetes Ecosystem
-# ------------------------------------------------------------------------------
-brew "lazydocker"
-brew "dive"
-brew "k9s"
-brew "helm"
-brew "kubectx"
-brew "stern"
-brew "kustomize"
-
-# ------------------------------------------------------------------------------
-# Infrastructure as Code & DevOps
-# ------------------------------------------------------------------------------
-brew "terraform"
-brew "ansible"
-brew "trivy"
-brew "grype"
-brew "syft"
-
-# Note: Network & API tools (httpie, xh, doggo, gping, trippy, grpcurl, evans) moved to Brewfile.core
-# Note: Database tools (pgcli) moved to Brewfile.core
-# Note: Runtime managers (mise, uv, pnpm) moved to Brewfile.core
-# Note: Performance tools (hyperfine, tokei, bandwhich) moved to Brewfile.core
-# Note: Git enhancements (git-cliff, onefetch, gitleaks) moved to Brewfile.core
+# NOTE: Container/K8s and DevOps tools (lazydocker, k9s, terraform, etc.)
+# are in Brewfile.core as they're used in all environments.
 
 # ------------------------------------------------------------------------------
 # Security & Encryption (macOS-Specific)
 # ------------------------------------------------------------------------------
-# Note: age moved to Brewfile.core (universal encryption)
-# Note: gitleaks moved to Brewfile.core (git secret scanning)
-brew "gnupg"           # GPG encryption & signing (macOS only)
-brew "ykman"           # YubiKey manager (hardware key support)
-cask "1password-cli"   # 1Password CLI (macOS integration) - now a cask
-brew "pinentry-mac"    # macOS native pinentry for GPG
+brew "gnupg"
+brew "ykman"
+brew "pinentry-mac"
 
-# Note: Backup tools (restic) moved to Brewfile.core
+# ------------------------------------------------------------------------------
+# AI - TUI Applications
+# ------------------------------------------------------------------------------
+cask "claude-code"
+brew "gemini-cli"
+cask "codex"
 
 # ------------------------------------------------------------------------------
 # Fonts - Nerd Fonts for Terminal
@@ -75,7 +31,7 @@ cask "font-source-han-serif-vf"
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# Browsers
+# Browsers - Web Browsers
 # ------------------------------------------------------------------------------
 cask "google-chrome"
 cask "firefox"
@@ -87,27 +43,26 @@ cask "ghostty"
 cask "warp"
 
 # ------------------------------------------------------------------------------
-# Communication & File Sync
+# Communication & File Sync - Collaboration Tools
 # ------------------------------------------------------------------------------
 cask "localsend"
 cask "nextcloud"
 
 # ------------------------------------------------------------------------------
-# Development Tools
+# Development Tools - IDE & API Testing
 # ------------------------------------------------------------------------------
 cask "visual-studio-code"
 cask "dbeaver-community"
 cask "bruno"
 
 # ------------------------------------------------------------------------------
-# Productivity & Knowledge Management
+# Productivity & Knowledge Management - Note Taking & Writing
 # ------------------------------------------------------------------------------
-cask "1password"
 cask "obsidian"
 cask "typora"
 
 # ------------------------------------------------------------------------------
-# System Utilities
+# System Utilities - Monitoring & File Management
 # ------------------------------------------------------------------------------
 cask "stats"
 cask "keka"

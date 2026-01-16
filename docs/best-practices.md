@@ -3,9 +3,10 @@
 本指南提供基于 Homeup 工具集的实战场景和工作流程，帮助开发者和运维人员充分发挥现代化工具的优势。
 
 **目录结构**:
-- [Dev 场景 (7个)](#dev-场景)
-- [Ops 场景 (6个)](#ops-场景)
-- [通用工作流 (3个)](#通用工作流)
+
+- [Dev 场景 (7 个)](#dev-场景)
+- [Ops 场景 (6 个)](#ops-场景)
+- [通用工作流 (3 个)](#通用工作流)
 
 ---
 
@@ -14,11 +15,13 @@
 ### 1. 前端开发 (React/Vue/Angular)
 
 #### 适用人群
+
 - 专注于 Web 前端开发的工程师
 - 全栈开发者的前端部分
 - UI/UX 开发者需要快速原型验证
 
 #### 推荐工具组合
+
 ```bash
 # 核心工具
 mise          # Node.js 版本管理
@@ -35,6 +38,7 @@ bruno         # API 客户端 (macOS GUI)
 #### 工作流程
 
 **1. 项目初始化**
+
 ```bash
 # 创建项目目录
 mkdir my-frontend-app && cd my-frontend-app
@@ -49,6 +53,7 @@ pnpm install
 ```
 
 **2. 开发环境配置**
+
 ```bash
 # 使用 direnv 管理环境变量
 cat > .envrc << EOF
@@ -70,6 +75,7 @@ EOF
 ```
 
 **3. 开发实时预览**
+
 ```bash
 # 使用 watchexec 监控文件变化并执行构建
 watchexec -e ts,tsx,css -r pnpm dev
@@ -93,6 +99,7 @@ just dev
 ```
 
 **4. Git 工作流**
+
 ```bash
 # 使用 lazygit 进行可视化操作
 lazygit
@@ -104,6 +111,7 @@ gh pr create --title "Add Dashboard" --body "New analytics dashboard"
 ```
 
 **5. API 调试**
+
 ```bash
 # 使用 httpie 测试 API
 http POST localhost:3000/api/users name=John email=john@example.com
@@ -118,6 +126,7 @@ open -a Bruno
 #### 配置建议
 
 **VS Code 配置** (`.vscode/settings.json`):
+
 ```json
 {
   "editor.formatOnSave": true,
@@ -128,6 +137,7 @@ open -a Bruno
 ```
 
 **Neovim 配置技巧**:
+
 ```bash
 # 使用 LazyVim 或 NvChad 作为现代化配置基础
 # 确保安装了 LSP 支持
@@ -137,11 +147,12 @@ open -a Bruno
 #### 社区最佳实践
 
 1. **使用 pnpm workspace** 管理 Monorepo:
+
    ```yaml
    # pnpm-workspace.yaml
    packages:
-     - 'packages/*'
-     - 'apps/*'
+     - "packages/*"
+     - "apps/*"
    ```
 
 2. **使用 Vite** 而非 Webpack: 更快的构建速度和开发体验
@@ -158,11 +169,13 @@ open -a Bruno
 ### 2. 后端开发 (Go/Python/Node.js)
 
 #### 适用人群
+
 - 后端 API 开发工程师
 - 微服务架构开发者
 - 需要处理数据库和缓存的开发者
 
 #### 推荐工具组合
+
 ```bash
 # 核心工具
 mise          # 多语言运行时管理 (Go, Python, Node.js)
@@ -183,6 +196,7 @@ evans         # gRPC 交互式客户端
 #### 工作流程
 
 **1. 多语言项目设置**
+
 ```bash
 # Go 项目
 mise use go@1.21
@@ -205,6 +219,7 @@ pnpm add express @types/express
 ```
 
 **2. 本地开发环境 (Docker Compose)**
+
 ```bash
 # 使用 just 管理 Docker 环境
 cat > justfile << EOF
@@ -230,6 +245,7 @@ lazydocker
 ```
 
 **3. 数据库操作**
+
 ```bash
 # 使用 pgcli 连接数据库
 pgcli postgresql://user:password@localhost:5432/mydb
@@ -244,6 +260,7 @@ open -a "DBeaver Community"
 ```
 
 **4. API 开发和测试**
+
 ```bash
 # 测试 REST API
 http POST localhost:8000/api/users \
@@ -262,6 +279,7 @@ evans --host localhost --port 50051 repl
 ```
 
 **5. 性能测试和优化**
+
 ```bash
 # 使用 hyperfine 基准测试
 hyperfine 'curl http://localhost:8000/api/health'
@@ -276,6 +294,7 @@ bandwhich
 #### 配置建议
 
 **Go 项目配置** (`.mise.toml`):
+
 ```toml
 [tools]
 go = "1.21"
@@ -294,6 +313,7 @@ run = "go test -v -race ./..."
 ```
 
 **Python 项目配置** (`pyproject.toml`):
+
 ```toml
 [project]
 name = "my-backend"
@@ -327,11 +347,13 @@ dev-dependencies = [
 ### 3. 全栈开发
 
 #### 适用人群
+
 - 同时负责前后端的全栈工程师
 - 独立开发者构建完整产品
 - 创业团队快速原型开发
 
 #### 推荐工具组合
+
 ```bash
 # 开发环境
 mise          # 统一管理所有运行时
@@ -352,6 +374,7 @@ httpie        # API 测试
 #### 工作流程
 
 **1. Monorepo 项目结构**
+
 ```bash
 # 创建 Monorepo
 mkdir fullstack-app && cd fullstack-app
@@ -368,6 +391,7 @@ mkdir -p apps/web apps/api packages/shared
 ```
 
 **2. 统一运行时管理**
+
 ```bash
 # 根目录配置 mise
 cat > .mise.toml << EOF
@@ -390,6 +414,7 @@ mise install
 ```
 
 **3. 前端项目设置** (`apps/web`)
+
 ```bash
 cd apps/web
 pnpm create vite@latest . --template react-ts
@@ -414,6 +439,7 @@ EOF
 ```
 
 **4. 后端项目设置** (`apps/api`)
+
 ```bash
 cd apps/api
 go mod init github.com/yourname/fullstack-app/api
@@ -436,6 +462,7 @@ EOF
 ```
 
 **5. 使用 Zellij 管理多个终端会话**
+
 ```bash
 # 启动 Zellij 并创建布局
 zellij --layout fullstack
@@ -463,6 +490,7 @@ layout {
 #### 配置建议
 
 **VS Code Workspace** (`fullstack-app.code-workspace`):
+
 ```json
 {
   "folders": [
@@ -479,8 +507,9 @@ layout {
 ```
 
 **Docker Compose** (`docker-compose.yml`):
+
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -518,11 +547,13 @@ volumes:
 ### 4. 移动开发 (React Native/Flutter)
 
 #### 适用人群
+
 - 移动应用开发工程师
 - 跨平台应用开发者
 - 需要同时支持 iOS 和 Android 的团队
 
 #### 推荐工具组合
+
 ```bash
 # 核心工具
 mise          # Node.js/Dart 版本管理
@@ -538,6 +569,7 @@ lazygit       # Git 操作
 #### 工作流程
 
 **1. React Native 项目初始化**
+
 ```bash
 # 安装 Node.js
 mise use node@20
@@ -566,6 +598,7 @@ EOF
 ```
 
 **2. Flutter 项目初始化**
+
 ```bash
 # 使用 mise 安装 Dart
 mise use dart@latest
@@ -592,6 +625,7 @@ EOF
 ```
 
 **3. 开发调试**
+
 ```bash
 # 使用 just 管理任务
 cat > justfile << EOF
@@ -619,6 +653,7 @@ watchexec -e js,jsx,ts,tsx -r pnpm react-native start
 ```
 
 **4. API 集成测试**
+
 ```bash
 # 测试后端 API
 http GET https://api.example.com/users \
@@ -631,6 +666,7 @@ http POST https://api.example.com/login \
 ```
 
 **5. 版本管理和发布**
+
 ```bash
 # 使用 git-cliff 生成 Changelog
 git cliff --output CHANGELOG.md
@@ -645,6 +681,7 @@ gh release create v1.0.0 --notes "$(git cliff --latest)"
 #### 配置建议
 
 **VS Code 配置** (`.vscode/settings.json`):
+
 ```json
 {
   "typescript.tsdk": "node_modules/typescript/lib",
@@ -655,6 +692,7 @@ gh release create v1.0.0 --notes "$(git cliff --latest)"
 ```
 
 **React Native 环境变量** (`.envrc`):
+
 ```bash
 export ANDROID_HOME=$HOME/Library/Android/sdk
 export PATH=$ANDROID_HOME/platform-tools:$PATH
@@ -676,11 +714,13 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 ### 5. 数据科学/ML
 
 #### 适用人群
+
 - 数据科学家
 - 机器学习工程师
 - 数据分析师
 
 #### 推荐工具组合
+
 ```bash
 # Python 环境
 mise          # Python 版本管理
@@ -701,6 +741,7 @@ bat           # 代码查看
 #### 工作流程
 
 **1. Python 环境设置**
+
 ```bash
 # 创建项目目录
 mkdir ml-project && cd ml-project
@@ -718,6 +759,7 @@ uv pip install numpy pandas scikit-learn matplotlib jupyter
 ```
 
 **2. Jupyter Notebook 开发**
+
 ```bash
 # 启动 Jupyter Lab
 jupyter lab --no-browser --port=8888
@@ -743,6 +785,7 @@ EOF
 ```
 
 **3. 数据处理**
+
 ```bash
 # 使用 miller 处理 CSV
 mlr --csv filter '$age > 30' data.csv
@@ -761,6 +804,7 @@ mlr --csv stats1 -a mean,median,stddev -f age data.csv
 ```
 
 **4. 代码分析和可视化**
+
 ```bash
 # 使用 bat 查看 Python 代码 (语法高亮)
 bat model.py
@@ -776,6 +820,7 @@ glow README.md
 ```
 
 **5. 模型训练和监控**
+
 ```bash
 # 使用 hyperfine 测试训练性能
 hyperfine 'python train.py --epochs 10'
@@ -793,6 +838,7 @@ watchexec -e py -r python train.py
 #### 配置建议
 
 **项目配置** (`pyproject.toml`):
+
 ```toml
 [project]
 name = "ml-project"
@@ -815,6 +861,7 @@ dev-dependencies = [
 ```
 
 **Jupyter 配置** (`~/.jupyter/jupyter_lab_config.py`):
+
 ```python
 c.ServerApp.ip = '0.0.0.0'
 c.ServerApp.open_browser = False
@@ -823,6 +870,7 @@ c.ServerApp.password = ''
 ```
 
 **Neovim 配置** (安装 Jupyter 内核支持):
+
 ```bash
 # 使用 jupytext 编辑 .ipynb 为 .py
 uv pip install jupytext
@@ -858,11 +906,13 @@ git add data/train.csv.dvc .gitignore
 ### 6. 系统编程 (Rust/C++)
 
 #### 适用人群
+
 - 系统级开发工程师
 - 性能关键应用开发者
 - 底层工具和库开发者
 
 #### 推荐工具组合
+
 ```bash
 # 编译器和工具链
 mise          # Rust/C++ 版本管理
@@ -882,6 +932,7 @@ git-delta     # 代码差异查看
 #### 工作流程
 
 **1. Rust 项目初始化**
+
 ```bash
 # 安装 Rust
 mise use rust@stable
@@ -911,6 +962,7 @@ EOF
 ```
 
 **2. C++ 项目设置**
+
 ```bash
 # 安装 C++ 工具链
 mise use cpp@latest
@@ -935,6 +987,7 @@ EOF
 ```
 
 **3. 开发环境 (tmux + neovim)**
+
 ```bash
 # 启动 tmux 会话
 tmux new -s dev
@@ -954,6 +1007,7 @@ watchexec -e rs -r cargo test
 ```
 
 **4. 性能分析和优化**
+
 ```bash
 # 使用 hyperfine 基准测试
 hyperfine './target/release/my-app' './target/release/my-app-optimized'
@@ -973,6 +1027,7 @@ sudo bandwhich
 ```
 
 **5. 调试和测试**
+
 ```bash
 # 使用 lldb 调试 (macOS)
 lldb target/debug/my-app
@@ -1007,6 +1062,7 @@ EOF
 #### 配置建议
 
 **Rust 项目** (`Cargo.toml`):
+
 ```toml
 [package]
 name = "my-rust-app"
@@ -1025,6 +1081,7 @@ strip = true
 ```
 
 **Neovim LSP 配置** (`~/.config/nvim/lua/lsp.lua`):
+
 ```lua
 -- Rust LSP
 require('lspconfig').rust_analyzer.setup({
@@ -1041,6 +1098,7 @@ require('lspconfig').clangd.setup({})
 ```
 
 **Git 钩子** (`lefthook.yml`):
+
 ```yaml
 pre-commit:
   commands:
@@ -1093,11 +1151,13 @@ EOF
 ### 7. Web3/区块链开发
 
 #### 适用人群
+
 - 智能合约开发者
 - DApp 前端工程师
 - 区块链协议开发者
 
 #### 推荐工具组合
+
 ```bash
 # 开发工具链
 mise          # Node.js/Solidity 版本管理
@@ -1118,6 +1178,7 @@ neovim        # 脚本编辑
 #### 工作流程
 
 **1. Hardhat 项目初始化**
+
 ```bash
 # 安装 Node.js
 mise use node@20
@@ -1151,6 +1212,7 @@ EOF
 ```
 
 **2. Foundry 项目设置** (可选)
+
 ```bash
 # 安装 Foundry
 curl -L https://foundry.paradigm.xyz | bash
@@ -1180,6 +1242,7 @@ EOF
 ```
 
 **3. 智能合约开发**
+
 ```bash
 # 创建合约 (contracts/MyToken.sol)
 cat > contracts/MyToken.sol << EOF
@@ -1206,6 +1269,7 @@ watchexec -e sol -r pnpm hardhat test
 ```
 
 **4. RPC 调试和交互**
+
 ```bash
 # 启动本地节点
 pnpm hardhat node
@@ -1230,6 +1294,7 @@ cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://localho
 ```
 
 **5. 前端集成**
+
 ```bash
 # 创建前端应用
 cd ..
@@ -1250,6 +1315,7 @@ EOF
 #### 配置建议
 
 **Hardhat 配置** (`hardhat.config.js`):
+
 ```javascript
 require("@nomicfoundation/hardhat-toolbox");
 
@@ -1259,26 +1325,27 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200
-      }
-    }
+        runs: 200,
+      },
+    },
   },
   networks: {
     hardhat: {
-      chainId: 31337
+      chainId: 31337,
     },
     sepolia: {
       url: process.env.SEPOLIA_RPC_URL,
-      accounts: [process.env.PRIVATE_KEY]
-    }
+      accounts: [process.env.PRIVATE_KEY],
+    },
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY
-  }
+    apiKey: process.env.ETHERSCAN_API_KEY,
+  },
 };
 ```
 
 **Foundry 配置** (`foundry.toml`):
+
 ```toml
 [profile.default]
 src = "src"
@@ -1297,6 +1364,7 @@ sepolia = { key = "${ETHERSCAN_API_KEY}" }
 ```
 
 **VS Code 配置** (`.vscode/settings.json`):
+
 ```json
 {
   "solidity.compileUsingRemoteVersion": "v0.8.20",
@@ -1337,8 +1405,8 @@ require("hardhat-gas-reporter");
 module.exports = {
   gasReporter: {
     enabled: true,
-    currency: 'USD',
-  }
+    currency: "USD",
+  },
 };
 ```
 
@@ -1349,11 +1417,13 @@ module.exports = {
 ### 1. 容器化部署 (Docker/Kubernetes)
 
 #### 适用人群
+
 - DevOps 工程师
 - 容器平台管理员
 - 微服务架构运维人员
 
 #### 推荐工具组合
+
 ```bash
 # 容器管理
 lazydocker    # Docker 可视化管理
@@ -1374,6 +1444,7 @@ bandwhich     # 网络监控
 #### 工作流程
 
 **1. Docker 开发环境**
+
 ```bash
 # 使用 lazydocker 管理容器
 lazydocker
@@ -1411,6 +1482,7 @@ EOF
 ```
 
 **2. 镜像优化**
+
 ```bash
 # 使用 dive 分析镜像层
 dive myapp:latest
@@ -1445,6 +1517,7 @@ dive myapp:optimized
 ```
 
 **3. Kubernetes 集群管理**
+
 ```bash
 # 使用 k9s 管理集群
 k9s
@@ -1469,6 +1542,7 @@ kubens production          # 切换到 production
 ```
 
 **4. 日志聚合和调试**
+
 ```bash
 # 使用 stern 查看多个 Pod 日志
 stern myapp --tail 10
@@ -1490,6 +1564,7 @@ lnav app.log
 ```
 
 **5. Helm Chart 管理**
+
 ```bash
 # 创建 Helm Chart
 helm create myapp
@@ -1516,8 +1591,9 @@ helm rollback myapp
 #### 配置建议
 
 **Docker Compose** (`docker-compose.yml`):
+
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   app:
@@ -1558,6 +1634,7 @@ volumes:
 ```
 
 **Kubernetes Deployment** (`k8s/deployment.yaml`):
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -1576,29 +1653,29 @@ spec:
         app: myapp
     spec:
       containers:
-      - name: myapp
-        image: myapp:latest
-        ports:
-        - containerPort: 3000
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "256Mi"
-            cpu: "200m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 3000
-          initialDelaySeconds: 5
-          periodSeconds: 5
+        - name: myapp
+          image: myapp:latest
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
 ```
 
 #### 社区最佳实践
@@ -1616,11 +1693,13 @@ spec:
 ### 2. CI/CD 流水线
 
 #### 适用人群
+
 - DevOps 工程师
 - 平台工程师
 - 负责自动化部署的开发者
 
 #### 推荐工具组合
+
 ```bash
 # GitHub 工作流
 gh            # GitHub CLI
@@ -1637,6 +1716,7 @@ watchexec     # 命令自动执行
 #### 工作流程
 
 **1. GitHub Actions 工作流**
+
 ```bash
 # 创建工作流目录
 mkdir -p .github/workflows
@@ -1655,6 +1735,7 @@ gh run rerun <run-id>
 ```
 
 **2. 本地 CI/CD 流程**
+
 ```bash
 # 使用 just 定义任务
 cat > justfile << EOF
@@ -1699,6 +1780,7 @@ just ci
 ```
 
 **3. Git Hooks 管理**
+
 ```bash
 # 安装 lefthook
 lefthook install
@@ -1743,6 +1825,7 @@ lefthook run pre-commit
 ```
 
 **4. 监控文件变化自动测试**
+
 ```bash
 # 使用 entr 监控文件变化
 ls src/**/*.ts | entr -c npm test
@@ -1770,6 +1853,7 @@ EOF
 ```
 
 **5. GitHub CLI 自动化**
+
 ```bash
 # 创建 PR
 gh pr create \
@@ -1805,14 +1889,15 @@ EOF
 #### 配置建议
 
 **GitHub Actions** (`.github/workflows/ci.yml`):
+
 ```yaml
 name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -1824,7 +1909,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install
@@ -1851,6 +1936,7 @@ jobs:
 ```
 
 **Just 配置** (`justfile`):
+
 ```just
 # 设置默认 shell
 set shell := ["zsh", "-cu"]
@@ -1901,11 +1987,13 @@ deploy environment:
 ### 3. 基础设施即代码 (Terraform/Ansible)
 
 #### 适用人群
+
 - 基础设施工程师
 - 云平台管理员
 - DevOps 自动化专家
 
 #### 推荐工具组合
+
 ```bash
 # IaC 工具
 terraform     # 基础设施管理
@@ -1923,6 +2011,7 @@ yq            # YAML 处理
 #### 工作流程
 
 **1. Terraform 项目初始化**
+
 ```bash
 # 创建项目结构
 mkdir -p terraform/{modules,environments/{dev,staging,prod}}
@@ -1960,6 +2049,7 @@ EOF
 ```
 
 **2. Terraform 模块开发**
+
 ```bash
 # 创建模块
 mkdir -p modules/vpc
@@ -1990,6 +2080,7 @@ watchexec -e tf -r just validate
 ```
 
 **3. Ansible Playbook 开发**
+
 ```bash
 # 创建项目结构
 mkdir -p ansible/{playbooks,roles,inventory}
@@ -2054,6 +2145,7 @@ EOF
 ```
 
 **4. 状态管理和变更追踪**
+
 ```bash
 # 使用 lazygit 管理 IaC 代码
 lazygit
@@ -2072,6 +2164,7 @@ yq eval '.all.children.webservers.hosts' inventory/hosts.yml
 ```
 
 **5. 多环境管理**
+
 ```bash
 # 使用 direnv 管理环境变量
 cat > .envrc << EOF
@@ -2111,6 +2204,7 @@ EOF
 #### 配置建议
 
 **Terraform 后端配置** (`backend.tf`):
+
 ```hcl
 terraform {
   backend "s3" {
@@ -2133,6 +2227,7 @@ terraform {
 ```
 
 **Ansible 配置** (`ansible.cfg`):
+
 ```ini
 [defaults]
 inventory = inventory/hosts.yml
@@ -2186,11 +2281,13 @@ repos:
 ### 4. 监控和可观测性
 
 #### 适用人群
+
 - SRE 工程师
 - 运维监控专家
 - 性能分析工程师
 
 #### 推荐工具组合
+
 ```bash
 # 系统监控
 btop          # 系统资源监控
@@ -2210,6 +2307,7 @@ bat           # 日志查看
 #### 工作流程
 
 **1. 系统监控**
+
 ```bash
 # 使用 btop 监控系统
 btop
@@ -2235,6 +2333,7 @@ btm --color default-light --tree
 ```
 
 **2. 进程监控**
+
 ```bash
 # 使用 procs 替代 ps
 procs
@@ -2258,6 +2357,7 @@ sudo bandwhich
 ```
 
 **3. 网络诊断**
+
 ```bash
 # 使用 gping 可视化 ping
 gping google.com cloudflare.com
@@ -2278,6 +2378,7 @@ doggo @8.8.8.8 google.com  # 指定 DNS 服务器
 ```
 
 **4. 日志分析**
+
 ```bash
 # 使用 lnav 分析日志
 lnav /var/log/nginx/access.log
@@ -2315,6 +2416,7 @@ EOF
 ```
 
 **5. 性能分析**
+
 ```bash
 # 使用 hyperfine 测试性能
 hyperfine 'curl http://localhost:8000/api/health'
@@ -2357,6 +2459,7 @@ EOF
 #### 配置建议
 
 **btop 配置** (`~/.config/btop/btop.conf`):
+
 ```ini
 color_theme = "Default"
 theme_background = True
@@ -2371,6 +2474,7 @@ proc_tree = False
 ```
 
 **glances 配置** (`~/.config/glances/glances.conf`):
+
 ```ini
 [global]
 check_update=false
@@ -2393,6 +2497,7 @@ critical=90
 ```
 
 **lnav 配置** (`~/.lnav/formats/myapp.json`):
+
 ```json
 {
   "myapp_log": {
@@ -2433,11 +2538,13 @@ critical=90
 ### 5. 安全和合规
 
 #### 适用人群
+
 - 安全工程师
 - DevSecOps 专家
 - 合规审计人员
 
 #### 推荐工具组合
+
 ```bash
 # 安全扫描
 trivy         # 容器镜像扫描
@@ -2448,12 +2555,12 @@ gitleaks      # 密钥泄露扫描
 # 加密工具
 age           # 现代加密
 gpg           # GPG 加密 (macOS)
-1password-cli # 密钥管理 (macOS)
 ```
 
 #### 工作流程
 
 **1. 容器镜像安全扫描**
+
 ```bash
 # 使用 trivy 扫描镜像
 trivy image myapp:latest
@@ -2477,6 +2584,7 @@ bat trivy-report.txt grype-report.txt
 ```
 
 **2. SBOM (软件物料清单) 生成**
+
 ```bash
 # 使用 syft 生成 SBOM
 syft myapp:latest
@@ -2508,6 +2616,7 @@ EOF
 ```
 
 **3. 代码密钥扫描**
+
 ```bash
 # 使用 gitleaks 扫描仓库
 gitleaks detect --verbose
@@ -2533,6 +2642,7 @@ lefthook install
 ```
 
 **4. 加密和密钥管理**
+
 ```bash
 # 使用 age 加密文件
 age-keygen -o key.txt
@@ -2545,14 +2655,6 @@ age -d -i key.txt secrets.enc > secrets.txt
 gpg --gen-key
 gpg --encrypt --recipient your@email.com secrets.txt
 gpg --decrypt secrets.txt.gpg > secrets.txt
-
-# 使用 1Password CLI (macOS)
-op signin
-op item get "My Secret" --fields password
-op item create --category Login \
-  --title "My Service" \
-  username=user \
-  password=$(openssl rand -base64 32)
 
 # 使用 just 管理密钥
 cat > justfile << EOF
@@ -2573,6 +2675,7 @@ EOF
 ```
 
 **5. 合规审计**
+
 ```bash
 # 使用 just 创建审计报告
 cat > justfile << EOF
@@ -2606,6 +2709,7 @@ EOF
 #### 配置建议
 
 **Trivy 配置** (`.trivy.yaml`):
+
 ```yaml
 severity:
   - HIGH
@@ -2624,6 +2728,7 @@ cache:
 ```
 
 **Gitleaks 配置** (`.gitleaks.toml`):
+
 ```toml
 title = "Gitleaks Config"
 
@@ -2650,9 +2755,9 @@ regex = '''(?i)(token|secret)['\"]?\s*[:=]\s*['\"]?([0-9a-zA-Z]{32,})'''
 - name: Run Trivy
   uses: aquasecurity/trivy-action@master
   with:
-    image-ref: 'myapp:${{ github.sha }}'
-    format: 'sarif'
-    output: 'trivy-results.sarif'
+    image-ref: "myapp:${{ github.sha }}"
+    format: "sarif"
+    output: "trivy-results.sarif"
 ```
 
 2. **使用 gitleaks 防止密钥泄露**: 在 pre-commit hook 中运行
@@ -2666,11 +2771,13 @@ regex = '''(?i)(token|secret)['\"]?\s*[:=]\s*['\"]?([0-9a-zA-Z]{32,})'''
 ### 6. 数据库管理
 
 #### 适用人群
+
 - 数据库管理员
 - 后端开发工程师
 - 数据工程师
 
 #### 推荐工具组合
+
 ```bash
 # SQL 客户端
 pgcli         # PostgreSQL CLI (自动补全)
@@ -2687,6 +2794,7 @@ bat           # SQL 文件查看
 #### 工作流程
 
 **1. 数据库连接和查询**
+
 ```bash
 # 使用 pgcli 连接数据库
 pgcli postgresql://user:password@localhost:5432/mydb
@@ -2714,6 +2822,7 @@ pgcli
 ```
 
 **2. 数据导入导出**
+
 ```bash
 # 导出数据
 pgcli -c "COPY users TO STDOUT CSV HEADER" > users.csv
@@ -2745,6 +2854,7 @@ EOF
 ```
 
 **3. 数据库备份**
+
 ```bash
 # 初始化 restic 仓库
 restic init --repo /backup/postgres
@@ -2793,6 +2903,7 @@ EOF
 ```
 
 **4. 查询分析和优化**
+
 ```bash
 # 使用 pgcli 分析查询
 EXPLAIN ANALYZE SELECT * FROM users WHERE age > 30;
@@ -2828,6 +2939,7 @@ EOF
 ```
 
 **5. DBeaver GUI 管理** (macOS)
+
 ```bash
 # 启动 DBeaver
 open -a "DBeaver Community"
@@ -2843,6 +2955,7 @@ open -a "DBeaver Community"
 #### 配置建议
 
 **pgcli 配置** (`~/.config/pgcli/config`):
+
 ```ini
 [main]
 multi_line = True
@@ -2859,6 +2972,7 @@ Token.Menu.Completions.Meta = 'bg:#448888 #ffffff'
 ```
 
 **Restic 备份配置** (`~/.config/restic/backup.sh`):
+
 ```bash
 #!/usr/bin/env bash
 
@@ -2930,11 +3044,13 @@ EOF
 ### 1. Git 工作流
 
 #### 适用人群
+
 - 所有开发者
 - 协作团队成员
 - 开源贡献者
 
 #### 推荐工具组合
+
 ```bash
 # Git 工具
 lazygit       # 可视化 Git 操作
@@ -2950,6 +3066,7 @@ lefthook      # Git hooks 管理
 #### 工作流程
 
 **1. 日常 Git 操作**
+
 ```bash
 # 使用 lazygit 进行可视化操作
 lazygit
@@ -2975,6 +3092,7 @@ git log  # 使用 delta 美化显示
 ```
 
 **2. 分支管理**
+
 ```bash
 # 在 lazygit 中:
 # - 按 2 进入分支面板
@@ -2993,6 +3111,7 @@ git log --graph --oneline --all
 ```
 
 **3. 提交管理**
+
 ```bash
 # 使用 Conventional Commits 格式
 git commit -m "feat: add new dashboard component"
@@ -3016,6 +3135,7 @@ lefthook install
 ```
 
 **4. 生成 Changelog**
+
 ```bash
 # 使用 git-cliff 生成 Changelog
 git cliff --output CHANGELOG.md
@@ -3059,6 +3179,7 @@ EOF
 ```
 
 **5. GitHub 工作流**
+
 ```bash
 # 使用 gh CLI
 gh auth login
@@ -3093,6 +3214,7 @@ onefetch
 #### 配置建议
 
 **Git 配置** (`~/.gitconfig`):
+
 ```ini
 [user]
     name = Your Name
@@ -3126,14 +3248,15 @@ onefetch
 ```
 
 **Lazygit 配置** (`~/.config/lazygit/config.yml`):
+
 ```yaml
 gui:
   theme:
     activeBorderColor:
-      - '#ff9e64'
+      - "#ff9e64"
       - bold
     inactiveBorderColor:
-      - '#27a1b9'
+      - "#27a1b9"
 
   showIcons: true
   nerdFontsVersion: "3"
@@ -3150,10 +3273,10 @@ git:
     args: --no-ff
 
 customCommands:
-  - key: 'C'
-    command: 'git cliff --output CHANGELOG.md'
-    description: 'Generate changelog'
-    context: 'global'
+  - key: "C"
+    command: "git cliff --output CHANGELOG.md"
+    description: "Generate changelog"
+    context: "global"
 ```
 
 #### 社区最佳实践
@@ -3179,11 +3302,13 @@ gh release create v1.0.0 \
 ### 2. 终端工作流
 
 #### 适用人群
+
 - 所有开发者
 - 系统管理员
 - 重度命令行用户
 
 #### 推荐工具组合
+
 ```bash
 # Shell 环境
 zsh           # 强大的 shell
@@ -3206,6 +3331,7 @@ ripgrep       # 现代 grep
 #### 工作流程
 
 **1. Shell 配置**
+
 ```bash
 # Starship 配置 (~/.config/starship/starship.toml)
 cat > ~/.config/starship/starship.toml << EOF
@@ -3248,6 +3374,7 @@ starship preset tokyo-night
 ```
 
 **2. Zellij 工作区**
+
 ```bash
 # 启动 Zellij
 zellij
@@ -3296,6 +3423,7 @@ zellij --layout dev
 ```
 
 **3. 文件管理**
+
 ```bash
 # 使用 yazi 文件管理器
 yazi
@@ -3329,6 +3457,7 @@ rg -i "error" --context 3
 ```
 
 **4. 历史记录管理**
+
 ```bash
 # 使用 atuin 同步历史记录
 atuin login
@@ -3353,6 +3482,7 @@ EOF
 ```
 
 **5. 使用 tmux (备选)**
+
 ```bash
 # 启动 tmux
 tmux new -s dev
@@ -3375,6 +3505,7 @@ tmux ls
 #### 配置建议
 
 **Zsh 配置** (`~/.zshrc`):
+
 ```bash
 # 启用 Starship
 eval "$(starship init zsh)"
@@ -3420,6 +3551,7 @@ function extract() {
 ```
 
 **Sheldon 配置** (`~/.config/sheldon/plugins.toml`):
+
 ```toml
 shell = "zsh"
 
@@ -3437,6 +3569,7 @@ github = "Aloxaf/fzf-tab"
 ```
 
 **Yazi 配置** (`~/.config/yazi/yazi.toml`):
+
 ```toml
 [manager]
 show_hidden = true
@@ -3470,11 +3603,13 @@ edit = [
 ### 3. 文档工作流
 
 #### 适用人群
+
 - 技术文档编写者
 - 项目维护者
 - API 文档管理员
 
 #### 推荐工具组合
+
 ```bash
 # Markdown 工具
 glow          # Markdown 渲染器
@@ -3494,6 +3629,7 @@ neovim        # 文本编辑器
 #### 工作流程
 
 **1. Markdown 文档编写**
+
 ```bash
 # 使用 neovim 编写
 nvim README.md
@@ -3518,6 +3654,7 @@ EOF
 ```
 
 **2. 终端录制 (演示和教程)**
+
 ```bash
 # 创建 VHS 脚本
 cat > demo.tape << EOF
@@ -3549,6 +3686,7 @@ vhs demo.tape --output demo.mp4
 ```
 
 **3. API 文档和测试**
+
 ```bash
 # 使用 httpie 测试 API
 http GET https://api.example.com/users
@@ -3574,6 +3712,7 @@ EOF
 ```
 
 **4. 使用 Obsidian 管理知识库** (macOS)
+
 ```bash
 # 启动 Obsidian
 open -a Obsidian
@@ -3618,6 +3757,7 @@ EOF
 ```
 
 **5. 文档自动化**
+
 ```bash
 # 使用 just 自动化文档工作流
 cat > justfile << EOF
@@ -3653,6 +3793,7 @@ EOF
 #### 配置建议
 
 **Glow 配置** (`~/.config/glow/glow.yml`):
+
 ```yaml
 # style: auto, dark, light
 style: "auto"
@@ -3671,6 +3812,7 @@ width: 80
 ```
 
 **VHS 配置** (录制脚本模板):
+
 ```tape
 # VHS 录制模板
 
@@ -3702,6 +3844,7 @@ Sleep 1s
 ```
 
 **Neovim Markdown 配置**:
+
 ```lua
 -- 安装 markdown 插件
 return {
@@ -3755,7 +3898,8 @@ http --print=HhBb POST https://api.example.com/users \
 
 本指南涵盖了基于 Homeup 工具集的 16 个实战场景:
 
-**Dev 场景 (7个)**:
+**Dev 场景 (7 个)**:
+
 1. 前端开发 - React/Vue/Angular
 2. 后端开发 - Go/Python/Node.js
 3. 全栈开发 - Monorepo
@@ -3764,7 +3908,8 @@ http --print=HhBb POST https://api.example.com/users \
 6. 系统编程 - Rust/C++
 7. Web3/区块链 - Hardhat/Foundry
 
-**Ops 场景 (6个)**:
+**Ops 场景 (6 个)**:
+
 1. 容器化部署 - Docker/Kubernetes
 2. CI/CD 流水线 - GitHub Actions
 3. 基础设施即代码 - Terraform/Ansible
@@ -3772,12 +3917,14 @@ http --print=HhBb POST https://api.example.com/users \
 5. 安全和合规 - trivy/gitleaks
 6. 数据库管理 - pgcli/restic
 
-**通用工作流 (3个)**:
+**通用工作流 (3 个)**:
+
 1. Git 工作流 - lazygit/git-cliff
 2. 终端工作流 - zsh/zellij/yazi
 3. 文档工作流 - glow/Obsidian/Bruno
 
 每个场景都提供了:
+
 - 适用人群
 - 核心工具组合
 - 详细工作流程

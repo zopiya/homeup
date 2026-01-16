@@ -1,83 +1,52 @@
 {{- /* ==============================================================================
-Zsh Configuration - Profile-Aware
+Zsh Configuration - Entry Point
 
-Shell experience is CONSISTENT across all profiles.
-Only security modules (GPG, 1Password, YubiKey) differ by profile.
+This file only sources modular configuration files in the correct order.
+Each module has a single responsibility:
+
+  1. brew.zsh       - Homebrew environment & system tool isolation
+  2. ssh-agent.zsh  - Homebrew ssh-agent (replaces macOS system agent)
+  3. exports.zsh    - Environment variables
+  4. tools.zsh      - Development tool initialization (starship, zoxide, etc.)
+  5. aliases.zsh    - Command aliases
+  6. functions.zsh  - Shell functions
+
 ============================================================================== */ -}}
-{{- $profile := .profile | default "macos" -}}
-{{- $isMacos := eq $profile "macos" -}}
+{{- $profile := .profile | default "mini" -}}
 
 # ==============================================================================
 # Zsh Configuration (Profile: {{ $profile }})
 # ==============================================================================
 
-# --- Homebrew Environment ---
-if [[ -x /opt/homebrew/bin/brew ]]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [[ -x /usr/local/bin/brew ]]; then
-    eval "$(/usr/local/bin/brew shellenv)"
-elif [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
-    eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
-fi
+# ------------------------------------------------------------------------------
+# Module Loading Order (order matters!)
+# ------------------------------------------------------------------------------
+#
+# 1. Homebrew must be first (sets PATH, BREW_PREFIX for other modules)
+# 2. Exports before tools (some tools read env vars)
+# 3. Tools before aliases/functions (sets up completions)
+# 4. Aliases and functions last (may depend on tools)
 
-# --- Path ---
+# Homebrew environment & tool isolation
+[[ -f "$ZDOTDIR/brew.zsh" ]] && source "$ZDOTDIR/brew.zsh"
+
+# SSH agent (Homebrew, must be after brew.zsh)
+[[ -f "$ZDOTDIR/ssh-agent.zsh" ]] && source "$ZDOTDIR/ssh-agent.zsh"
+
+# User PATH additions
 export PATH="$HOME/.local/bin:$PATH"
 
-# --- Core Tools (Consistent Across All Profiles) ---
+# Environment variables
+[[ -f "$ZDOTDIR/exports.zsh" ]] && source "$ZDOTDIR/exports.zsh"
 
-# Sheldon (Plugin Manager)
-if command -v sheldon &> /dev/null; then
-    eval "$(sheldon source)"
-fi
+# Development tools (plugins, prompt, navigation, etc.)
+[[ -f "$ZDOTDIR/tools.zsh" ]] && source "$ZDOTDIR/tools.zsh"
 
-# Initialize Completion System
-# Must be initialized after plugins (like zsh-completions) update fpath
-autoload -Uz compinit
-compinit
+# Aliases
+[[ -f "$ZDOTDIR/aliases.zsh" ]] && source "$ZDOTDIR/aliases.zsh"
 
-# Starship (Prompt)
-if command -v starship &> /dev/null; then
-    eval "$(starship init zsh)"
-fi
+# Functions
+[[ -f "$ZDOTDIR/functions.zsh" ]] && source "$ZDOTDIR/functions.zsh"
 
-# Zoxide (Smart Directory Jumper)
-if command -v zoxide &> /dev/null; then
-    eval "$(zoxide init zsh)"
-fi
-
-# Mise (Runtime Manager)
-if command -v mise &> /dev/null; then
-    eval "$(mise activate zsh)"
-fi
-
-# FZF (Fuzzy Finder)
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-# Atuin (Shell History)
-if command -v atuin &> /dev/null; then
-    eval "$(atuin init zsh)"
-fi
-
-# --- Modular Configs ---
-[ -f "$ZDOTDIR/exports.zsh" ] && source "$ZDOTDIR/exports.zsh"
-[ -f "$ZDOTDIR/aliases.zsh" ] && source "$ZDOTDIR/aliases.zsh"
-[ -f "$ZDOTDIR/functions.zsh" ] && source "$ZDOTDIR/functions.zsh"
-
-# --- Security Modules (Profile-Dependent) ---
-{{- if $isMacos }}
-# [macOS] Full security integration
-
-# GPG Agent
-[ -f "$XDG_CONFIG_HOME/security/gpg.inc" ] && source "$XDG_CONFIG_HOME/security/gpg.inc"
-
-# 1Password CLI
-[ -f "$XDG_CONFIG_HOME/security/1password.inc" ] && source "$XDG_CONFIG_HOME/security/1password.inc"
-
-# YubiKey
-[ -f "$XDG_CONFIG_HOME/security/yubikey.inc" ] && source "$XDG_CONFIG_HOME/security/yubikey.inc"
-{{- else }}
-# [{{ $profile | title }}] Security modules disabled
-# GPG agent not launched, 1Password/YubiKey integration skipped
-{{- end }}
+# Local overrides (not managed by chezmoi)
+[[ -f "$ZDOTDIR/local.zsh" ]] && source "$ZDOTDIR/local.zsh"

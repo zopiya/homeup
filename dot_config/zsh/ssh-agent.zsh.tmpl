@@ -1,0 +1,58 @@
+# ==============================================================================
+# SSH Agent Management (Homebrew OpenSSH)
+# ==============================================================================
+# Purpose: Use Homebrew's ssh-agent instead of macOS system agent.
+#
+# Why: macOS system ssh-agent doesn't support FIDO2/SK key signing.
+#      Homebrew OpenSSH's agent has full FIDO2 support.
+#
+# This module:
+#   1. Defines a fixed socket path for the agent
+#   2. Starts Homebrew ssh-agent if not running
+#   3. Sets SSH_AUTH_SOCK to use Homebrew agent
+# ==============================================================================
+
+{{- if eq .chezmoi.os "darwin" }}
+
+# Skip if Homebrew not available
+[[ -z "$BREW_PREFIX" ]] && return 0
+
+# Homebrew ssh-agent binary
+_brew_ssh_agent="$BREW_PREFIX/bin/ssh-agent"
+[[ ! -x "$_brew_ssh_agent" ]] && return 0
+
+# Fixed socket path (persistent across shell sessions)
+export SSH_AGENT_SOCK="$HOME/.ssh/agent.sock"
+
+# Agent PID file
+_agent_pid_file="$HOME/.ssh/agent.pid"
+
+# Function to check if agent is running
+_agent_is_running() {
+    [[ -S "$SSH_AGENT_SOCK" ]] && \
+    [[ -f "$_agent_pid_file" ]] && \
+    kill -0 "$(cat "$_agent_pid_file" 2>/dev/null)" 2>/dev/null
+}
+
+# Start agent if not running
+if ! _agent_is_running; then
+    # Kill stale socket if exists
+    [[ -e "$SSH_AGENT_SOCK" ]] && rm -f "$SSH_AGENT_SOCK"
+
+    # Start Homebrew ssh-agent with fixed socket
+    eval "$("$_brew_ssh_agent" -a "$SSH_AGENT_SOCK" -s)" >/dev/null
+
+    # Save PID
+    echo "$SSH_AGENT_PID" > "$_agent_pid_file"
+fi
+
+# Point SSH_AUTH_SOCK to Homebrew agent (override system agent)
+export SSH_AUTH_SOCK="$SSH_AGENT_SOCK"
+
+# Cleanup
+unset _brew_ssh_agent _agent_pid_file
+
+# Cleanup function (don't unset, keep for use)
+unfunction _agent_is_running 2>/dev/null
+
+{{- end }}

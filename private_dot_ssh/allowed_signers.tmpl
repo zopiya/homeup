@@ -1,33 +1,15 @@
-{{- /* ==============================================================================
-SSH Allowed Signers for Git Signature Verification
-============================================================================== */ -}}
-# ==============================================================================
-# SSH Allowed Signers for Git Signature Verification
-# ==============================================================================
-# Purpose: Maps email addresses to trusted SSH public keys for verifying Git signatures
-# Format:  <email> [namespaces="git"] <algorithm> <public_key_data> [comment]
-#
-# Configuration:
-#   - Git config: gpg.ssh.allowedSignersFile = ~/.ssh/allowed_signers
-#   - Both YubiKeys registered (allows seamless key rotation)
-#   - Signatures from either key validate successfully
-#
-# Usage:
-#   - Verify commit: git log --show-signature
-#   - Verify tag:    git tag -v <tag-name>
-#
-# Key Management:
-#   - Main key:   Always trusted, used for daily signing
-#   - Backup key: Always trusted, use when main is unavailable
-#   - To rotate:  Switch signingkey in ~/.config/git/config
-#
-# External Services:
-#   - GitHub/GitLab: Add both public keys to account settings (SSH & GPG Keys)
-#   - Format: Copy entire "sk-ssh-ed25519@openssh.com AAAA..." string
-# ==============================================================================
+# SSH Allowed Signers for Git signatures
 
 # Main YubiKey (primary signing key)
-{{ .email }} {{ .signingkey | trimPrefix "key::" }}
+{{- if .signingkey_pub }}
+{{ .email }} {{ .signingkey_pub }}
+{{- else }}
+# TODO: set signingkey_pub in .chezmoi.toml (format: key::ssh-ed25519 AAAA...)
+{{- end }}
 
 # Backup YubiKey (alternate signing key)
-{{ .email }} {{ .backupsigningkey | trimPrefix "key::" }}
+{{- if .backupsigningkey_pub }}
+{{ .email }} {{ .backupsigningkey_pub }}
+{{- else }}
+# TODO: set backupsigningkey_pub in .chezmoi.toml (format: key::ssh-ed25519 AAAA...)
+{{- end }}

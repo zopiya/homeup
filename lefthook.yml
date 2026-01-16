@@ -77,7 +77,7 @@ pre-push:
     validate-templates:
       run: |
         echo "Validating templates..."
-        for profile in macos mini linux; do
+        for profile in macos linux; do
           export HOMEUP_PROFILE=$profile
           if ! chezmoi init --source . --destination /tmp/chezmoi-validate-$profile --dry-run 2>/dev/null; then
             echo "✗ Template validation failed for profile: $profile"

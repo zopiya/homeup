@@ -1,163 +1,68 @@
-{{- /* ==============================================================================
-SSH Configuration - Multi-Profile Support
-
-Profile Matrix:
-  - macos: Trust anchor, local keys + CA cert, agent forwarding to remotes
-  - mini:  Borrowed trust, agent forwarded FROM host, no local keys
-  - linux: Zero trust, no keys, no forwarding (CA auth handled server-side)
-
-CA Certificate Strategy:
-  - SSH auto-discovers *-cert.pub next to private key
-  - No need to specify CertificateFile explicitly
-  - Principals in cert control which users can be assumed
-
-Requirements:
-  - OpenSSH 7.3+ (for Include directive)
-  - OpenSSH 8.2+ (for FIDO2/U2F key support)
-
-Key Files:
-  - ~/.ssh/main-ssh.zopiya.com (YubiKey main, macos only)
-  - ~/.ssh/back-ssh.zopiya.com (YubiKey backup, macos only)
-  - ~/.ssh/private_sockets/ (control socket directory, auto-created)
-
-============================================================================== */ -}}
-{{- $profile := .profile | default "macos" -}}
+{{- /* SSH config: macos uses local YubiKey; linux uses forwarded agent. OpenSSH 8.2+ for FIDO2. */ -}}
+{{- $profile := .profile | default "linux" -}}
 {{- $isMacos := eq $profile "macos" -}}
-{{- $isMini := eq $profile "mini" -}}
-{{- $isLinux := eq $profile "linux" -}}
+{{- $sshUser := .ssh_default_user | default "zopiya" -}}
+{{- $mainKey := .signingkey | default "~/.ssh/main-ssh.zopiya.com" -}}
+{{- $backupKey := .backupsigningkey | default "~/.ssh/back-ssh.zopiya.com" -}}
 
 # ==============================================================================
-# SSH Configuration
-# Profile: {{ $profile }} | OS: {{ .chezmoi.os }}
+# SSH Configuration (Profile: {{ $profile }} | OS: {{ .chezmoi.os }})
+# ==============================================================================
+# Uses Homebrew OpenSSH (not macOS system SSH) for FIDO2/SK key support.
+#
+# YubiKey Usage:
+#   - Load resident keys: yk (or ssh-add -K)
+#   - List loaded keys: ssh-add -l
+#   - Clear agent: ssh-add -D
 # ==============================================================================
 
-# ------------------------------------------------------------------------------
-# 1. Local Extensions (highest priority)
-# ------------------------------------------------------------------------------
-# Include local overrides (e.g., temporary work hosts, test environments)
-# Note: File is optional. Create ~/.ssh/config.local for local customizations.
-# OpenSSH will silently ignore if file doesn't exist (OpenSSH 7.3+)
+
+# 1. Local Extensions (optional ~/.ssh/config.local)
+# OpenSSH skips if missing
 Include ~/.ssh/config.local
 
-# ------------------------------------------------------------------------------
-# 2. Git Services (override User before Host *)
-# ------------------------------------------------------------------------------
-# All Git forges use "git" user for SSH authentication
-# ForwardAgent disabled for security (Git operations don't need agent forwarding)
-# Matches Git config URL rewrites in ~/.config/git/config
+# 2. Git Services (user git, no agent forwarding)
 Host github.com gitlab.com bitbucket.org gitea.com
     User git
     ServerAliveInterval 30
     ForwardAgent no
+    IdentitiesOnly yes
 
-
+# 3. macOS host override first (higher priority than Host *)
 {{- if $isMacos }}
-
-# ------------------------------------------------------------------------------
-# 3. Host-Specific Overrides (macOS only)
-# ------------------------------------------------------------------------------
-# Production servers: use deploy user
-# Host prod-* staging-*
-#     User deploy
-#     ForwardAgent no
-
-# Bastion / Jump hosts
-# Host bastion jump
-#     User zopiya
-#     ForwardAgent yes
-#     # ProxyJump none
+Host *.hs
+    ForwardAgent yes
 {{- end }}
 
-# ------------------------------------------------------------------------------
 # 4. Global Defaults
-# ------------------------------------------------------------------------------
 Host *
 {{- if $isMacos }}
-    # === MACOS PROFILE ===
-    # Trust anchor: local YubiKey + CA-signed certificate
-
-    # Default user (most common login identity)
-    # CA cert principals control which users you can actually assume
-    User zopiya
-
-    # Identity (YubiKey FIDO keys)
-    # Note: These are hardware-backed keys, not regular files
-    # Format: sk-ssh-ed25519@openssh.com (FIDO2/U2F resident keys)
-    # Ensure keys are loaded into agent to avoid repeated PIN entry
-    IdentityFile ~/.ssh/main-ssh.zopiya.com
-    IdentityFile ~/.ssh/back-ssh.zopiya.com
-
-    # Agent Configuration
-    # Forward agent enabled by default (allows remote systems to use local keys)
-    ForwardAgent yes
-    # Add keys to agent on first use (caches authentication)
+    User {{ $sshUser }}
+    IdentityFile {{ $mainKey }}
+    IdentityFile {{ $backupKey }}
+    ForwardAgent no
+    # Auto-add keys to agent on first use (works with YubiKey)
     AddKeysToAgent yes
-
-
-{{- else if $isMini }}
-    # === MINI PROFILE ===
-    # Borrowed trust: agent forwarded from host machine
-
-    # Don't set default User - rely on command line or host-specific config
-    # The host's agent provides authentication
-
-    # Accept forwarded agent from host (already available)
-    # Do NOT forward further to avoid agent chain attacks
+{{- else }}
     ForwardAgent no
-
-{{- else if $isLinux }}
-    # === LINUX PROFILE ===
-    # Zero trust: no local keys, no agent forwarding
-    # SSH client config is minimal; auth happens via CA on sshd side
-
-    # No default user - specify explicitly per connection
-    # No agent forwarding - this machine has no keys to forward
-    ForwardAgent no
-
 {{- end }}
-    # --- Connection KeepAlive ---
-    # Send keepalive packets every 60s to prevent connection timeout
     ServerAliveInterval 60
-    # Disconnect after 30 failed keepalives (30min total)
     ServerAliveCountMax 30
-
-    # --- Connection Multiplexing ---
-    # Reuse existing connections for multiple sessions (faster reconnects)
     ControlMaster auto
-    # Socket path using %C (hash of %l%h%p%r) for unique identification
-    # Directory ~/.ssh/private_sockets/ is created automatically by SSH
-    ControlPath ~/.ssh/private_sockets/ssh_mux_%C
+    ControlPath ~/.ssh/cm-%C
 {{- if $isMacos }}
-    # Keep master connection alive for 4h (macos: frequent reconnects)
     ControlPersist 4h
 {{- else }}
-    # Keep master connection alive for 1h (mini/linux: security-conscious)
     ControlPersist 1h
 {{- end }}
-
-    # --- Performance ---
+    IdentitiesOnly yes
     Compression yes
-
-    # --- Security ---
     HashKnownHosts yes
     VisualHostKey no
     StrictHostKeyChecking ask
-
-    # Modern Crypto Hardening
     KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
     Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
     MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
-
-    # Optional host CA bundle (public). Place host CA pubkey at ~/.ssh/ssh_ca.pub
-    # and add @cert-authority lines there; keeps known_hosts clean.
-    UserKnownHostsFile ~/.ssh/known_hosts ~/.ssh/ssh_ca.pub
-
-{{- if eq .chezmoi.os "darwin" }}
-    # --- macOS Keychain Integration ---
-    # UseKeychain: Store SSH passphrases in macOS Keychain
-    # IgnoreUnknown: Prevent errors on non-macOS OpenSSH versions
-    IgnoreUnknown UseKeychain
-    UseKeychain yes
-{{- end }}
+    UserKnownHostsFile ~/.ssh/known_hosts
 
 

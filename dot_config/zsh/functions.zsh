@@ -7,7 +7,41 @@
 
 # Cleanup potential aliases that conflict with function definitions
 # This prevents "defining function based on alias" errors
-unalias mkcd cl proj fcd bak unbak extract archive fkill port killport serve genpass tm tmk tmp tml tmw tmka zjs zjk zjp 2>/dev/null
+unalias mkcd cl proj fcd bak unbak extract archive fkill port killport serve genpass tm tmk tmp tml tmw tmka zjs zjk zjp yk 2>/dev/null
+
+# ------------------------------------------------------------------------------
+# YubiKey / FIDO2 SSH Key Management (macOS)
+# ------------------------------------------------------------------------------
+
+# Load resident SSH keys from YubiKey
+# Usage: yk (run after inserting YubiKey)
+yk() {
+    # Use Homebrew ssh-add if available
+    local ssh_add="${BREW_PREFIX:-/usr/local}/bin/ssh-add"
+    [[ ! -x "$ssh_add" ]] && ssh_add="ssh-add"
+
+    if "$ssh_add" -l &>/dev/null; then
+        echo "SSH agent already has keys:"
+        "$ssh_add" -l
+    else
+        echo "Loading YubiKey resident keys..."
+        "$ssh_add" -K
+    fi
+}
+
+# List SSH agent keys
+yk-list() {
+    local ssh_add="${BREW_PREFIX:-/usr/local}/bin/ssh-add"
+    [[ ! -x "$ssh_add" ]] && ssh_add="ssh-add"
+    "$ssh_add" -l
+}
+
+# Clear all keys from SSH agent
+yk-clear() {
+    local ssh_add="${BREW_PREFIX:-/usr/local}/bin/ssh-add"
+    [[ ! -x "$ssh_add" ]] && ssh_add="ssh-add"
+    "$ssh_add" -D && echo "All keys removed from agent"
+}
 
 # ------------------------------------------------------------------------------
 # Directory & Navigation

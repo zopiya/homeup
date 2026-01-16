@@ -1,6 +1,6 @@
 # ==============================================================================
 # Chezmoi Ignore Configuration
-# Profile: {{ .profile | default "macos" }}
+# Profile: {{ .profile | default "linux" }}
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -30,7 +30,6 @@
 README.md
 PLAN.md
 PROFILES.md
-bootstrap.sh
 packages/
 docs/
 justfile
@@ -40,7 +39,7 @@ lefthook.yml
 # Profile-Based Exclusions
 # ------------------------------------------------------------------------------
 
-{{- $profile := .profile | default "macos" }}
+{{- $profile := .profile | default "linux" }}
 
 {{- if ne $profile "macos" }}
 # Non-macOS: Exclude GUI and Desktop configurations
@@ -56,11 +55,5 @@ lefthook.yml
 
 {{- if eq $profile "linux" }}
 # Linux: Exclude security tools that require private keys
-.config/security/1password.inc
 .config/security/yubikey.inc
-{{- end }}
-
-{{- if eq $profile "mini" }}
-# Mini: Exclude items handled by devcontainer
-# (Currently none - shell experience should be consistent)
 {{- end }}

@@ -14,7 +14,7 @@ Architecture:
   - Authentication: SSH for all Git forges (GitHub, GitLab, etc.)
   - Verification: ~/.ssh/allowed_signers for signature validation
 ============================================================================== */ -}}
-{{- $profile := .profile | default "macos" -}}
+{{- $profile := .profile | default "linux" -}}
 {{- $isMacos := eq $profile "macos" -}}
 
 # ==============================================================================
@@ -51,34 +51,14 @@ Architecture:
 [credential]
 {{- if eq .chezmoi.os "darwin" }}
     helper = osxkeychain
-{{- else if $isMacos }}
-    # macOS Linux: short-lived cache to reduce credential exposure
-    helper = cache --timeout=900
-{{- else if eq $profile "mini" }}
-    # Mini: Minimal cache for borrowed environments
-    helper = cache --timeout=60
-{{- else if eq $profile "linux" }}
-    # Linux: Minimal cache for zero-trust hosts
-    helper = cache --timeout=60
 {{- else }}
-    helper = cache --timeout=900
+    # Linux: Minimal cache for zero-trust hosts (servers, containers, Codespaces)
+    helper = cache --timeout=60
 {{- end }}
 
 [protocol]
     # Use Git wire protocol v2 (faster fetching)
     version = 2
-
-# Force SSH for common forges (push and pull)
-# This leverages the optimized ~/.ssh/config via the "git" user
-# Note: Corresponding SSH config must exist in ~/.ssh/config
-[url "git@github.com:"]
-    insteadOf = https://github.com/
-[url "git@gitlab.com:"]
-    insteadOf = https://gitlab.com/
-[url "git@bitbucket.org:"]
-    insteadOf = https://bitbucket.org/
-[url "git@gitea.com:"]
-    insteadOf = https://gitea.com/
 
 # ------------------------------------------------------------------------------
 # Diff & Merge Tool (Delta)
@@ -158,9 +138,10 @@ Architecture:
 
 [gpg "ssh"]
     # Use ssh-keygen for signing operations
-    program = ssh-keygen
+    program = /usr/bin/ssh-keygen
     # File containing trusted signing keys (email -> public key mapping)
     # Both main and backup YubiKey public keys are registered here
     allowedSignersFile = ~/.ssh/allowed_signers
     # Optional: Revoked keys file (uncomment if needed)
     # revokedKeysFile = ~/.ssh/revoked_keys
+

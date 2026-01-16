@@ -1,65 +1,12 @@
 # ==============================================================================
 # Brewfile.linux - Unified Linux Profile (Headless)
 # ==============================================================================
-# Full-featured headless environment for remote Linux hosts, servers, and homelabs.
-# This profile merges former workstation(Linux) and server capabilities.
-#
-# This file contains INCREMENTAL packages beyond Brewfile.core.
-# All core utilities (git, neovim, fzf, etc.) are inherited from core.
-#
-# Design Principle: Complete Dev + Ops Headless Stack
-# Focus on:
-#   1. Cloud-native development (K8s, containers, IaC)
-#   2. AI-assisted workflows (aider, copilot-ready)
-#   3. Security-first approach (hardware keys, encryption)
-#   4. System monitoring and operations (glances, bmon, lnav)
-#   5. SSH-only access (no GUI support)
-#
-# Profile: linux (headless)
-# Dependencies: Brewfile.core
-# Total Packages: 50 (47 from workstation + 3 from server)
-# GUI Apps: None (removed in v2.0)
-# ==============================================================================
-
-# Note: 1password/tap removed - 1password-cli is macOS-only in v2.0
-
-# Note: Enhanced CLI tools (fastfetch, zellij, bottom, choose) moved to Brewfile.core
-# Note: File management tools (yazi, watchexec) moved to Brewfile.core
-# Note: AI development tools (aider, glow, vhs) moved to Brewfile.core
+# NOTE: Container/K8s and DevOps tools (lazydocker, k9s, terraform, etc.)
+# are in Brewfile.core as they're used in all environments.
 
 # ------------------------------------------------------------------------------
 # System Monitoring & Operations (Linux-Specific)
 # ------------------------------------------------------------------------------
-brew "glances"    # Advanced system monitor (headless server monitoring)
-brew "bmon"       # Bandwidth monitor (network diagnostics)
-brew "lnav"       # Log file navigator (server log analysis)
-
-# ------------------------------------------------------------------------------
-# Container & Kubernetes Ecosystem
-# ------------------------------------------------------------------------------
-brew "lazydocker"
-brew "dive"
-brew "k9s"
-brew "helm"
-brew "kubectx"
-brew "stern"
-brew "kustomize"
-
-# ------------------------------------------------------------------------------
-# Infrastructure as Code & DevOps
-# ------------------------------------------------------------------------------
-brew "terraform"
-brew "ansible"
-brew "trivy"
-brew "grype"
-brew "syft"
-
-# Note: Network & API tools (httpie, xh, doggo, gping, trippy, grpcurl, evans) moved to Brewfile.core
-# Note: Database tools (pgcli) moved to Brewfile.core
-# Note: Runtime managers (mise, uv, pnpm) moved to Brewfile.core
-# Note: Performance tools (hyperfine, tokei, bandwhich) moved to Brewfile.core
-# Note: Git enhancements (git-cliff, onefetch, gitleaks) moved to Brewfile.core
-# Note: Security tools (age) moved to Brewfile.core
-# Note: Backup tools (restic) moved to Brewfile.core
-# Note: gnupg, ykman, 1password-cli are macOS-only (removed in v2.0)
-#       Linux uses SSH agent forwarding for GPG operations
+brew "glances"
+brew "bmon"
+brew "lnav"

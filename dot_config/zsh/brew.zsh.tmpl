@@ -1,0 +1,110 @@
+# ==============================================================================
+# Homebrew Environment & System Tool Isolation
+# ==============================================================================
+# Purpose: Initialize Homebrew and ensure Homebrew packages take priority
+#          over system-provided binaries.
+#
+# This module:
+#   1. Detects and initializes Homebrew environment
+#   2. Exports BREW_PREFIX for use by other modules
+#   3. Sets PATH to prioritize Homebrew binaries
+#   4. Creates aliases for critical system tools to use Homebrew versions
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Homebrew Detection & Initialization
+# ------------------------------------------------------------------------------
+
+# Detect Homebrew prefix based on platform
+if [[ -x /opt/homebrew/bin/brew ]]; then
+    # Apple Silicon Mac
+    export BREW_PREFIX="/opt/homebrew"
+elif [[ -x /usr/local/bin/brew ]]; then
+    # Intel Mac
+    export BREW_PREFIX="/usr/local"
+elif [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+    # Linux (system-wide)
+    export BREW_PREFIX="/home/linuxbrew/.linuxbrew"
+elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
+    # Linux (user-local)
+    export BREW_PREFIX="$HOME/.linuxbrew"
+fi
+
+# Exit early if Homebrew not found
+[[ -z "$BREW_PREFIX" ]] && return 0
+
+# Initialize Homebrew environment (sets HOMEBREW_* vars, adds to PATH)
+eval "$("$BREW_PREFIX/bin/brew" shellenv)"
+
+# ------------------------------------------------------------------------------
+# PATH Priority: Homebrew First
+# ------------------------------------------------------------------------------
+# brew shellenv adds Homebrew to PATH, but we want it FIRST to override
+# system binaries. Prepend again to ensure priority.
+
+export PATH="$BREW_PREFIX/bin:$BREW_PREFIX/sbin:$PATH"
+
+# ------------------------------------------------------------------------------
+# System Tool Isolation
+# ------------------------------------------------------------------------------
+# For critical tools where version differences matter (e.g., OpenSSH with
+# FIDO2 support, Git with newer features), we explicitly alias to Homebrew
+# versions. This ensures consistent behavior in interactive shells.
+#
+# Tools isolated:
+#   - git: Newer features, credential helpers
+#   - ssh/ssh-*: FIDO2/SK key support, security patches
+#   - gpg/gpg-agent: Keyring integration, security
+#   - curl: HTTP/2, TLS 1.3 support
+#   - sed/awk: GNU versions (extended regex, -i flag differences)
+#   - grep: GNU grep (PCRE support)
+#   - make: GNU make (modern features)
+#   - tar: GNU tar (extended attributes, formats)
+
+# Define tools to isolate (tool:package format, package is optional if same as tool)
+local -a _brew_tools=(
+    # Version control & security
+    "git"
+    "ssh:openssh"
+    "ssh-add:openssh"
+    "ssh-agent:openssh"
+    "ssh-keygen:openssh"
+    "ssh-keyscan:openssh"
+    "scp:openssh"
+    "sftp:openssh"
+    "gpg:gnupg"
+    "gpg-agent:gnupg"
+    # Network
+    "curl"
+    # GNU coreutils (if installed)
+    "sed:gnu-sed"
+    "awk:gawk"
+    "grep"
+    "make"
+    "tar"
+)
+
+# Create aliases for installed Homebrew packages
+for _tool_spec in "${_brew_tools[@]}"; do
+    local _tool="${_tool_spec%%:*}"
+    local _pkg="${_tool_spec#*:}"
+    [[ "$_pkg" == "$_tool_spec" ]] && _pkg="$_tool"
+
+    local _brew_bin="$BREW_PREFIX/bin/$_tool"
+
+    # Only alias if Homebrew version exists
+    if [[ -x "$_brew_bin" ]]; then
+        alias "$_tool"="$_brew_bin"
+    fi
+done
+
+# Export paths for scripts that need explicit tool paths
+export GIT="$BREW_PREFIX/bin/git"
+export SSH="$BREW_PREFIX/bin/ssh"
+export SSH_ADD="$BREW_PREFIX/bin/ssh-add"
+export SSH_AGENT="$BREW_PREFIX/bin/ssh-agent"
+export SSH_KEYGEN="$BREW_PREFIX/bin/ssh-keygen"
+export GPG="$BREW_PREFIX/bin/gpg"
+
+# Cleanup
+unset _brew_tools _tool_spec _tool _pkg _brew_bin
