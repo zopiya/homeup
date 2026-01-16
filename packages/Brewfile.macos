@@ -14,6 +14,10 @@ cask "font-hack-nerd-font"
 cask "font-noto-sans"
 cask "font-source-han-serif-vf"
 
+# Office
+cask "snipaste"
+cask "wpsoffice-cn"
+
 # Browsers
 cask "google-chrome"
 cask "firefox"
