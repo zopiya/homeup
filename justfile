@@ -1,38 +1,17 @@
-# ==============================================================================
-# Homeup Justfile - Dotfiles Management Task Runner
-# ==============================================================================
-# Version: 4.0
-# Architecture: Separation of Concerns
-#   - chezmoi: Configuration file management (templates, sync)
-#   - justfile: Task execution (packages, setup, maintenance)
-#
-# Usage: just <task>
-# ==============================================================================
-
 set shell := ["bash", "-uc"]
 set dotenv-load := true
 
-# ------------------------------------------------------------------------------
-# Variables
-# ------------------------------------------------------------------------------
 CHEZMOI_SOURCE := justfile_directory()
 PROFILE := env_var_or_default("HOMEUP_PROFILE", if os() == "macos" { "macos" } else { "linux" })
 BREW_PREFIX := if os() == "macos" { "/opt/homebrew" } else { "/home/linuxbrew/.linuxbrew" }
 
-# Guard: Check Homebrew exists
 [private]
 check-brew:
     @command -v brew >/dev/null 2>&1 || { echo "Error: Homebrew not found. Please install Homebrew first."; exit 1; }
 
-# ------------------------------------------------------------------------------
-# Help & Defaults
-# ------------------------------------------------------------------------------
-
-# Show interactive menu (default)
 @default:
     just --choose
 
-# Show help information
 @help:
     echo "Homeup Task Runner (v4.0)"
     echo ""
@@ -65,19 +44,10 @@ check-brew:
     echo ""
     echo "Run 'just --list' for all tasks"
 
-# ------------------------------------------------------------------------------
-# One-Click Workflows
-# ------------------------------------------------------------------------------
-
-# Complete installation and setup (new machine)
 bootstrap: install setup
     @echo ""
     @echo "Bootstrap complete!"
     @echo "Please restart your shell: exec zsh -l"
-
-# ------------------------------------------------------------------------------
-# Package Installation (Layered)
-# ------------------------------------------------------------------------------
 
 # Install all packages (bootstrap → core → profile)
 install: check-brew install-bootstrap install-core install-profile
@@ -147,10 +117,6 @@ install-no-upgrade: check-brew
         echo "Warning: Brewfile.${PROFILE} not found, skipping"
     fi
     echo "Packages installed (without upgrade)"
-
-# ------------------------------------------------------------------------------
-# Environment Setup (Modular)
-# ------------------------------------------------------------------------------
 
 # Run all setup tasks
 setup: setup-shell setup-runtimes setup-security setup-tools
@@ -306,11 +272,6 @@ setup-tools:
 
     echo "Tools configured"
 
-# ------------------------------------------------------------------------------
-# Chezmoi Operations
-# ------------------------------------------------------------------------------
-
-# Apply dotfiles configuration
 @apply:
     chezmoi apply
 
@@ -343,10 +304,6 @@ add file:
     @echo "Adding {{file}}..."
     chezmoi add {{file}}
 
-# ------------------------------------------------------------------------------
-# Package Utilities
-# ------------------------------------------------------------------------------
-
 # List installed packages
 @list:
     brew list --formula
@@ -361,10 +318,6 @@ add file:
     brew cleanup --prune=all
     brew autoremove
 
-# ------------------------------------------------------------------------------
-# Profile Management
-# ------------------------------------------------------------------------------
-
 # Show current profile
 @profile:
     echo "Current Profile: {{PROFILE}}"
@@ -375,10 +328,6 @@ add file:
     echo ""
     echo "Profile is auto-detected based on OS."
     echo "Override: export HOMEUP_PROFILE=<profile>"
-
-# ------------------------------------------------------------------------------
-# Diagnostics & Maintenance
-# ------------------------------------------------------------------------------
 
 # Run health checks
 doctor: check-brew
@@ -532,10 +481,6 @@ rescue:
     @echo "3. Running health check..."
     @just doctor
 
-# ------------------------------------------------------------------------------
-# Testing & CI
-# ------------------------------------------------------------------------------
-
 # Run all CI checks
 ci: check-brew
     @echo "=== Running CI Checks ==="
@@ -674,10 +619,6 @@ pkg-duplicates: check-brew
 
     [ $has_dupes -eq 0 ] && echo "No duplicates found" || { echo "Duplicates found"; exit 1; }
 
-# ------------------------------------------------------------------------------
-# Development
-# ------------------------------------------------------------------------------
-
 # Install git hooks
 @install-hooks:
     if command -v lefthook &>/dev/null; then \
@@ -707,10 +648,6 @@ pkg-duplicates: check-brew
 commit msg:
     @git add -A
     @git commit -m "{{msg}}"
-
-# ------------------------------------------------------------------------------
-# Initialization
-# ------------------------------------------------------------------------------
 
 # Initialize new machine
 [confirm("Initialize homeup on this machine?")]

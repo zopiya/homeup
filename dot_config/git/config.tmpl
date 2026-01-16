@@ -17,37 +17,21 @@ Architecture:
 {{- $profile := .profile | default "linux" -}}
 {{- $isMacos := eq $profile "macos" -}}
 
-# ==============================================================================
-# Git Configuration
-# Profile: {{ $profile }} | OS: {{ .chezmoi.os }}
-# ==============================================================================
-
 [include]
-    # Load identity and aliases from separate files
     path = ~/.config/git/identity.gitconfig
     path = ~/.config/git/aliases.gitconfig
 
-# ------------------------------------------------------------------------------
-# Core Settings
-# ------------------------------------------------------------------------------
 [core]
     editor = nvim
     pager = delta
-
-    # Line Endings: Convert CRLF to LF on commit, keep LF on checkout
     autocrlf = input
     safecrlf = true
     eol = lf
 
 {{- if eq .chezmoi.os "darwin" }}
-    # macOS Specific: Handle filename normalization (NFC vs NFD)
     precomposeunicode = true
     ignorecase = true
 {{- end }}
-
-# ------------------------------------------------------------------------------
-# Network & Credentials
-# ------------------------------------------------------------------------------
 [credential]
 {{- if eq .chezmoi.os "darwin" }}
     helper = osxkeychain

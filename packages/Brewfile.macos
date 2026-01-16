@@ -1,69 +1,41 @@
-# ==============================================================================
-# Brewfile.macos - macOS Workstation Profile
-# ==============================================================================
-# NOTE: Container/K8s and DevOps tools (lazydocker, k9s, terraform, etc.)
-# are in Brewfile.core as they're used in all environments.
-
-# ------------------------------------------------------------------------------
-# Security & Encryption (macOS-Specific)
-# ------------------------------------------------------------------------------
+# Security & encryption
 brew "gnupg"
 brew "ykman"
 brew "pinentry-mac"
 
-# ------------------------------------------------------------------------------
-# AI - TUI Applications
-# ------------------------------------------------------------------------------
+# AI applications
 cask "claude-code"
 brew "gemini-cli"
 cask "codex"
 
-# ------------------------------------------------------------------------------
-# Fonts - Nerd Fonts for Terminal
-# ------------------------------------------------------------------------------
+# Fonts
 cask "font-jetbrains-mono-nerd-font"
 cask "font-hack-nerd-font"
 cask "font-noto-sans"
 cask "font-source-han-serif-vf"
 
-# ==============================================================================
-# GUI Applications
-# ==============================================================================
-
-# ------------------------------------------------------------------------------
-# Browsers - Web Browsers
-# ------------------------------------------------------------------------------
+# Browsers
 cask "google-chrome"
 cask "firefox"
 
-# ------------------------------------------------------------------------------
-# Terminals - Modern GPU-Accelerated
-# ------------------------------------------------------------------------------
+# Terminals
 cask "ghostty"
 cask "warp"
 
-# ------------------------------------------------------------------------------
-# Communication & File Sync - Collaboration Tools
-# ------------------------------------------------------------------------------
+# Communication & sync
 cask "localsend"
 cask "nextcloud"
 
-# ------------------------------------------------------------------------------
-# Development Tools - IDE & API Testing
-# ------------------------------------------------------------------------------
+# Development tools
 cask "visual-studio-code"
 cask "dbeaver-community"
 cask "bruno"
 
-# ------------------------------------------------------------------------------
-# Productivity & Knowledge Management - Note Taking & Writing
-# ------------------------------------------------------------------------------
+# Productivity & knowledge
 cask "obsidian"
 cask "typora"
 
-# ------------------------------------------------------------------------------
-# System Utilities - Monitoring & File Management
-# ------------------------------------------------------------------------------
+# System utilities
 cask "stats"
 cask "keka"
 cask "vlc"

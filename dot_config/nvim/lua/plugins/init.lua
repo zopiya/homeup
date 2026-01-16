@@ -12,16 +12,13 @@ return {
     config = function()
       require("github-theme").setup({
         options = {
-          -- 编译主题以加快加载速度
           compile_path = vim.fn.stdpath("cache") .. "/github-theme",
           compile_file_suffix = "_compiled",
-          hide_end_of_buffer = true, -- 隐藏缓冲区结束符 (~)
-          hide_nc_statusline = true, -- 隐藏非活动窗口的状态栏
-          transparent = false,       -- 禁用透明背景
+          hide_end_of_buffer = true,
+          hide_nc_statusline = true,
+          transparent = false,
         },
       })
-      -- 默认使用 GitHub Dark Dimmed (最接近网页版暗色)
-      -- 如果需要亮色，可以改为 github_light
       vim.cmd("colorscheme github_dark_dimmed")
     end,
   },
@@ -31,7 +28,7 @@ return {
     "nvim-lualine/lualine.nvim",
     event = "VeryLazy",
     opts = {
-      options = { theme = "auto" }, -- auto 会自动适配当前 colorscheme
+      options = { theme = "auto" },
     },
   },
   {
@@ -74,10 +71,10 @@ return {
     "echasnovski/mini.nvim",
     version = false,
     config = function()
-      require("mini.surround").setup() -- Fast surround (sa/sd/sr)
-      require("mini.comment").setup()  -- Fast comment (gc)
-      require("mini.pairs").setup()    -- Auto pairs
-      require("mini.ai").setup()       -- Enhanced text objects (va)
+      require("mini.surround").setup()
+      require("mini.comment").setup()
+      require("mini.pairs").setup()
+      require("mini.ai").setup()
     end,
   },
 

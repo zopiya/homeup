@@ -1,9 +1,4 @@
-# ==============================================================================
-# Tmux Configuration
-# ==============================================================================
-# Requires: tmux >= 3.2
-
-# --- Terminal ---
+# Terminal
 set -g default-terminal "tmux-256color"
 set -ga terminal-overrides ",xterm-256color:Tc,alacritty:Tc,kitty:Tc"
 set -g default-shell "${SHELL}"
@@ -13,25 +8,25 @@ set -g focus-events on
 set -g set-clipboard on
 set -g allow-passthrough on
 
-# --- Prefix ---
+# Prefix
 set -g prefix C-a
 unbind C-b
 bind C-a send-prefix
 bind C-a last-window
 
-# --- Index ---
+# Index
 set -g base-index 1
 setw -g pane-base-index 1
 set -g renumber-windows on
 
-# --- Mouse ---
+# Mouse
 set -g mouse on
 
-# --- Pane Split ---
+# Pane split
 bind | split-window -h -c "#{pane_current_path}"
 bind - split-window -v -c "#{pane_current_path}"
 
-# --- Pane Navigation ---
+# Pane navigation
 bind h select-pane -L
 bind j select-pane -D
 bind k select-pane -U
@@ -44,7 +39,7 @@ bind -n M-Right select-pane -R
 
 set -g display-panes-time 2000
 
-# --- Pane Resize ---
+# Pane resize
 bind -r H resize-pane -L 5
 bind -r J resize-pane -D 5
 bind -r K resize-pane -U 5

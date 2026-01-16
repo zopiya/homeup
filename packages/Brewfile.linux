@@ -1,12 +1,4 @@
-# ==============================================================================
-# Brewfile.linux - Unified Linux Profile (Headless)
-# ==============================================================================
-# NOTE: Container/K8s and DevOps tools (lazydocker, k9s, terraform, etc.)
-# are in Brewfile.core as they're used in all environments.
-
-# ------------------------------------------------------------------------------
-# System Monitoring & Operations (Linux-Specific)
-# ------------------------------------------------------------------------------
+# System monitoring & operations
 brew "glances"
 brew "bmon"
 brew "lnav"
