@@ -14,6 +14,11 @@
 # dropped connection never loses work. Guarded against recursion: each tmux
 # pane sources this file again, but by then $TMUX is already set.
 if [[ -o interactive ]] && [[ -z "${TMUX:-}" && -z "${ZELLIJ:-}" ]] && command -v tmux &>/dev/null; then
+    # Session doesn't exist yet -> this is a fresh login, not a reattach.
+    # Show a one-time system-info banner before landing in it.
+    if ! tmux has-session -t main 2>/dev/null; then
+        command -v fastfetch &>/dev/null && fastfetch
+    fi
     tmux new-session -A -s main
 fi
 

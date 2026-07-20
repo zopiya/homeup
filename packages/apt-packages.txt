@@ -25,3 +25,9 @@ glances
 bmon
 lnav
 ansible
+mtr
+dnsutils
+netcat-openbsd
+tcpdump
+rclone
+xz-utils

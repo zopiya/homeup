@@ -27,6 +27,13 @@ alias rm="rm -i"
 alias ports="lsof -i -P -n | grep LISTEN"
 alias myip="curl -s https://api.ipify.org; echo"
 
+# Systemd / journalctl
+alias jf="journalctl -f"
+alias jctl="journalctl -xe"
+alias jstat="systemctl status"
+alias jre="sudo systemctl restart"
+alias jenable="sudo systemctl enable --now"
+
 # Git
 alias g="git"
 alias ga="git add"

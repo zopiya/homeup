@@ -156,7 +156,7 @@ doctor: check-apt
 
     echo ""
     echo "Optional:"
-    for cmd in starship sheldon atuin direnv fzf shfmt shellcheck lazygit gh uv bat delta gitleaks age zellij zoxide nvim eza fastfetch glances lnav; do
+    for cmd in starship sheldon atuin direnv fzf shfmt shellcheck lazygit gh uv bat delta gitleaks age zellij zoxide nvim eza fastfetch glances lnav yq btm xh watchexec mtr rclone; do
         if command -v "$cmd" &>/dev/null; then
             echo "  [OK] $cmd"
         else

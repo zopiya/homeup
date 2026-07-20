@@ -52,7 +52,7 @@ jobs:
             missing=0
             for t in chezmoi just starship zoxide sheldon uv bun nvim zellij \
                      lazygit delta shfmt age gitleaks eza fastfetch atuin \
-                     gh terraform fava; do
+                     yq btm xh watchexec gh terraform fava; do
               if command -v "$t" >/dev/null 2>&1; then
                 echo "OK: $t"
               else
@@ -60,5 +60,6 @@ jobs:
                 missing=1
               fi
             done
+            [ -f "$HOME/.tmux/plugins/tpm/tpm" ] && echo "OK: tpm" || { echo "MISSING: tpm"; missing=1; }
             exit $missing
           '

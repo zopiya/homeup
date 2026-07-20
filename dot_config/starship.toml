@@ -1,7 +1,11 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
 # 只渲染有用的模块，避免 80+ 语言探测拖慢提示符
+# username/hostname 常驻显示：每台服务器都是远程登录，提示符里没有主机名
+# 很容易搞混"我现在到底在哪台机器上"——这是运维场景下最容易踩的坑之一。
 format = """
+$username\
+$hostname\
 $directory\
 $git_branch\
 $git_status\
@@ -147,8 +151,17 @@ symbol = "helm "
 symbol = "hg "
 truncation_symbol = "..."
 
+[username]
+style_user = "bold yellow"
+style_root = "bold red"
+format = "[$user]($style)"
+show_always = true
+
 [hostname]
-ssh_symbol = "ssh "
+ssh_symbol = ""
+style = "bold yellow"
+format = "[@$hostname]($style) "
+disabled = false
 
 [java]
 symbol = "java "

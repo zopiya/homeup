@@ -7,6 +7,18 @@ freshly-provisioned cloud server with no GUI.
 This repo does **not** depend on homeup at runtime — the portable pieces (zsh modules, nvim, tmux,
 zellij, starship, git aliases, ...) were copied over once and are maintained independently here.
 
+Tuned for daily ops/dev use on a box you SSH into, not sit in front of:
+- Every login auto-attaches a persistent tmux session (`main`) — a dropped connection never loses
+  work, and `tmux-resurrect`/`tmux-continuum` (already configured, TPM auto-installed) survive a
+  reboot too. First-ever login also gets a one-time `fastfetch` system-info banner.
+- The prompt always shows `user@hostname` when SSH'd in — easy to lose track of which of several
+  servers a terminal is on otherwise.
+- A small ops/dev toolbelt beyond the base shell: `yq` (YAML), `bottom`/`glances`/`htop` (resource
+  monitoring), `xh` (HTTP client), `watchexec` (dev-loop automation), `mtr`/`dnsutils`/`tcpdump`
+  (network debugging), `rclone` (backup/sync). Container/orchestration tooling (Docker, k8s) is
+  intentionally left out — install those by hand on the servers that actually need them rather than
+  baking one team's stack into every box.
+
 ## Two phases
 
 Cloud servers usually start as a completely fresh machine, so getting to a working shell takes two
@@ -129,6 +141,9 @@ homeup-linux/
   — either copy the signing key over or run `git config commit.gpgsign false` locally.
 - **Architecture**: `install-tools.sh`'s GitHub-release patterns assume `linux-x86_64`/`amd64`. On
   an arm64 server, edit the patterns (swap in `aarch64`/`arm64`) before running it.
+- **tmux plugins**: `install-tools.sh` clones TPM, but TPM itself only installs the declared
+  plugins (`tmux-resurrect`, `tmux-continuum`, ...) the first time you press `prefix + I` inside a
+  tmux session — do that once after the first `chezmoi apply`.
 
 ## License
 

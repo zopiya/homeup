@@ -37,7 +37,7 @@ link_apt_renamed_tools() {
 # --- Generic GitHub-release installer -------------------------------------
 # Downloads the newest release asset matching $pattern from $repo, and
 # installs the binary named $bin (found anywhere inside the download) into
-# $BIN_DIR. Handles both archives (tar.gz/tgz/zip) and bare binary assets.
+# $BIN_DIR. Handles both archives (tar.gz/tgz/tar.xz/zip) and bare binary assets.
 install_from_github() {
     local bin="$1" repo="$2" pattern="$3"
     if already_installed "$bin"; then
@@ -62,6 +62,7 @@ install_from_github() {
 
     case "$url" in
     *.tar.gz | *.tgz) tar -xzf "$tmp/asset" -C "$tmp" ;;
+    *.tar.xz) tar -xJf "$tmp/asset" -C "$tmp" ;;
     *.zip) (cd "$tmp" && unzip -q asset) ;;
     *) mv "$tmp/asset" "$tmp/$bin" ;;
     esac
@@ -158,6 +159,18 @@ install_neovim() {
     log "nvim -> $BIN_DIR/nvim"
 }
 
+# --- tmux plugin manager: tmux.conf already declares tmux-resurrect/
+# tmux-continuum, but they do nothing until TPM itself is present. -----
+install_tpm() {
+    local tpm_dir="$HOME/.tmux/plugins/tpm"
+    if [[ -d "$tpm_dir" ]]; then
+        log "tpm already installed, skipping"
+        return
+    fi
+    git clone -q https://github.com/tmux-plugins/tpm "$tpm_dir"
+    log "tpm -> $tpm_dir (run 'prefix + I' inside tmux once to install plugins)"
+}
+
 # --- gh / terraform: official apt repositories (need sudo) ----------------
 
 install_gh() {
@@ -224,6 +237,7 @@ main() {
     run uv install_uv
     run bun install_bun
     run neovim install_neovim
+    run tpm install_tpm
 
     run zellij install_from_github zellij zellij-org/zellij 'zellij-x86_64-unknown-linux-musl\.tar\.gz$'
     run lazygit install_from_github lazygit jesseduffield/lazygit 'lazygit_.*linux_x86_64\.tar\.gz$'
@@ -234,6 +248,13 @@ main() {
     run eza install_from_github eza eza-community/eza 'eza_x86_64-unknown-linux-gnu\.tar\.gz$'
     run fastfetch install_from_github fastfetch fastfetch-cli/fastfetch 'fastfetch-linux-amd64\.tar\.gz$'
     run atuin install_from_github atuin atuinsh/atuin 'atuin-x86_64-unknown-linux-gnu\.tar\.gz$'
+
+    # Generic ops/dev toolbelt: structured-data processing, resource
+    # monitoring, HTTP debugging, dev-loop automation.
+    run yq install_from_github yq mikefarah/yq 'yq_linux_amd64$'
+    run bottom install_from_github btm ClementTsang/bottom 'bottom_x86_64-unknown-linux-gnu\.tar\.gz$'
+    run xh install_from_github xh ducaale/xh 'xh-v.*-x86_64-unknown-linux-musl\.tar\.gz$'
+    run watchexec install_from_github watchexec watchexec/watchexec 'watchexec-v.*-x86_64-unknown-linux-gnu\.tar\.xz$'
 
     run gh install_gh
     run terraform install_terraform
