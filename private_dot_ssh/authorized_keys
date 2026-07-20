@@ -1,0 +1,4 @@
+# SSH authorized_keys: add public keys of machines allowed to SSH into this host.
+# SSH Authorized Keys
+# Add your public keys here (one per line), e.g.:
+#   ssh-ed25519 AAAA... user@host

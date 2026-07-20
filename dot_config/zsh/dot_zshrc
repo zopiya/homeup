@@ -1,0 +1,31 @@
+# ==============================================================================
+# Zsh Configuration
+# ==============================================================================
+# Module loading order (order matters):
+#   1. path.zsh     - PATH & tool env (must be first)
+#   2. options.zsh  - setopt (affects history, globbing, completion)
+#   3. exports.zsh  - Environment variables
+#   4. tools.zsh    - Tool init (starship, zoxide, plugins, compinit)
+#   5. aliases.zsh  - Aliases
+#   6. functions.zsh - Shell functions
+
+# PATH & user-local tool isolation
+[[ -f "$ZDOTDIR/path.zsh" ]] && source "$ZDOTDIR/path.zsh"
+
+# Zsh options
+[[ -f "$ZDOTDIR/options.zsh" ]] && source "$ZDOTDIR/options.zsh"
+
+# Environment variables
+[[ -f "$ZDOTDIR/exports.zsh" ]] && source "$ZDOTDIR/exports.zsh"
+
+# Development tools (plugins, prompt, navigation, etc.)
+[[ -f "$ZDOTDIR/tools.zsh" ]] && source "$ZDOTDIR/tools.zsh"
+
+# Aliases
+[[ -f "$ZDOTDIR/aliases.zsh" ]] && source "$ZDOTDIR/aliases.zsh"
+
+# Functions
+[[ -f "$ZDOTDIR/functions.zsh" ]] && source "$ZDOTDIR/functions.zsh"
+
+# Local overrides (not managed by chezmoi)
+[[ -f "$ZDOTDIR/local.zsh" ]] && source "$ZDOTDIR/local.zsh"

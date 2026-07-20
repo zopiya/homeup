@@ -1,0 +1,27 @@
+# Installed via: xargs -a packages/apt-packages.txt apt-get install -y
+# One package per line. Tools that apt ships too old for this config's needs
+# (e.g. neovim < 0.10) or doesn't package at all live in install-tools.sh instead.
+zsh
+git
+curl
+build-essential
+unzip
+tmux
+direnv
+gnupg
+ripgrep
+fd-find
+bat
+jq
+htop
+ncdu
+rsync
+mosh
+sysstat
+ufw
+lsof
+shellcheck
+glances
+bmon
+lnav
+ansible

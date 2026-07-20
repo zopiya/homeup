@@ -1,0 +1,27 @@
+# ==============================================================================
+# SSH Configuration (Linux)
+# ==============================================================================
+
+# 1. Local Extensions (optional ~/.ssh/config.local)
+Include ~/.ssh/config.local
+
+# 2. Git Services (user git, no agent forwarding)
+Host github.com gitlab.com bitbucket.org gitea.com git.zopiya.dev
+    User git
+    ServerAliveInterval 30
+    ForwardAgent no
+
+# 3. Global Defaults
+Host *
+    ServerAliveInterval 60
+    ServerAliveCountMax 30
+    ControlMaster auto
+    ControlPath ~/.ssh/cm-%C
+    ControlPersist 1h
+    Compression yes
+    HashKnownHosts yes
+    StrictHostKeyChecking ask
+    KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
+    Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+    MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
+    UserKnownHostsFile ~/.ssh/known_hosts

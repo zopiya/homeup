@@ -1,0 +1,48 @@
+# --- OS Generated (this repo is developed from macOS, deployed to Linux) ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Editor / IDE ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.bak
+
+# --- Logs & Temp ---
+*.log
+*.tmp
+*.out
+*.pid
+tmp/
+temp/
+
+# --- Chezmoi ---
+# The generated config file should not be committed (contains local secrets/state)
+.chezmoi.toml
+
+# --- Private Keys / Secrets (Safety net) ---
+*.key
+*.pem
+*.pub
+private_key
+id_rsa
+id_ed25519
+id_ecdsa
+id_ecdsa_sk
+id_ed25519_sk
+known_hosts
+authorized_keys
+authorized_keys2
+
+# This repo's own private_dot_ssh/authorized_keys is a tracked template (no secrets,
+# just a placeholder for public keys) - re-include it despite the blanket rule above
+!private_dot_ssh/authorized_keys
+
+# SSH config (config) intentionally NOT ignored - contains no secrets, only host aliases

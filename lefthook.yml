@@ -1,0 +1,143 @@
+# ==============================================================================
+# Lefthook Configuration - Git Hooks for Homeup
+# ==============================================================================
+# Install: lefthook install
+# ==============================================================================
+
+# Reduce output noise
+skip_output:
+  - meta
+  - summary
+
+# ------------------------------------------------------------------------------
+# Pre-commit: Fast checks before commit
+# ------------------------------------------------------------------------------
+pre-commit:
+  parallel: true
+  commands:
+    # Lint shell scripts
+    shellcheck:
+      glob: "*.sh"
+      run: shellcheck {staged_files}
+
+    # shellcheck/shfmt don't support zsh; `zsh -n` is the closest available syntax check
+    zsh-syntax:
+      glob: "*.zsh"
+      run: |
+        for file in {staged_files}; do
+          zsh -n "$file" || exit 1
+        done
+
+    # Validate templates
+    template-check:
+      glob: "*.tmpl"
+      run: |
+        for file in {staged_files}; do
+          # Use absolute path to avoid path traversal
+          abs_file="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
+          # Validate file is within repo
+          case "$abs_file" in
+            "$PWD"/*) ;;  # OK
+            *) echo "✗ Path outside repo: $file"; exit 1 ;;
+          esac
+          if ! chezmoi execute-template --source="$abs_file" > /dev/null 2>&1; then
+            echo "✗ Template syntax error: $file"
+            exit 1
+          fi
+        done
+
+    # Prevent secrets in non-template files
+    no-secrets:
+      run: |
+        if command -v gitleaks &>/dev/null; then
+          gitleaks detect --staged --pipeline-mode --no-color 2>&1 | grep -v "WRN" | grep -v "INF" || true
+        else
+          echo "Warning: gitleaks not installed, skipping secret scan"
+        fi
+
+# ------------------------------------------------------------------------------
+# Prepare-commit-msg: AI 辅助生成建议（仅当消息为空时）
+# ------------------------------------------------------------------------------
+prepare-commit-msg:
+  commands:
+    ai-suggest:
+      run: |
+        msg_file="{1}"
+        msg=$(grep -v '^#' "$msg_file" | tr -d '[:space:]')
+
+        # 只在消息为空时提示（跳过 merge/squash）
+        source_type="${2:-}"
+        if [[ "$source_type" == "merge" || "$source_type" == "squash" ]]; then
+          exit 0
+        fi
+
+        if command -v opencode &>/dev/null; then
+          diff=$(git diff --cached 2>/dev/null)
+          if [[ -n "$diff" ]]; then
+            echo ""
+            echo "💡 AI commit 建议（可复制使用，不会自动填入）："
+            echo "---"
+            suggestion=$(echo "$diff" | opencode "请根据以上 diff 生成一条 conventional commit 消息，只输出消息本身" 2>&1) || {
+              echo "⚠️ opencode suggestion failed: $suggestion"
+              suggestion=""
+            }
+            [[ -n "$suggestion" ]] && echo "$suggestion"
+            echo "---"
+          fi
+        else
+          echo "⚠️ opencode not installed, skipping AI suggestion"
+        fi
+
+# ------------------------------------------------------------------------------
+# Commit-msg: Validate commit message format
+# ------------------------------------------------------------------------------
+commit-msg:
+  commands:
+    format-check:
+      run: |
+        msg=$(cat {1})
+
+        # Check subject line length (Unicode-aware character count)
+        subject=$(echo "$msg" | head -n1)
+        # Use awk for Unicode-aware character count (handles Chinese, emoji, etc.)
+        subject_chars=$(echo "$subject" | awk '{print length}')
+        if [ "$subject_chars" -gt 72 ]; then
+          echo "✗ Commit subject too long ($subject_chars > 72 chars)"
+          exit 1
+        fi
+
+        # Check for empty message
+        if [ -z "$(echo "$msg" | grep -v '^#' | tr -d '[:space:]')" ]; then
+          echo "✗ Empty commit message"
+          exit 1
+        fi
+
+# ------------------------------------------------------------------------------
+# Pre-push: Comprehensive checks before push
+# ------------------------------------------------------------------------------
+pre-push:
+  parallel: true
+  commands:
+    # Validate templates
+    validate-templates:
+      run: |
+        trap 'rm -rf /tmp/chezmoi-validate-linux' EXIT ERR INT
+        rm -rf /tmp/chezmoi-validate-linux 2>/dev/null || true
+        if ! chezmoi init --source . --destination /tmp/chezmoi-validate-linux --dry-run 2>/dev/null; then
+          echo "✗ Template validation failed"
+          exit 1
+        fi
+        echo "✓ Templates valid"
+
+    # Lint all shell scripts
+    lint-all:
+      run: |
+        if ! command -v shellcheck &>/dev/null; then
+          echo "⚠ shellcheck not installed, skipping"
+          exit 0
+        fi
+        echo "Linting shell scripts..."
+        find . -name "*.sh" -type f ! -path "./.git/*" -exec shellcheck {} \;
+        echo "Checking zsh syntax..."
+        find . -name "*.zsh" -type f ! -path "./.git/*" -exec zsh -n {} \;
+        echo "✓ Lint passed"

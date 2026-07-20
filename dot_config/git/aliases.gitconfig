@@ -1,0 +1,55 @@
+# ==============================================================================
+# Git Aliases
+# ==============================================================================
+
+[alias]
+    # --- Basic Shortcuts ---
+    s = status
+    st = status
+    co = checkout
+    sw = switch
+    rs = restore
+    br = branch
+    ci = commit
+    a = add
+    d = diff
+    ds = diff --staged
+
+    # --- Common Workflows ---
+    cm = commit -m
+    aa = add .
+    amend = commit --amend
+    oops = commit --amend --no-edit
+
+    # --- Resetting ---
+    unstage = reset HEAD --
+    undo = reset HEAD~1 --mixed
+    wipe = reset --hard HEAD
+
+    # --- Syncing ---
+    pl = pull
+    ps = push
+    pf = push --force-with-lease
+
+    # --- Logging ---
+    l = log --oneline
+    last = log -1 HEAD
+    lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+
+    # --- Stash ---
+    save = stash push -m
+    pop = stash pop
+    stashes = stash list
+
+    # --- Worktree ---
+    wt = worktree
+    wtl = worktree list
+    wta = worktree add
+    wtr = worktree remove
+
+    # --- Utility ---
+    root = rev-parse --show-toplevel
+    cleanup = fetch --prune
+    ignored = ls-files --others --ignored --exclude-standard
+    aliases = config --get-regexp alias
+    contributors = shortlog --summary --numbered --email

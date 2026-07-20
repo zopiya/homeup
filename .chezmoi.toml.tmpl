@@ -1,0 +1,35 @@
+# ==============================================================================
+# Chezmoi Configuration
+# ==============================================================================
+# This file defines global variables available to all dotfile templates.
+
+# --- Source Directory ---
+sourceDir = "{{ .chezmoi.sourceDir }}"
+
+# ==============================================================================
+# Global Variables
+# ==============================================================================
+# Headless Debian/Ubuntu server repo — sibling of homeup (macOS). No profile/OS
+# branching needed here either.
+[data]
+    # --- User Identity ---
+    name = "Zopiya"
+    email = "i@zopiya.com"
+
+# --- Editor ---
+[edit]
+    command = "nvim"
+
+# --- Diff ---
+[diff]
+    command = "delta"
+    pager = "delta"
+
+# --- Merge ---
+[merge]
+    command = "nvim"
+    args = ["-d", "{{ `{{ .Destination }}` }}", "{{ `{{ .Source }}` }}", "{{ `{{ .Target }}` }}"]
+
+# --- Update ---
+[update]
+    apply = false

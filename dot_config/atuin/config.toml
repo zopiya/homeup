@@ -1,0 +1,33 @@
+# ==============================================================================
+# Atuin Configuration
+# ==============================================================================
+# Shell history sync & search
+# Docs: https://docs.atuin.sh/configuration/config/
+
+[settings]
+# Style: compact, auto, full
+style = "compact"
+
+# Number of lines shown in inline search
+inline_height = 20
+
+# What to do when pressing Esc: return the query or clear it
+exit_mode = "return-query"
+
+# Filter mode for regular search
+filter_mode = "host"
+
+# Show command preview in search
+show_preview = true
+max_preview_height = 4
+
+# UI chrome
+show_help = false
+show_tabs = false
+
+# Press Enter to accept selection and run immediately
+# Set to false to allow editing the command before running
+enter_accept = false
+
+# Sync interval in seconds (if using atuin sync)
+sync_frequency = "5m"

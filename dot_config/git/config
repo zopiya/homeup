@@ -1,0 +1,74 @@
+# ==============================================================================
+# Git Configuration (Linux)
+#
+# Requirements:
+#   - Git 2.28+ (for defaultBranch support)
+#   - Delta (optional, for enhanced diffs)
+# ==============================================================================
+
+[include]
+    path = ~/.config/git/identity.gitconfig
+    path = ~/.config/git/aliases.gitconfig
+
+[core]
+    editor = nvim
+    pager = delta
+    autocrlf = input
+    safecrlf = true
+    eol = lf
+
+[credential]
+    helper = cache --timeout=3600
+
+[protocol]
+    version = 2
+
+# ------------------------------------------------------------------------------
+# Diff & Merge Tool (Delta)
+# ------------------------------------------------------------------------------
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate = true
+    light = false
+    side-by-side = true
+    line-numbers = true
+    syntax-theme = GitHub
+    plus-style = "syntax #012800"
+    minus-style = "syntax #340001"
+
+[merge]
+    conflictstyle = zdiff3
+
+[diff]
+    colorMoved = default
+
+# ------------------------------------------------------------------------------
+# Workflow Defaults
+# ------------------------------------------------------------------------------
+[init]
+    defaultBranch = main
+
+[fetch]
+    prune = true           # fetch 时自动清理已删除的远端分支
+
+[pull]
+    rebase = true
+
+[push]
+    autoSetupRemote = true
+    default = simple
+
+[branch]
+    sort = -committerdate  # 分支列表按最近提交时间排序
+
+# ------------------------------------------------------------------------------
+# Commit
+# ------------------------------------------------------------------------------
+[gpg]
+    format = ssh
+
+[commit]
+    verbose = true
+    gpgsign = true
