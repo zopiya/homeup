@@ -37,6 +37,43 @@ separate stages, run as two different users:
 
 ## Getting Started
 
+### Fully automatic — one command, root to working shell
+
+```bash
+export NEW_USER=zopiya SSH_PUBKEY="ssh-ed25519 AAAA... you@laptop"
+curl -fsSL https://xx.zopiya.dev/root-init.sh | sudo -E bash
+```
+
+(Already logged in as literal root, not a sudo user? Drop `sudo -E` and just pipe into `bash`.)
+
+`root-install.sh` clones the repo into `/opt/homeup-linux`, runs Day 0 provisioning non-interactively
+(create `$NEW_USER`, install `$SSH_PUBKEY`, open the firewall, set hostname/timezone), hands that
+checkout off to `$NEW_USER`, then cascades straight into their Day 1 bootstrap — apt packages,
+upstream tools, `chezmoi apply`, `just setup`.
+
+**SSH hardening (disabling root/password login) is deliberately never part of this.** It's the one
+genuinely irreversible step here — a wrong or mistyped key means a full lockout, recoverable only
+via your cloud provider's out-of-band console. The script always stops short of it and prints the
+exact follow-up command; run it yourself once you've verified `ssh $NEW_USER@<server-ip>` works from
+a separate terminal.
+
+Root does root's job (user, firewall, handoff); Day 1 always runs as `$NEW_USER`, never as root.
+
+### Update later, or bootstrap Day 1 on its own
+
+Once Day 0 is done (by any means) and you're logged in as your user, the same script that Day 1 used
+is also the updater — re-run it and it pulls the latest commit, re-applies dotfiles, and re-runs the
+installers (which already skip anything up to date):
+
+```bash
+curl -fsSL https://xx.zopiya.dev/init.sh | bash
+```
+
+Override `HOMEUP_REPO_URL`/`HOMEUP_DIR` env vars (either script) to point at a fork or a different
+checkout path.
+
+### Fully manual — run every step yourself
+
 ```bash
 # ── Day 0 (as root) ──────────────────────────────────────────────────────────
 git clone https://github.com/zopiya/homeup-linux.git /tmp/homeup-linux && cd /tmp/homeup-linux
@@ -46,29 +83,17 @@ sudo bash packages/server-init.sh
 # don't skip that check, or you can lock yourself out.
 
 # ── Day 1 (as your new user, after logging back in) ─────────────────────────
-curl -fsSL https://xx.zopiya.dev/init.sh | bash
-```
-
-`install.sh` is the one-shot version of Day 1: it clones (or updates) the repo into
-`~/workspace/homeup-linux`, installs apt packages + upstream tools, applies dotfiles via chezmoi,
-and runs `just setup` — all in one non-interactive pass. It's also how you update later: run the
-same command again and it pulls the latest commit, re-applies dotfiles, and re-runs the installers
-(which already skip anything that's up to date). Override `HOMEUP_REPO_URL`/`HOMEUP_DIR` env vars
-to point at a fork or a different checkout path.
-
-If you'd rather run each step yourself (e.g. to review before applying), the manual sequence is:
-
-```bash
-git clone https://github.com/zopiya/homeup-linux.git ~/workspace/homeup-linux
-cd ~/workspace/homeup-linux
+sudo mkdir -p /opt/homeup-linux && sudo chown "$(id -u):$(id -g)" /opt/homeup-linux
+git clone https://github.com/zopiya/homeup-linux.git /opt/homeup-linux
+cd /opt/homeup-linux
 
 # just/chezmoi aren't installed yet, so install packages directly first:
 sudo apt-get update && xargs -a packages/apt-packages.txt sudo apt-get install -y
 bash packages/install-tools.sh   # installs chezmoi, just, starship, neovim, ...
 
 # Now chezmoi/just exist — apply dotfiles (--dry-run first to preview)
-chezmoi init --source ~/workspace/homeup-linux --apply --dry-run
-chezmoi init --source ~/workspace/homeup-linux --apply
+chezmoi init --source /opt/homeup-linux --apply --dry-run
+chezmoi init --source /opt/homeup-linux --apply
 
 # Finish setup (default shell, sheldon lock, gpg-agent)
 just setup
@@ -115,7 +140,8 @@ just fmt         # shfmt format all .sh files
 
 ```
 homeup-linux/
-├── install.sh                  # One-shot Day 1 bootstrap (curl | bash friendly, re-run to update)
+├── root-install.sh              # One-shot Day 0 + Day 1 (root, curl | bash friendly, no SSH hardening)
+├── install.sh                   # One-shot Day 1 bootstrap (curl | bash friendly, re-run to update)
 ├── justfile                   # Task runner
 ├── lefthook.yml                # Git hooks: pre-commit + pre-push
 ├── .chezmoi.toml.tmpl          # Chezmoi config (user identity)
@@ -141,15 +167,24 @@ homeup-linux/
 | Variable | Default | Description |
 |----------|---------|--------------|
 | `CI` | false | Skip shell changes in CI/containers |
-| `NEW_USER` | `zopiya` | `server-init.sh`: username to create |
-| `SSH_PUBKEY` | (prompted) | `server-init.sh`: public key to install for `NEW_USER` |
+| `NEW_USER` | `zopiya` | `server-init.sh` / `root-install.sh`: username to create |
+| `SSH_PUBKEY` | (prompted; required if non-interactive) | `server-init.sh`: public key to install for `NEW_USER` |
+| `NEW_HOSTNAME` | (prompted; unchanged if non-interactive) | `server-init.sh`: hostname to set |
 | `TIMEZONE` | `Asia/Shanghai` | `server-init.sh`: timezone to set |
 | `EXTRA_FIREWALL_PORTS` | (empty) | `server-init.sh`: extra ufw ports beyond SSH |
-| `HOMEUP_REPO_URL` | `https://github.com/zopiya/homeup-linux.git` | `install.sh`: repo to clone (e.g. point at a fork) |
-| `HOMEUP_DIR` | `~/workspace/homeup-linux` | `install.sh`: where to clone/update the repo |
+| `NONINTERACTIVE` | (auto-detected) | `server-init.sh`: force non-interactive (env-var-only) mode even from a real terminal |
+| `HOMEUP_REPO_URL` | `https://github.com/zopiya/homeup-linux.git` | `install.sh` / `root-install.sh`: repo to clone (e.g. point at a fork) |
+| `HOMEUP_DIR` | `/opt/homeup-linux` | `install.sh` / `root-install.sh`: where to clone/update the repo |
 
 ### Known caveats
 
+- **Passwordless sudo**: `server-init.sh` creates `$NEW_USER` with `adduser --disabled-password`
+  (SSH-key-only login, no password at all) and grants it `NOPASSWD` sudo via a dedicated
+  `/etc/sudoers.d/$NEW_USER` drop-in. Without this, `sudo` would be unusable for that account in any
+  context — there's no password it could ever type that PAM would accept. This doesn't expand what
+  the account can do (it was already in the `sudo` group, i.e. full root via sudo); it only removes
+  the password prompt. If you'd rather keep password-gated sudo, delete that file after provisioning
+  and set a real password with `sudo passwd $NEW_USER` (unrelated to SSH login, which stays key-only).
 - **`bat`/`fd`**: Debian/Ubuntu package these as `batcat`/`fdfind` to avoid name clashes.
   `install-tools.sh` symlinks `bat`/`fd` into `~/.local/bin` so this config's aliases work as-is.
 - **Commit signing**: `dot_config/git/identity.gitconfig.tmpl` carries the same SSH signing key as

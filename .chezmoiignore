@@ -23,6 +23,7 @@ docs/
 justfile
 lefthook.yml
 install.sh
+root-install.sh
 *.md
 LICENSE
 
