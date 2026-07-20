@@ -139,8 +139,9 @@ homeup-linux/
 - **Commit signing**: `dot_config/git/identity.gitconfig.tmpl` carries the same SSH signing key as
   homeup. If the matching private key isn't present on this server, `git commit` will fail to sign
   — either copy the signing key over or run `git config commit.gpgsign false` locally.
-- **Architecture**: `install-tools.sh`'s GitHub-release patterns assume `linux-x86_64`/`amd64`. On
-  an arm64 server, edit the patterns (swap in `aarch64`/`arm64`) before running it.
+- **Architecture**: `install-tools.sh` only supports `x86_64`/`amd64` and exits with a clear error
+  on other architectures rather than silently installing binaries that won't run. On an arm64
+  server, edit the GitHub-release patterns (swap in `aarch64`/`arm64`) before running it.
 - **tmux plugins**: `install-tools.sh` clones TPM, but TPM itself only installs the declared
   plugins (`tmux-resurrect`, `tmux-continuum`, ...) the first time you press `prefix + I` inside a
   tmux session — do that once after the first `chezmoi apply`.
