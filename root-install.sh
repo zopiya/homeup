@@ -5,7 +5,7 @@
 # (install.sh). Intended to be hosted at a stable URL and run as root:
 #
 #   export NEW_USER=zopiya SSH_PUBKEY="ssh-ed25519 AAAA... you@laptop"
-#   curl -fsSL https://xx.zopiya.dev/init | sudo -E bash
+#   curl -fsSL https://get.zopiya.dev/init | sudo -E bash
 #
 # (`-E` matters: plain `sudo bash` resets the environment and NEW_USER/
 # SSH_PUBKEY would never reach the script. Already logged in as literal

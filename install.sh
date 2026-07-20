@@ -3,7 +3,7 @@
 # apt packages + upstream tools, applies dotfiles via chezmoi, and runs
 # `just setup`. Intended to be hosted at a stable URL and run as:
 #
-#   curl -fsSL https://xx.zopiya.dev/install | bash
+#   curl -fsSL https://get.zopiya.dev/install | bash
 #
 # Safe to re-run any time afterwards to update — it's just `git pull` +
 # re-running steps that are already idempotent on their own (apt install,
