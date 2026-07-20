@@ -9,6 +9,14 @@
 #   5. aliases.zsh  - Aliases
 #   6. functions.zsh - Shell functions
 
+# Every login to this box is remote by definition (headless server) — auto
+# attach/create a persistent tmux session before doing anything else, so a
+# dropped connection never loses work. Guarded against recursion: each tmux
+# pane sources this file again, but by then $TMUX is already set.
+if [[ -o interactive ]] && [[ -z "${TMUX:-}" && -z "${ZELLIJ:-}" ]] && command -v tmux &>/dev/null; then
+    tmux new-session -A -s main
+fi
+
 # PATH & user-local tool isolation
 [[ -f "$ZDOTDIR/path.zsh" ]] && source "$ZDOTDIR/path.zsh"
 

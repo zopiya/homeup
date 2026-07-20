@@ -1,0 +1,64 @@
+name: verify install-tools
+
+# packages/install-tools.sh hand-rolls GitHub-release asset-name patterns from
+# memory; those drift silently when a project changes its release tooling.
+# This runs the real Day 1 install flow in a throwaway Debian container —
+# weekly, and on any change to packages/ — so drift shows up here instead of
+# on a real server.
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # weekly, Monday 03:00 UTC
+  push:
+    paths:
+      - "packages/apt-packages.txt"
+      - "packages/install-tools.sh"
+      - ".github/workflows/verify-install-tools.yml"
+  pull_request:
+    paths:
+      - "packages/apt-packages.txt"
+      - "packages/install-tools.sh"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    container: debian:12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create a non-root sudo user (mirrors the real Day 1 user)
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq sudo curl ca-certificates unzip
+          useradd -m -s /bin/bash tester
+          echo "tester ALL=(ALL) NOPASSWD:ALL" >>/etc/sudoers
+          chown -R tester:tester "$GITHUB_WORKSPACE"
+
+      - name: Install apt-packages.txt
+        run: |
+          xargs -a packages/apt-packages.txt apt-get install -y -qq
+
+      - name: Run install-tools.sh as the non-root user
+        run: su - tester -c "cd '$GITHUB_WORKSPACE' && bash packages/install-tools.sh"
+
+      - name: Verify every installed tool is on PATH
+        # ollama is intentionally excluded: its installer expects systemd,
+        # which doesn't run inside this container, so it's expected to fail
+        # here regardless of whether the install itself is fine on a real box.
+        run: |
+          su - tester -c '
+            export PATH="$HOME/.local/bin:$PATH"
+            missing=0
+            for t in chezmoi just starship zoxide sheldon uv bun nvim zellij \
+                     lazygit delta shfmt age gitleaks eza fastfetch atuin \
+                     gh terraform fava; do
+              if command -v "$t" >/dev/null 2>&1; then
+                echo "OK: $t"
+              else
+                echo "MISSING: $t"
+                missing=1
+              fi
+            done
+            exit $missing
+          '

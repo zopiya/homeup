@@ -207,34 +207,47 @@ install_fava() {
 }
 
 main() {
+    local failed=()
+    run() {
+        local name="$1"
+        shift
+        "$@" || failed+=("$name")
+    }
+
     link_apt_renamed_tools
 
-    install_chezmoi
-    install_just
-    install_starship
-    install_zoxide
-    install_sheldon
-    install_uv
-    install_bun
-    install_neovim
+    run chezmoi install_chezmoi
+    run just install_just
+    run starship install_starship
+    run zoxide install_zoxide
+    run sheldon install_sheldon
+    run uv install_uv
+    run bun install_bun
+    run neovim install_neovim
 
-    install_from_github zellij zellij-org/zellij 'zellij-x86_64-unknown-linux-musl\.tar\.gz$'
-    install_from_github lazygit jesseduffield/lazygit 'lazygit_.*linux_x86_64\.tar\.gz$'
-    install_from_github delta dandavison/delta 'delta-.*-x86_64-unknown-linux-gnu\.tar\.gz$'
-    install_from_github shfmt mvdan/sh 'shfmt_.*_linux_amd64$'
-    install_from_github age FiloSottile/age 'age-v.*-linux-amd64\.tar\.gz$'
-    install_from_github gitleaks gitleaks/gitleaks 'gitleaks_.*_linux_x64\.tar\.gz$'
-    install_from_github eza eza-community/eza 'eza_x86_64-unknown-linux-gnu\.tar\.gz$'
-    install_from_github fastfetch fastfetch-cli/fastfetch 'fastfetch-linux-amd64\.tar\.gz$'
-    install_from_github atuin atuinsh/atuin 'atuin-x86_64-unknown-linux-gnu\.tar\.gz$'
+    run zellij install_from_github zellij zellij-org/zellij 'zellij-x86_64-unknown-linux-musl\.tar\.gz$'
+    run lazygit install_from_github lazygit jesseduffield/lazygit 'lazygit_.*linux_x86_64\.tar\.gz$'
+    run delta install_from_github delta dandavison/delta 'delta-.*-x86_64-unknown-linux-gnu\.tar\.gz$'
+    run shfmt install_from_github shfmt mvdan/sh 'shfmt_.*_linux_amd64$'
+    run age install_from_github age FiloSottile/age 'age-v.*-linux-amd64\.tar\.gz$'
+    run gitleaks install_from_github gitleaks gitleaks/gitleaks 'gitleaks_.*_linux_x64\.tar\.gz$'
+    run eza install_from_github eza eza-community/eza 'eza_x86_64-unknown-linux-gnu\.tar\.gz$'
+    run fastfetch install_from_github fastfetch fastfetch-cli/fastfetch 'fastfetch-linux-amd64\.tar\.gz$'
+    run atuin install_from_github atuin atuinsh/atuin 'atuin-x86_64-unknown-linux-gnu\.tar\.gz$'
 
-    install_gh
-    install_terraform
-    install_ollama
-    install_fava
+    run gh install_gh
+    run terraform install_terraform
+    run ollama install_ollama
+    run fava install_fava
 
     echo ""
-    echo "install-tools.sh done. Run 'just doctor' to verify everything is on PATH."
+    if [[ ${#failed[@]} -eq 0 ]]; then
+        echo "install-tools.sh done. Run 'just doctor' to verify everything is on PATH."
+    else
+        echo "install-tools.sh finished with failures: ${failed[*]}"
+        echo "Check the messages above, fix the affected install_* function, and re-run (it's idempotent)."
+        exit 1
+    fi
 }
 
 main "$@"
