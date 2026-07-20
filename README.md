@@ -39,14 +39,27 @@ separate stages, run as two different users:
 
 ```bash
 # ── Day 0 (as root) ──────────────────────────────────────────────────────────
-git clone <repo-url> /tmp/homeup-linux && cd /tmp/homeup-linux
+git clone https://github.com/zopiya/homeup-linux.git /tmp/homeup-linux && cd /tmp/homeup-linux
 sudo bash packages/server-init.sh
 # Follow the prompts. It stops before disabling root/password login and asks
 # you to verify the new user can log in from a SEPARATE terminal first —
 # don't skip that check, or you can lock yourself out.
 
 # ── Day 1 (as your new user, after logging back in) ─────────────────────────
-git clone <repo-url> ~/workspace/homeup-linux
+curl -fsSL https://xx.zopiya.dev/init.sh | bash
+```
+
+`install.sh` is the one-shot version of Day 1: it clones (or updates) the repo into
+`~/workspace/homeup-linux`, installs apt packages + upstream tools, applies dotfiles via chezmoi,
+and runs `just setup` — all in one non-interactive pass. It's also how you update later: run the
+same command again and it pulls the latest commit, re-applies dotfiles, and re-runs the installers
+(which already skip anything that's up to date). Override `HOMEUP_REPO_URL`/`HOMEUP_DIR` env vars
+to point at a fork or a different checkout path.
+
+If you'd rather run each step yourself (e.g. to review before applying), the manual sequence is:
+
+```bash
+git clone https://github.com/zopiya/homeup-linux.git ~/workspace/homeup-linux
 cd ~/workspace/homeup-linux
 
 # just/chezmoi aren't installed yet, so install packages directly first:
@@ -62,7 +75,7 @@ just setup
 ```
 
 On any later server, once `just` is already present (e.g. re-running `packages/install-tools.sh`
-first), `just bootstrap` does steps 2-4 in one shot.
+first), `just bootstrap` does the same three manual steps in one shot.
 
 ## Usage
 
@@ -102,6 +115,7 @@ just fmt         # shfmt format all .sh files
 
 ```
 homeup-linux/
+├── install.sh                  # One-shot Day 1 bootstrap (curl | bash friendly, re-run to update)
 ├── justfile                   # Task runner
 ├── lefthook.yml                # Git hooks: pre-commit + pre-push
 ├── .chezmoi.toml.tmpl          # Chezmoi config (user identity)
@@ -131,6 +145,8 @@ homeup-linux/
 | `SSH_PUBKEY` | (prompted) | `server-init.sh`: public key to install for `NEW_USER` |
 | `TIMEZONE` | `Asia/Shanghai` | `server-init.sh`: timezone to set |
 | `EXTRA_FIREWALL_PORTS` | (empty) | `server-init.sh`: extra ufw ports beyond SSH |
+| `HOMEUP_REPO_URL` | `https://github.com/zopiya/homeup-linux.git` | `install.sh`: repo to clone (e.g. point at a fork) |
+| `HOMEUP_DIR` | `~/workspace/homeup-linux` | `install.sh`: where to clone/update the repo |
 
 ### Known caveats
 
