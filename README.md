@@ -1,8 +1,10 @@
 # Homeup Linux
 
+[中文](README.zh-CN.md)
+
 A **headless Debian/Ubuntu server** dotfiles setup using chezmoi + apt + just — the sibling of
-[homeup](https://github.com/) (macOS workstation). Same shell/tooling experience, adapted for a
-freshly-provisioned cloud server with no GUI.
+`homeup` (macOS workstation). Same shell/tooling experience, adapted for a freshly-provisioned cloud
+server with no GUI.
 
 This repo does **not** depend on homeup at runtime — the portable pieces (zsh modules, nvim, tmux,
 zellij, starship, git aliases, ...) were copied over once and are maintained independently here.
@@ -33,7 +35,8 @@ separate stages, run as two different users:
 
 - A fresh Debian 12+ or Ubuntu 22.04+ server, root/sudo access
 - Your SSH public key (e.g. `cat ~/.ssh/id_ed25519.pub` on your workstation)
-- Git
+- Git — not required for `root-install.sh`/`install.sh` (they install it themselves if missing),
+  only for the fully manual walkthrough below
 
 ## Getting Started
 
@@ -41,7 +44,7 @@ separate stages, run as two different users:
 
 ```bash
 export NEW_USER=zopiya SSH_PUBKEY="ssh-ed25519 AAAA... you@laptop"
-curl -fsSL https://xx.zopiya.dev/init | sudo -E bash
+curl -fsSL https://get.zopiya.dev/init | sudo -E bash
 ```
 
 (Already logged in as literal root, not a sudo user? Drop `sudo -E` and just pipe into `bash`.)
@@ -66,7 +69,7 @@ is also the updater — re-run it and it pulls the latest commit, re-applies dot
 installers (which already skip anything up to date):
 
 ```bash
-curl -fsSL https://xx.zopiya.dev/install | bash
+curl -fsSL https://get.zopiya.dev/install | bash
 ```
 
 Override `HOMEUP_REPO_URL`/`HOMEUP_DIR` env vars (either script) to point at a fork or a different
