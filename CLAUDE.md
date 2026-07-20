@@ -31,9 +31,40 @@ bad `server-init.sh` change can lock someone out of a box entirely.
 Never merge these into one script or one recipe — they run as different users with very different
 blast radii (Day 0 mistakes can be irreversible without out-of-band console access).
 
+### `install.sh` / `root-install.sh` — curl-pipeable entry points
+
+These two repo-root scripts are convenience wrappers, not a third phase — they still run
+`packages/server-init.sh` and `packages/install-tools.sh` unmodified underneath rather than
+duplicating any of that logic:
+
+- **`install.sh`** (Day 1, run as the non-root user, safe as `curl -fsSL <url> | bash`): clones/pulls
+  the repo into `/opt/homeup-linux` (or `$HOMEUP_DIR`), then chains apt packages → `install-tools.sh`
+  → `chezmoi apply` → `just setup`. Re-running it is the update path.
+- **`root-install.sh`** (Day 0, run as root, same curl-pipeable shape): clones the repo, runs
+  `packages/server-init.sh` non-interactively, hands the checkout off (`chown -R`) to the new user,
+  then cascades into Day 1 by invoking `install.sh` via `su - "$NEW_USER" -c ...` — never as root.
+
+Both must stay dependency-free bash for the same reason `server-init.sh` does (`install.sh` is what
+*installs* chezmoi/just, so it can't assume they're already present). Piped through `curl | bash`,
+stdin is the script itself, not a terminal — neither script may prompt via `read`; where a prompt is
+genuinely unavoidable (sudo in `install.sh`), it's read from `/dev/tty` explicitly instead.
+
+**The one rule that still holds across all of this: SSH hardening (disabling root/password login)
+never runs unattended, no matter which entry point is used.** `server-init.sh` auto-detects
+non-interactive invocation (`[[ ! -t 0 ]]`, or `NONINTERACTIVE=1`) and skips every other prompt in
+that mode, but always stops before hardening and prints the manual follow-up command instead. Don't
+add an env-var opt-in to auto-confirm it — a wrong or mistyped key here means a lockout recoverable
+only via out-of-band console access, so it stays a human-in-the-loop step by design.
+
+`server-init.sh` also grants `$NEW_USER` passwordless sudo via a dedicated, `visudo`-validated
+`/etc/sudoers.d/$NEW_USER` (the account has no password at all — `adduser --disabled-password` — so
+without this, sudo would be unusable for that user in any context, not just the automated cascade).
+
 ## Commands
 
 ```sh
+./root-install.sh # Day 0 + cascaded Day 1 in one shot (root only, curl-pipeable, no SSH hardening)
+./install.sh      # Day 1 alone, or the update path (non-root, curl-pipeable, re-run to update)
 just provision   # Day 0: sudo bash packages/server-init.sh (root only)
 just bootstrap   # Day 1: install → setup → apply (needs just/chezmoi already installed)
 just install     # apt-packages.txt + install-tools.sh
