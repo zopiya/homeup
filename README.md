@@ -41,7 +41,7 @@ separate stages, run as two different users:
 
 ```bash
 export NEW_USER=zopiya SSH_PUBKEY="ssh-ed25519 AAAA... you@laptop"
-curl -fsSL https://xx.zopiya.dev/root-init.sh | sudo -E bash
+curl -fsSL https://xx.zopiya.dev/init | sudo -E bash
 ```
 
 (Already logged in as literal root, not a sudo user? Drop `sudo -E` and just pipe into `bash`.)
@@ -66,7 +66,7 @@ is also the updater — re-run it and it pulls the latest commit, re-applies dot
 installers (which already skip anything up to date):
 
 ```bash
-curl -fsSL https://xx.zopiya.dev/init.sh | bash
+curl -fsSL https://xx.zopiya.dev/install | bash
 ```
 
 Override `HOMEUP_REPO_URL`/`HOMEUP_DIR` env vars (either script) to point at a fork or a different
