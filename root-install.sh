@@ -4,12 +4,13 @@
 # off to the new user, then cascades straight into their Day 1 bootstrap
 # (install.sh). Intended to be hosted at a stable URL and run as root:
 #
-#   export NEW_USER=zopiya SSH_PUBKEY="ssh-ed25519 AAAA... you@laptop"
 #   curl -fsSL https://get.zopiya.dev/init | sudo -E bash
 #
-# (`-E` matters: plain `sudo bash` resets the environment and NEW_USER/
-# SSH_PUBKEY would never reach the script. Already logged in as literal
-# root? Drop `sudo -E` entirely and just pipe into `bash`.)
+# NEW_USER/SSH_PUBKEY default to zopiya's own user/key (see
+# packages/server-init.sh) — override via env vars for a different user.
+# (`-E` matters: plain `sudo bash` resets the environment and an overridden
+# NEW_USER/SSH_PUBKEY would never reach the script. Already logged in as
+# literal root? Drop `sudo -E` entirely and just pipe into `bash`.)
 #
 # SSH hardening (disabling root/password login) is deliberately NOT part of
 # this cascade — packages/server-init.sh never does that unattended, and
