@@ -2,9 +2,10 @@ name: verify install-tools
 
 # packages/install-tools.sh hand-rolls GitHub-release asset-name patterns from
 # memory; those drift silently when a project changes its release tooling.
-# This runs the real Day 1 install flow in a throwaway Debian container —
+# This runs the real Day 1 install flow in throwaway Debian/Ubuntu containers —
 # weekly, and on any change to packages/ — so drift shows up here instead of
-# on a real server.
+# on a real server. The matrix also catches apt package names/versions that
+# exist on one target distro but not another.
 
 on:
   schedule:
@@ -23,13 +24,28 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    container: debian:12
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["debian:12", "ubuntu:22.04", "ubuntu:24.04"]
+    container:
+      image: ${{ matrix.image }}
+      # Some apt packages (e.g. tzdata) prompt interactively unless this is
+      # set — without it a fresh container hangs the job until it times out.
+      env:
+        DEBIAN_FRONTEND: noninteractive
     steps:
+      # These base images ship without git, but actions/checkout requires it —
+      # install it before the checkout step runs, not after.
+      - name: Install git (required by actions/checkout, not in the base image)
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq git
+
       - uses: actions/checkout@v4
 
       - name: Create a non-root sudo user (mirrors the real Day 1 user)
         run: |
-          apt-get update -qq
           apt-get install -y -qq sudo curl ca-certificates unzip
           useradd -m -s /bin/bash tester
           echo "tester ALL=(ALL) NOPASSWD:ALL" >>/etc/sudoers
