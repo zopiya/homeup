@@ -17,7 +17,7 @@
 set -euo pipefail
 
 REPO_URL="${HOMEUP_REPO_URL:-https://github.com/zopiya/homeup-linux.git}"
-REPO_DIR="${HOMEUP_DIR:-$HOME/workspace/homeup-linux}"
+REPO_DIR="${HOMEUP_DIR:-/opt/homeup-linux}"
 
 log() { echo "==> $*"; }
 
@@ -66,7 +66,12 @@ sync_repo() {
         }
     else
         log "Cloning $REPO_URL to $REPO_DIR..."
-        mkdir -p "$(dirname "$REPO_DIR")"
+        # $REPO_DIR defaults under /opt, which this user doesn't own yet on a
+        # fresh box — claim it once so future `git pull`s don't need sudo.
+        # (root-install.sh's cascade already does this before handing off; this
+        # only fires when install.sh is run standalone.)
+        sudo mkdir -p "$REPO_DIR"
+        sudo chown "$(id -u):$(id -g)" "$REPO_DIR"
         git clone "$REPO_URL" "$REPO_DIR"
     fi
 }
