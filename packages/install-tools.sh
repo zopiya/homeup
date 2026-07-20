@@ -5,8 +5,9 @@
 # dot_config/zsh/path.zsh already puts first on PATH. Safe to re-run: each
 # installer is skipped once the tool is already found on PATH.
 #
-# Assumes linux-x86_64/amd64. On arm64 the release-asset patterns below will
-# need adjusting (grep for "aarch64"/"arm64" instead).
+# x86_64/amd64 only — check_arch() below fails fast on other architectures
+# instead of silently installing binaries that won't execute. On arm64,
+# adjust the release-asset patterns (grep for "aarch64"/"arm64" instead).
 #
 # The GitHub-release patterns here were written from memory of each project's
 # current release-asset naming; they can drift when a project changes its
@@ -17,8 +18,24 @@ set -euo pipefail
 BIN_DIR="$HOME/.local/bin"
 mkdir -p "$BIN_DIR"
 
+# Shared timeout for every network call in this script so a stalled upstream
+# (dead mirror, rate-limited API, hung TLS handshake) fails fast instead of
+# hanging the whole install run.
+CURL_OPTS=(--connect-timeout 10 --max-time 180)
+
 log() { echo "==> $*"; }
 already_installed() { command -v "$1" &>/dev/null; }
+
+check_arch() {
+    local arch
+    arch="$(uname -m)"
+    if [[ "$arch" != "x86_64" ]]; then
+        echo "Error: install-tools.sh only supports x86_64 (detected: $arch)." >&2
+        echo "The GitHub-release patterns in this script are all amd64/x86_64 —" >&2
+        echo "on arm64, swap in aarch64/arm64 before running it." >&2
+        exit 1
+    fi
+}
 
 # Debian/Ubuntu package bat/fd-find as batcat/fdfind to avoid name clashes
 # with unrelated packages. Symlink the names this config's aliases/exports
@@ -47,7 +64,7 @@ install_from_github() {
 
     log "Installing $bin from $repo..."
     local url
-    url=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" |
+    url=$(curl "${CURL_OPTS[@]}" -fsSL "https://api.github.com/repos/$repo/releases/latest" |
         grep -o '"browser_download_url": *"[^"]*"' |
         cut -d'"' -f4 |
         grep -iE "$pattern" | head -n1)
@@ -58,24 +75,32 @@ install_from_github() {
 
     local tmp
     tmp=$(mktemp -d)
-    curl -fsSL "$url" -o "$tmp/asset"
+    trap 'rm -rf "$tmp"' RETURN
 
-    case "$url" in
-    *.tar.gz | *.tgz) tar -xzf "$tmp/asset" -C "$tmp" ;;
-    *.tar.xz) tar -xJf "$tmp/asset" -C "$tmp" ;;
-    *.zip) (cd "$tmp" && unzip -q asset) ;;
-    *) mv "$tmp/asset" "$tmp/$bin" ;;
-    esac
+    if ! curl "${CURL_OPTS[@]}" -fsSL "$url" -o "$tmp/asset"; then
+        echo "  download failed: $url" >&2
+        return 1
+    fi
+
+    if ! {
+        case "$url" in
+        *.tar.gz | *.tgz) tar -xzf "$tmp/asset" -C "$tmp" ;;
+        *.tar.xz) tar -xJf "$tmp/asset" -C "$tmp" ;;
+        *.zip) (cd "$tmp" && unzip -q asset) ;;
+        *) mv "$tmp/asset" "$tmp/$bin" ;;
+        esac
+    } then
+        echo "  failed to extract asset from $url" >&2
+        return 1
+    fi
 
     local found
     found=$(find "$tmp" -type f -iname "$bin" | head -n1)
-    if [[ -z "$found" ]]; then
-        echo "  could not locate '$bin' binary inside the downloaded asset" >&2
-        rm -rf "$tmp"
+    if [[ -z "$found" || ! -s "$found" ]]; then
+        echo "  could not locate a non-empty '$bin' binary inside the downloaded asset" >&2
         return 1
     fi
     install -m755 "$found" "$BIN_DIR/$bin"
-    rm -rf "$tmp"
     log "$bin -> $BIN_DIR/$bin"
 }
 
@@ -86,7 +111,7 @@ install_chezmoi() {
         log "chezmoi already installed, skipping"
         return
     }
-    sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$BIN_DIR"
+    sh -c "$(curl "${CURL_OPTS[@]}" -fsLS get.chezmoi.io)" -- -b "$BIN_DIR"
 }
 
 install_just() {
@@ -94,7 +119,7 @@ install_just() {
         log "just already installed, skipping"
         return
     }
-    curl --proto '=https' --tlsv1.2 -fsSL https://just.systems/install.sh | bash -s -- --to "$BIN_DIR"
+    curl "${CURL_OPTS[@]}" --proto '=https' --tlsv1.2 -fsSL https://just.systems/install.sh | bash -s -- --to "$BIN_DIR"
 }
 
 install_starship() {
@@ -102,7 +127,7 @@ install_starship() {
         log "starship already installed, skipping"
         return
     }
-    curl -sS https://starship.rs/install.sh | sh -s -- -y -b "$BIN_DIR"
+    curl "${CURL_OPTS[@]}" -sS https://starship.rs/install.sh | sh -s -- -y -b "$BIN_DIR"
 }
 
 install_zoxide() {
@@ -110,7 +135,7 @@ install_zoxide() {
         log "zoxide already installed, skipping"
         return
     }
-    curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh -s -- --bin-dir "$BIN_DIR"
+    curl "${CURL_OPTS[@]}" -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh -s -- --bin-dir "$BIN_DIR"
 }
 
 install_sheldon() {
@@ -118,7 +143,7 @@ install_sheldon() {
         log "sheldon already installed, skipping"
         return
     }
-    curl --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh |
+    curl "${CURL_OPTS[@]}" --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh |
         bash -s -- --repo rossmacarthur/sheldon --to "$BIN_DIR"
 }
 
@@ -127,7 +152,7 @@ install_uv() {
         log "uv already installed, skipping"
         return
     }
-    curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$BIN_DIR" sh
+    curl "${CURL_OPTS[@]}" -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$BIN_DIR" sh
 }
 
 install_bun() {
@@ -138,7 +163,7 @@ install_bun() {
     # BUN_INSTALL=~/.local makes the installer place the binary at ~/.local/bin/bun.
     # It may also append PATH lines to ~/.bashrc / a stray ~/.zshrc — harmless here
     # since our zsh reads from $ZDOTDIR, not ~/.zshrc.
-    curl -fsSL https://bun.sh/install | env BUN_INSTALL="$HOME/.local" bash
+    curl "${CURL_OPTS[@]}" -fsSL https://bun.sh/install | env BUN_INSTALL="$HOME/.local" bash
 }
 
 # --- Neovim: apt's version is too old (this config needs 0.10+) -----------
@@ -150,12 +175,16 @@ install_neovim() {
     log "Installing neovim from upstream release..."
     local tmp
     tmp=$(mktemp -d)
-    curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz" -o "$tmp/nvim.tar.gz"
+    trap 'rm -rf "$tmp"' RETURN
+    curl "${CURL_OPTS[@]}" -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz" -o "$tmp/nvim.tar.gz"
     tar -xzf "$tmp/nvim.tar.gz" -C "$tmp"
     local extracted
     extracted=$(find "$tmp" -maxdepth 1 -type d -name "nvim-linux*" | head -n1)
+    if [[ -z "$extracted" ]]; then
+        echo "  neovim archive didn't contain the expected nvim-linux* directory" >&2
+        return 1
+    fi
     cp -r "$extracted"/* "$HOME/.local/"
-    rm -rf "$tmp"
     log "nvim -> $BIN_DIR/nvim"
 }
 
@@ -167,7 +196,7 @@ install_tpm() {
         log "tpm already installed, skipping"
         return
     fi
-    git clone -q https://github.com/tmux-plugins/tpm "$tpm_dir"
+    timeout 60 git clone -q --depth 1 https://github.com/tmux-plugins/tpm "$tpm_dir"
     log "tpm -> $tpm_dir (run 'prefix + I' inside tmux once to install plugins)"
 }
 
@@ -180,7 +209,7 @@ install_gh() {
     }
     log "Installing gh via the official apt repo..."
     sudo mkdir -p -m 755 /etc/apt/keyrings
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |
+    curl "${CURL_OPTS[@]}" -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |
         sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
     sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |
@@ -196,7 +225,7 @@ install_terraform() {
     log "Installing terraform via the official HashiCorp apt repo..."
     local codename
     codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
-    curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+    curl "${CURL_OPTS[@]}" -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $codename main" |
         sudo tee /etc/apt/sources.list.d/hashicorp.list >/dev/null
     sudo apt-get update -qq && sudo apt-get install -y -qq terraform
@@ -207,7 +236,7 @@ install_ollama() {
         log "ollama already installed, skipping"
         return
     }
-    curl -fsSL https://ollama.com/install.sh | sh
+    curl "${CURL_OPTS[@]}" -fsSL https://ollama.com/install.sh | sh
 }
 
 install_fava() {
@@ -220,6 +249,8 @@ install_fava() {
 }
 
 main() {
+    check_arch
+
     local failed=()
     run() {
         local name="$1"
@@ -227,7 +258,7 @@ main() {
         "$@" || failed+=("$name")
     }
 
-    link_apt_renamed_tools
+    run apt-renames link_apt_renamed_tools
 
     run chezmoi install_chezmoi
     run just install_just
@@ -254,7 +285,7 @@ main() {
     run yq install_from_github yq mikefarah/yq 'yq_linux_amd64$'
     run bottom install_from_github btm ClementTsang/bottom 'bottom_x86_64-unknown-linux-gnu\.tar\.gz$'
     run xh install_from_github xh ducaale/xh 'xh-v.*-x86_64-unknown-linux-musl\.tar\.gz$'
-    run watchexec install_from_github watchexec watchexec/watchexec 'watchexec-v.*-x86_64-unknown-linux-gnu\.tar\.xz$'
+    run watchexec install_from_github watchexec watchexec/watchexec 'watchexec-.*-x86_64-unknown-linux-gnu\.tar\.xz$'
 
     run gh install_gh
     run terraform install_terraform
