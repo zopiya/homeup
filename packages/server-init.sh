@@ -19,12 +19,29 @@ require_root() {
     }
 }
 
+# Mirrors the username regex justfile's _setup-shell already validates against,
+# so both entry points reject the same malformed input the same way.
+valid_username() { [[ "$1" =~ ^[a-z_][a-z0-9_-]*$ ]]; }
+
+# Loose but useful: catches pasted garbage (comments, private keys, truncated
+# lines) before it lands in authorized_keys, without re-implementing a full
+# SSH key-format parser.
+valid_pubkey() { [[ "$1" =~ ^(ssh-ed25519|ssh-rsa|ssh-dss|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521|sk-ssh-ed25519@openssh\.com|sk-ecdsa-sha2-nistp256@openssh\.com)\ [A-Za-z0-9+/]+=*([[:space:]].*)?$ ]]; }
+
+valid_firewall_port() { [[ "$1" =~ ^[0-9]+(:[0-9]+)?(/(tcp|udp))?$ ]]; }
+
 prompt_inputs() {
     local reply
-    read -r -p "New non-root username [$NEW_USER]: " reply
-    NEW_USER="${reply:-$NEW_USER}"
+    while true; do
+        read -r -p "New non-root username [$NEW_USER]: " reply
+        reply="${reply:-$NEW_USER}"
+        valid_username "$reply" && break
+        echo "Invalid username '$reply' (must match ^[a-z_][a-z0-9_-]*\$) — try again." >&2
+    done
+    NEW_USER="$reply"
 
-    while [[ -z "$SSH_PUBKEY" ]]; do
+    while [[ -z "$SSH_PUBKEY" ]] || ! valid_pubkey "$SSH_PUBKEY"; do
+        [[ -n "$SSH_PUBKEY" ]] && echo "That doesn't look like a valid SSH public key line — try again." >&2
         read -r -p "Public key for $NEW_USER (paste the full 'ssh-ed25519 AAAA...' line): " SSH_PUBKEY
     done
 
@@ -81,6 +98,10 @@ configure_firewall() {
     local extra_ports=()
     read -ra extra_ports <<<"$EXTRA_FIREWALL_PORTS"
     for port in "${extra_ports[@]}"; do
+        valid_firewall_port "$port" || {
+            echo "Error: invalid EXTRA_FIREWALL_PORTS entry '$port' (expected e.g. 8080, 8080/tcp, 60000:61000/udp)" >&2
+            exit 1
+        }
         ufw allow "$port"
     done
 
