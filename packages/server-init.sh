@@ -19,6 +19,12 @@ require_root() {
     }
 }
 
+# No controlling terminal (e.g. invoked via `curl | bash` or cascaded from
+# root-install.sh) means no `read` prompt can ever be answered — fall back to
+# NEW_USER/SSH_PUBKEY/etc. env vars entirely instead of hanging on stdin.
+# NONINTERACTIVE=1 forces the same path even from a real terminal.
+non_interactive() { [[ ! -t 0 || "${NONINTERACTIVE:-}" == "1" ]]; }
+
 # Mirrors the username regex justfile's _setup-shell already validates against,
 # so both entry points reject the same malformed input the same way.
 valid_username() { [[ "$1" =~ ^[a-z_][a-z0-9_-]*$ ]]; }
@@ -31,6 +37,19 @@ valid_pubkey() { [[ "$1" =~ ^(ssh-ed25519|ssh-rsa|ssh-dss|ecdsa-sha2-nistp256|ec
 valid_firewall_port() { [[ "$1" =~ ^[0-9]+(:[0-9]+)?(/(tcp|udp))?$ ]]; }
 
 prompt_inputs() {
+    if non_interactive; then
+        valid_username "$NEW_USER" || {
+            echo "Error: NEW_USER='$NEW_USER' is invalid (must match ^[a-z_][a-z0-9_-]*\$)." >&2
+            exit 1
+        }
+        valid_pubkey "$SSH_PUBKEY" || {
+            echo "Error: SSH_PUBKEY is required and must be a valid public key line when running non-interactively." >&2
+            echo "Example: SSH_PUBKEY='ssh-ed25519 AAAA...' sudo -E bash packages/server-init.sh" >&2
+            exit 1
+        }
+        return
+    fi
+
     local reply
     while true; do
         read -r -p "New non-root username [$NEW_USER]: " reply
@@ -53,6 +72,26 @@ prompt_inputs() {
     read -r -p "Extra firewall ports to allow, space-separated (blank = SSH only): " EXTRA_FIREWALL_PORTS
 }
 
+# adduser --disabled-password leaves this account with no valid password at
+# all (SSH-key-only login by design), so PAM's password check can never
+# succeed — without this, `sudo` is unusable for this user in any context,
+# interactive or scripted. Grant it explicitly instead, scoped to a single
+# sudoers.d drop-in (not a blanket group policy change).
+grant_passwordless_sudo() {
+    local sudoers_file="/etc/sudoers.d/$NEW_USER"
+    local tmp
+    tmp=$(mktemp)
+    echo "$NEW_USER ALL=(ALL) NOPASSWD:ALL" >"$tmp"
+    if ! visudo -cf "$tmp" &>/dev/null; then
+        echo "Error: generated sudoers entry for $NEW_USER failed validation" >&2
+        rm -f "$tmp"
+        exit 1
+    fi
+    install -m 440 -o root -g root "$tmp" "$sudoers_file"
+    rm -f "$tmp"
+    echo "Passwordless sudo granted to $NEW_USER"
+}
+
 create_user() {
     if id "$NEW_USER" &>/dev/null; then
         echo "User $NEW_USER already exists, skipping creation"
@@ -61,6 +100,8 @@ create_user() {
         usermod -aG sudo "$NEW_USER"
         echo "Created user $NEW_USER (sudo group)"
     fi
+
+    grant_passwordless_sudo
 
     local ssh_dir="/home/$NEW_USER/.ssh"
     local auth_keys="$ssh_dir/authorized_keys"
@@ -127,14 +168,19 @@ main() {
     echo "=== homeup-linux Day 0 server provisioning ==="
     prompt_inputs
 
-    echo ""
-    echo "About to: create user '$NEW_USER', install your public key, set hostname/timezone,"
-    echo "and open the firewall for SSH (+ any extra ports). This part is safe to re-run."
-    read -r -p "Continue? [y/N] " reply
-    [[ "$reply" =~ ^[Yy]$ ]] || {
-        echo "Aborted"
-        exit 0
-    }
+    if non_interactive; then
+        echo ""
+        echo "Non-interactive mode: creating user '$NEW_USER' and configuring firewall/hostname/timezone."
+    else
+        echo ""
+        echo "About to: create user '$NEW_USER', install your public key, set hostname/timezone,"
+        echo "and open the firewall for SSH (+ any extra ports). This part is safe to re-run."
+        read -r -p "Continue? [y/N] " reply
+        [[ "$reply" =~ ^[Yy]$ ]] || {
+            echo "Aborted"
+            exit 0
+        }
+    fi
 
     create_user
     configure_hostname
@@ -148,6 +194,19 @@ main() {
     echo "using the public key you just provided. Do NOT close this session until that works —"
     echo "the next step disables root and password SSH login."
     echo ""
+
+    # SSH hardening disables root/password login — the one genuinely irreversible
+    # step here (a wrong key means a full lockout, recoverable only via
+    # out-of-band console access). It never runs unattended, no matter how this
+    # script was invoked; it always needs a human confirming the new login works.
+    if non_interactive; then
+        echo "SSH hardening was NOT applied automatically — it's never done unattended."
+        echo "Once you've verified the login above works, harden it yourself by re-running"
+        echo "this script interactively and typing 'yes' when asked:"
+        echo "  sudo bash $0"
+        return
+    fi
+
     read -r -p "Did the new login succeed? Type 'yes' to disable root/password SSH login: " confirm
     if [[ "$confirm" == "yes" ]]; then
         harden_ssh
