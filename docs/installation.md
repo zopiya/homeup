@@ -6,7 +6,8 @@ Manual walkthrough and known caveats for the two-phase install described in the
 
 ## Prerequisites
 
-- A fresh Debian 12+ or Ubuntu 22.04+ server, root/sudo access
+- A fresh Debian or Ubuntu server, root/sudo access. Core support is Debian 12/13 and Ubuntu
+  24.04/26.04 — `scripts/init.sh`/`scripts/install.sh` warn (but don't block) on any other version
 - Your SSH public key (e.g. `cat ~/.ssh/id_ed25519.pub` on your workstation)
 - Git — not required for `scripts/init.sh`/`scripts/install.sh` (they install it themselves if
   missing), only for the fully manual walkthrough below

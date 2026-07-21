@@ -54,6 +54,21 @@ require_apt() {
     }
 }
 
+# Core support is Debian 12/13 and Ubuntu 24.04/26.04 (each distro's two most
+# recent LTS releases) — other Debian/Ubuntu versions aren't blocked, just not
+# a support target, so this only warns and continues.
+check_os_support() {
+    local id version_id pretty_name
+    id=$(. /etc/os-release && echo "$ID")
+    version_id=$(. /etc/os-release && echo "$VERSION_ID")
+    pretty_name=$(. /etc/os-release && echo "$PRETTY_NAME")
+    case "$id:$version_id" in
+    debian:12 | debian:13 | ubuntu:24.04 | ubuntu:26.04) return ;;
+    esac
+    warn "unsupported OS: ${pretty_name:-$id $version_id}."
+    echo "  Core support is Debian 12/13 and Ubuntu 24.04/26.04 — continuing anyway, but this combo isn't tested for. See CLAUDE.md." >&2
+}
+
 ensure_sudo() {
     sudo -n true 2>/dev/null && return
     if [[ -e /dev/tty ]]; then
@@ -112,6 +127,7 @@ install_minimal_tools() {
 main() {
     require_non_root
     require_apt
+    check_os_support
     ensure_sudo
 
     # A bare `bash scripts/install.sh` (no interactive login shell) won't have

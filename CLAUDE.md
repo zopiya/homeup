@@ -17,6 +17,22 @@ There is no application code here — this repo *is* the configuration. Changes 
 server via `chezmoi apply`, so correctness matters: a bad template breaks someone's shell, and a
 bad `scripts/system/*.sh` change can lock someone out of a box entirely.
 
+## Supported OS versions
+
+Core support is scoped to each distro's two most recent LTS releases — currently **Debian 12/13**
+and **Ubuntu 24.04/26.04**. This is a compatibility-guarantee boundary, not an allowlist: other
+Debian/Ubuntu versions aren't blocked, they just aren't tested for or fixed if something breaks on
+them. `scripts/init.sh` and `scripts/install.sh` both check `/etc/os-release`
+(`check_os_support`) and print a warning on anything outside that list, then continue — don't change
+that to a hard `exit 1`, an unsupported version is a "you're on your own" signal, not a lockout.
+When a distro cuts a new LTS (or an old one ages out), update the `case` in both scripts'
+`check_os_support` together — they intentionally duplicate that check rather than sourcing a shared
+helper, consistent with these entry scripts never assuming anything else in the repo is safe to
+source (see `install_minimal_tools` below for the same reasoning). Don't widen the check to
+`debian:1[23]|ubuntu:2[46]\.04`-style pattern matching to dodge the update — an explicit list is the
+point, since it forces a conscious decision about which versions are actually in the supported set
+rather than letting it silently drift wider.
+
 ## Two phases — don't conflate them
 
 1. **Day 0 (`scripts/system/*.sh`, run as root, once)**: creates the sudo user, installs their SSH
