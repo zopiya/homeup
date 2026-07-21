@@ -91,7 +91,9 @@ Packages are split by **whether apt is good enough**, not by install-order tier:
 - `scripts/packages/install-tools.sh` — upstream installers/GitHub releases for anything apt lacks or ships
   too old (notably neovim — Debian/Ubuntu's apt version is well below the 0.10+ this nvim config
   needs — plus chezmoi, just, starship, atuin, zoxide, sheldon, zellij, uv, bun, gh, lazygit,
-  git-delta, shfmt, age, gitleaks, eza, fastfetch, terraform, ollama, fava).
+  git-delta, shfmt, age, gitleaks, eza, fastfetch, terraform, fzf, yq, bottom, xh, watchexec — fzf
+  included because apt's version is too old for the `fzf --zsh` integration this config uses on
+  Debian 12/Ubuntu 24.04).
 
 Everything `install-tools.sh` installs lands in `~/.local/bin`, which `dot_config/zsh/path.zsh`
 already puts first on `PATH`.

@@ -7,6 +7,7 @@ curl
 build-essential
 unzip
 tmux
+ncurses-term
 direnv
 gnupg
 ripgrep

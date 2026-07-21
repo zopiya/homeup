@@ -264,25 +264,6 @@ install_terraform() {
     success "terraform installed"
 }
 
-install_ollama() {
-    already_installed ollama && {
-        log "ollama already installed, skipping"
-        return
-    }
-    curl "${CURL_OPTS[@]}" -fsSL https://ollama.com/install.sh | sh
-    success "ollama installed"
-}
-
-install_fava() {
-    already_installed fava && {
-        log "fava already installed, skipping"
-        return
-    }
-    sudo apt-get install -y -qq pipx
-    pipx install fava
-    success "fava installed"
-}
-
 main() {
     check_arch
 
@@ -317,6 +298,10 @@ main() {
     run eza install_from_github eza eza-community/eza 'eza_x86_64-unknown-linux-gnu\.tar\.gz$'
     run fastfetch install_from_github fastfetch fastfetch-cli/fastfetch 'fastfetch-linux-amd64\.tar\.gz$'
     run atuin install_from_github atuin atuinsh/atuin 'atuin-x86_64-unknown-linux-gnu\.tar\.gz$'
+    # apt's fzf is too old for the `fzf --zsh` integration tools.zsh uses (needs
+    # 0.48+; Debian 12 ships 0.38, Ubuntu 24.04 ships 0.44) — same reason
+    # neovim comes from upstream instead of apt.
+    run fzf install_from_github fzf junegunn/fzf 'fzf-.*-linux_amd64\.tar\.gz$'
 
     # Generic ops/dev toolbelt: structured-data processing, resource
     # monitoring, HTTP debugging, dev-loop automation.
@@ -327,8 +312,6 @@ main() {
 
     run gh install_gh
     run terraform install_terraform
-    run ollama install_ollama
-    run fava install_fava
 
     echo ""
     if [[ ${#failed[@]} -eq 0 ]]; then
