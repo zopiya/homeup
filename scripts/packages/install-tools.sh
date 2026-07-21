@@ -91,7 +91,11 @@ install_from_github() {
 
     local tmp
     tmp=$(mktemp -d)
-    trap 'rm -rf "$tmp"' RETURN
+    # `trap ... RETURN` is registered globally, not scoped to this function —
+    # left alone, it fires again on the *next* function return anywhere in the
+    # script (with $tmp now out of scope, which is a nounset error). Reset it
+    # as part of firing so cleanup only ever applies to this invocation.
+    trap 'rm -rf "$tmp"; trap - RETURN' RETURN
 
     if ! curl "${CURL_OPTS[@]}" -fsSL "$url" -o "$tmp/asset"; then
         error "$bin: download failed: $url"
@@ -198,7 +202,11 @@ install_neovim() {
     log "Installing neovim from upstream release..."
     local tmp
     tmp=$(mktemp -d)
-    trap 'rm -rf "$tmp"' RETURN
+    # `trap ... RETURN` is registered globally, not scoped to this function —
+    # left alone, it fires again on the *next* function return anywhere in the
+    # script (with $tmp now out of scope, which is a nounset error). Reset it
+    # as part of firing so cleanup only ever applies to this invocation.
+    trap 'rm -rf "$tmp"; trap - RETURN' RETURN
     curl "${CURL_OPTS[@]}" -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz" -o "$tmp/nvim.tar.gz"
     tar -xzf "$tmp/nvim.tar.gz" -C "$tmp"
     local extracted
