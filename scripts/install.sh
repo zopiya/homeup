@@ -114,6 +114,12 @@ main() {
     require_apt
     ensure_sudo
 
+    # A bare `bash scripts/install.sh` (no interactive login shell) won't have
+    # ~/.local/bin on PATH yet — set it before install_minimal_tools's
+    # already_installed checks run, or they'd always report "not installed"
+    # (already on PATH is harmless to re-prepend, so do it unconditionally).
+    export PATH="$HOME/.local/bin:$PATH"
+
     log "[1/4] Updating apt package lists..."
     sudo apt-get update -qq
 
@@ -124,10 +130,6 @@ main() {
     log "[3/4] Installing just/chezmoi..."
     install_minimal_tools
     success "just/chezmoi ready"
-
-    # install_minimal_tools just put chezmoi/just in ~/.local/bin; this
-    # process's PATH won't see them until the next login, so add it now.
-    export PATH="$HOME/.local/bin:$PATH"
 
     log "[4/4] Running Day 1 (just bootstrap)..."
     (cd "$REPO_DIR" && just bootstrap)
