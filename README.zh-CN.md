@@ -4,9 +4,14 @@
 
 ## 快速开始
 
+全新云服务器，直接以 `root` 登录（常见情况）：
+
 ```bash
-curl -fsSL https://get.zopiya.dev/init | sudo -E bash
+curl -fsSL https://get.zopiya.dev/init | bash
 ```
+
+如果是以已有的非 root sudo 用户登录，把 `bash` 换成 `sudo -E bash`（普通 `sudo bash` 会清空环境
+变量，要覆盖 `NEW_USER`/`SSH_PUBKEY` 时 `-E` 才有用）。
 
 建好用户、开防火墙、clone 仓库、装好 `just`/`chezmoi`，然后停在关闭 root/密码登录之前 ——
 另开个终端 `ssh zopiya@<ip>` 确认能登录，再手动跑它打印出来的那条命令。

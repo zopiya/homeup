@@ -4,9 +4,14 @@
 
 ## Quick start
 
+Fresh cloud server, logged in as `root` (the normal case):
+
 ```bash
-curl -fsSL https://get.zopiya.dev/init | sudo -E bash
+curl -fsSL https://get.zopiya.dev/init | bash
 ```
+
+Already on the box as a non-root sudo user instead? Use `sudo -E bash` in place of `bash` (plain
+`sudo bash` drops your environment, so `-E` matters if you're overriding `NEW_USER`/`SSH_PUBKEY`).
 
 Creates your user, opens the firewall, clones the repo, and installs `just`/`chezmoi` — then stops
 before disabling root/password SSH login. Verify `ssh zopiya@<ip>` works from another terminal,

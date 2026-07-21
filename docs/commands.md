@@ -46,9 +46,14 @@ manually, only after confirming from a separate session that the new user can lo
 ## Entry-point scripts
 
 ```bash
-curl -fsSL https://get.zopiya.dev/init | sudo -E bash     # scripts/init.sh: Day 0 machine setup + minimal just/chezmoi, then stops
-curl -fsSL https://get.zopiya.dev/install | bash            # scripts/install.sh: Day 1 alone / update
+curl -fsSL https://get.zopiya.dev/init | bash     # scripts/init.sh: Day 0 machine setup + minimal just/chezmoi, then stops
+curl -fsSL https://get.zopiya.dev/install | bash  # scripts/install.sh: Day 1 alone / update
 ```
+
+The `init.sh` line assumes you're already logged in as root, the normal case on a fresh cloud
+server. Logged in as a non-root sudo user instead? Use `sudo -E bash` in place of `bash` (the `-E`
+matters — plain `sudo bash` drops your environment, so `NEW_USER`/`SSH_PUBKEY` overrides wouldn't
+reach the script).
 
 `init.sh` does **not** automatically run `install.sh` — after it finishes, log in as the new user
 and run Day 1 yourself (`just bootstrap`, or the `install.sh` curl command above).

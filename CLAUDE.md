@@ -77,7 +77,8 @@ Don't fold it back into `provision`/`init.sh`'s automatic sequence — that isol
 These two scripts are thin bootstrappers, not a third phase, and neither duplicates the actual
 install sequence — that sequence lives in exactly one place, the root `justfile`:
 
-- **`scripts/init.sh`** (Day 0, run as root, `curl -fsSL <url> | sudo -E bash`): clones the repo,
+- **`scripts/init.sh`** (Day 0, run as root, `curl -fsSL <url> | bash` — or `sudo -E bash` if you're
+  not already root): clones the repo,
   runs `scripts/system/create-user.sh` → `ufw.sh` → `hostname.sh` → `timezone.sh` in sequence
   (composing the independent scripts described above), hands the checkout off (`chown -R`) to the
   new user, then installs only `just`/`chezmoi` for that user (not the full `install-tools.sh` run)
