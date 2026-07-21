@@ -8,42 +8,50 @@ Manual walkthrough and known caveats for the two-phase install described in the
 
 - A fresh Debian 12+ or Ubuntu 22.04+ server, root/sudo access
 - Your SSH public key (e.g. `cat ~/.ssh/id_ed25519.pub` on your workstation)
-- Git — not required for `root-install.sh`/`install.sh` (they install it themselves if missing),
-  only for the fully manual walkthrough below
+- Git — not required for `scripts/init.sh`/`scripts/install.sh` (they install it themselves if
+  missing), only for the fully manual walkthrough below
 
 ## Fully manual — run every step yourself
 
 ```bash
 # ── Day 0 (as root) ──────────────────────────────────────────────────────────
-git clone https://github.com/zopiya/homeup-linux.git /tmp/homeup-linux && cd /tmp/homeup-linux
-sudo bash packages/server-init.sh
-# Follow the prompts. It stops before disabling root/password login and asks
-# you to verify the new user can log in from a SEPARATE terminal first —
-# don't skip that check, or you can lock yourself out.
+git clone https://git.zopiya.dev/infra/homeup-linux.git /tmp/homeup-linux && cd /tmp/homeup-linux
+sudo bash scripts/system/create-user.sh
+sudo bash scripts/system/ufw.sh
+sudo bash scripts/system/hostname.sh
+sudo bash scripts/system/timezone.sh
+# Each is independent and safe to re-run. Now open a SEPARATE terminal and
+# confirm you can log in as the new user — don't skip that check, or the
+# next command (whenever you choose to run it) can lock you out:
+#   sudo bash scripts/system/ssh-harden.sh
 
 # ── Day 1 (as your new user, after logging back in) ─────────────────────────
-sudo mkdir -p /opt/homeup-linux && sudo chown "$(id -u):$(id -g)" /opt/homeup-linux
-git clone https://github.com/zopiya/homeup-linux.git /opt/homeup-linux
-cd /opt/homeup-linux
+sudo mkdir -p /opt/homeup && sudo chown "$(id -u):$(id -g)" /opt/homeup
+git clone https://git.zopiya.dev/infra/homeup-linux.git /opt/homeup
+cd /opt/homeup
 
 # just/chezmoi aren't installed yet, so install packages directly first:
-sudo apt-get update && xargs -a packages/apt-packages.txt sudo apt-get install -y
-bash packages/install-tools.sh   # installs chezmoi, just, starship, neovim, ...
+sudo apt-get update && xargs -a scripts/packages/apt-packages.txt sudo apt-get install -y
+bash scripts/packages/install-tools.sh   # installs chezmoi, just, starship, neovim, ...
 
-# Now chezmoi/just exist — apply dotfiles (--dry-run first to preview)
-chezmoi init --source /opt/homeup-linux --apply --dry-run
-chezmoi init --source /opt/homeup-linux --apply
+# Now chezmoi/just exist — apply dotfiles (--dry-run first to preview).
+# sheldon lock / gpg-agent reload run automatically as chezmoi hooks during
+# this apply — no separate `just setup` needed for those anymore.
+chezmoi init --source /opt/homeup --apply --dry-run
+chezmoi init --source /opt/homeup --apply
 
-# Finish setup (default shell, sheldon lock, gpg-agent)
+# Finish setup (default shell only, at this point)
 just setup
 ```
 
-On any later server, once `just` is already present (e.g. re-running `packages/install-tools.sh`
-first), `just bootstrap` does the same three manual steps in one shot.
+On any later server, once `just` is already present (e.g. re-running
+`scripts/packages/install-tools.sh` first), `just provision` does the four Day 0 scripts above in
+one shot (SSH hardening stays separate — `just scripts::ssh-harden`, always manual), and
+`just bootstrap` does the three Day 1 steps in one shot.
 
 ## Known caveats
 
-- **Passwordless sudo**: `server-init.sh` creates `$NEW_USER` with `adduser --disabled-password`
+- **Passwordless sudo**: `create-user.sh` creates `$NEW_USER` with `adduser --disabled-password`
   (SSH-key-only login, no password at all) and grants it `NOPASSWD` sudo via a dedicated
   `/etc/sudoers.d/$NEW_USER` drop-in. Without this, `sudo` would be unusable for that account in any
   context — there's no password it could ever type that PAM would accept. This doesn't expand what

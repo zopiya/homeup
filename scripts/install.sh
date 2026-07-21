@@ -1,30 +1,32 @@
 #!/usr/bin/env bash
 # homeup-linux one-shot Day 1 bootstrap: clones/updates the repo, installs
-# apt packages + upstream tools, applies dotfiles via chezmoi, and runs
-# `just setup`. Intended to be hosted at a stable URL and run as:
+# just enough (`just`/`chezmoi`) to hand off, then delegates the actual
+# install→setup→apply sequence to `just bootstrap` — that sequence lives in
+# exactly one place (the justfile), not duplicated here. Intended to be
+# hosted at a stable URL and run as:
 #
 #   curl -fsSL https://get.zopiya.dev/install | bash
 #
-# Safe to re-run any time afterwards to update — it's just `git pull` +
-# re-running steps that are already idempotent on their own (apt install,
-# install-tools.sh, chezmoi apply). Day 1 only: run as the non-root sudo
-# user Day 0 (packages/server-init.sh) already created, never as root —
-# see CLAUDE.md for why the two phases don't mix.
+# Safe to re-run any time afterwards to update — it's just `git pull` + a
+# `just bootstrap` that's already idempotent on its own. Run as the non-root
+# sudo user scripts/system/create-user.sh (or `just provision`) already
+# created, never as root — see CLAUDE.md for why machine setup and package
+# installation stay separate scripts.
 #
 # Piped through `curl | bash`, stdin is the script itself, not a terminal —
 # so nothing here may prompt via `read`. Where a real password prompt is
 # unavoidable (sudo), it's redirected from /dev/tty explicitly instead.
 set -euo pipefail
 
-REPO_URL="${HOMEUP_REPO_URL:-https://github.com/zopiya/homeup-linux.git}"
-REPO_DIR="${HOMEUP_DIR:-/opt/homeup-linux}"
+REPO_URL="${HOMEUP_REPO_URL:-https://bfa307128a5b7cf8376d61c7956fe64022f91054@git.zopiya.dev/infra/homeup-linux.git}"
+REPO_DIR="${HOMEUP_DIR:-/opt/homeup}"
 
 log() { echo "==> $*"; }
 
 require_non_root() {
     [[ "$(id -u)" -ne 0 ]] || {
         echo "Error: run this as your normal (non-root) user, not root." >&2
-        echo "Haven't created that user yet? Run Day 0 first: packages/server-init.sh (see README)." >&2
+        echo "Haven't created that user yet? Run machine setup first: just provision (see README)." >&2
         exit 1
     }
 }
@@ -68,20 +70,26 @@ sync_repo() {
         log "Cloning $REPO_URL to $REPO_DIR..."
         # $REPO_DIR defaults under /opt, which this user doesn't own yet on a
         # fresh box — claim it once so future `git pull`s don't need sudo.
-        # (root-install.sh's cascade already does this before handing off; this
-        # only fires when install.sh is run standalone.)
+        # (init.sh already does this chown before handing off; this only
+        # fires when install.sh is run standalone.)
         sudo mkdir -p "$REPO_DIR"
         sudo chown "$(id -u):$(id -g)" "$REPO_DIR"
         git clone "$REPO_URL" "$REPO_DIR"
     fi
 }
 
-install_packages() {
-    log "Installing apt packages..."
-    xargs -a "$REPO_DIR/packages/apt-packages.txt" sudo apt-get install -y -qq
-
-    log "Installing upstream tools..."
-    bash "$REPO_DIR/packages/install-tools.sh"
+# Installs only `just` and `chezmoi` — just enough to delegate the rest to
+# `just bootstrap`. Deliberately not the full scripts/packages/install-tools.sh
+# (that's `just install`'s job). Duplicates install-tools.sh's
+# install_chezmoi/install_just one-liners rather than sourcing that script,
+# for the same reason scripts/init.sh does: this entry script is meant to
+# stand alone under `curl | bash`, without assuming anything else in the repo
+# is a safe thing to source.
+install_minimal_tools() {
+    local bin_dir="$HOME/.local/bin"
+    mkdir -p "$bin_dir"
+    already_installed chezmoi || sh -c "$(curl --connect-timeout 10 --max-time 180 -fsLS get.chezmoi.io)" -- -b "$bin_dir"
+    already_installed just || curl --connect-timeout 10 --max-time 180 --proto '=https' --tlsv1.2 -fsSL https://just.systems/install.sh | bash -s -- --to "$bin_dir"
 }
 
 main() {
@@ -94,17 +102,16 @@ main() {
 
     ensure_git
     sync_repo
-    install_packages
 
-    # install_packages just put chezmoi/just in ~/.local/bin; this process's
-    # PATH won't see them until the next login, so add it now.
+    log "Installing just/chezmoi..."
+    install_minimal_tools
+
+    # install_minimal_tools just put chezmoi/just in ~/.local/bin; this
+    # process's PATH won't see them until the next login, so add it now.
     export PATH="$HOME/.local/bin:$PATH"
 
-    log "Applying dotfiles..."
-    chezmoi init --source "$REPO_DIR" --apply
-
-    log "Finishing setup..."
-    (cd "$REPO_DIR" && just setup)
+    log "Running Day 1 (just bootstrap)..."
+    (cd "$REPO_DIR" && just bootstrap)
 
     echo ""
     echo "homeup-linux bootstrap complete. Restart your shell: exec zsh -l"

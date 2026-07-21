@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Day 1 tool installer — for CLI tools that apt either doesn't package or
-# ships too old a version of (see packages/apt-packages.txt for the rest that
-# come straight from apt). Installs everything into ~/.local/bin, which
+# ships too old a version of (see scripts/packages/apt-packages.txt for the
+# rest that come straight from apt). Installs everything into ~/.local/bin, which
 # dot_config/zsh/path.zsh already puts first on PATH. Safe to re-run: each
 # installer is skipped once the tool is already found on PATH.
 #

@@ -1,6 +1,8 @@
 set shell := ["bash", "-uc"]
 set dotenv-load := true
 
+mod scripts 'scripts/justfile'
+
 CHEZMOI_SOURCE := justfile_directory()
 
 default:
@@ -11,7 +13,8 @@ default:
     echo "Usage: just [recipe]"
     echo ""
     echo "Server provisioning (Day 0, run once as root on a fresh server)"
-    echo "  provision            Create user, harden SSH, configure firewall/hostname/timezone"
+    echo "  provision            Create user, configure firewall/hostname/timezone"
+    echo "                       (SSH hardening is separate and manual — see below)"
     echo ""
     echo "New machine (Day 1, run as your user)"
     echo "  bootstrap            Full setup: install -> setup -> apply"
@@ -33,6 +36,9 @@ default:
     echo "  fmt                  Shfmt format all shell files"
     echo ""
     echo "Run 'just [recipe]' to execute a specific recipe"
+    echo "Run 'just --list' to see every recipe, including the individual"
+    echo "scripts::* ones this menu doesn't list one by one (e.g. the manual,"
+    echo "never-automatic 'just scripts::ssh-harden')"
 
 # Alias for help
 @help:
@@ -44,9 +50,11 @@ check-apt:
 
 # ── Server provisioning (Day 0) ─────────────────────────────────────────────
 
-# Create user, harden SSH, configure firewall/hostname/timezone (run once, as root)
-@provision:
-    sudo bash "{{CHEZMOI_SOURCE}}/packages/server-init.sh"
+# Create user, configure firewall/hostname/timezone (SSH hardening is separate — see scripts::ssh-harden)
+provision: scripts::create-user scripts::ufw scripts::hostname scripts::timezone
+    @echo ""
+    @echo "provision complete. Verify you can log in as the new user, then run:"
+    @echo "  just scripts::ssh-harden"
 
 # ── New machine (Day 1) ──────────────────────────────────────────────────────
 
@@ -58,22 +66,13 @@ bootstrap: install setup apply
 # ── Packages ───────────────────────────────────────────────────────────────────
 
 # Install apt packages + upstream tool installers
-install: check-apt _install-apt _install-tools
+install: check-apt scripts::apt scripts::tools
     @echo "All packages installed"
-
-[private]
-_install-apt: check-apt
-    sudo apt-get update -qq
-    xargs -a "{{CHEZMOI_SOURCE}}/packages/apt-packages.txt" sudo apt-get install -y
-
-[private]
-_install-tools:
-    bash "{{CHEZMOI_SOURCE}}/packages/install-tools.sh"
 
 # ── Environment ────────────────────────────────────────────────────────────────
 
-# Configure shell and tools
-setup: _setup-shell _setup-tools
+# Configure shell (sheldon lock/gpg-agent reload now run via chezmoi apply hooks, not here)
+setup: _setup-shell
     @echo "Setup complete"
 
 [private]
@@ -105,20 +104,6 @@ _setup-shell:
     fi
     sudo chsh -s "$TARGET_SHELL" -- "$USER" 2>/dev/null || chsh -s "$TARGET_SHELL" -- "$USER" 2>/dev/null || true
     echo "Shell set to $TARGET_SHELL"
-
-[private]
-_setup-tools:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if command -v sheldon >/dev/null 2>&1 && [[ -f "$HOME/.config/sheldon/plugins.toml" ]]; then
-        sheldon lock 2>/dev/null || true
-        echo "Sheldon plugins locked"
-    fi
-    if command -v gpgconf >/dev/null 2>&1; then
-        gpgconf --kill gpg-agent 2>/dev/null || true
-        gpgconf --launch gpg-agent 2>/dev/null || true
-    fi
-    echo "Tools configured"
 
 # ── Dotfiles ───────────────────────────────────────────────────────────────────
 

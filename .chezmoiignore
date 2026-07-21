@@ -18,12 +18,10 @@
 .github/
 .chezmoiversion
 README.md
-packages/
+scripts/
 docs/
 justfile
 lefthook.yml
-install.sh
-root-install.sh
 *.md
 LICENSE
 

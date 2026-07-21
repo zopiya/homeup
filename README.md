@@ -8,13 +8,22 @@
 curl -fsSL https://get.zopiya.dev/init | sudo -E bash
 ```
 
-Stops before disabling root/password SSH login — verify `ssh zopiya@<ip>` works from another
-terminal, then run the follow-up command it prints.
+Creates your user, opens the firewall, clones the repo, and installs `just`/`chezmoi` — then stops
+before disabling root/password SSH login. Verify `ssh zopiya@<ip>` works from another terminal,
+then run the follow-up command it prints.
+
+Log in as that user and finish setup:
+
+```bash
+just bootstrap
+```
+
+(or, without `just`: `curl -fsSL https://get.zopiya.dev/install | bash`)
 
 Update / re-apply later:
 
 ```bash
-curl -fsSL https://get.zopiya.dev/install | bash
+just update
 ```
 
 ## Common commands
