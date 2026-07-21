@@ -7,11 +7,27 @@ set -euo pipefail
 
 NEW_HOSTNAME="${NEW_HOSTNAME:-}"
 
-log() { echo "==> $*"; }
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    C_BLUE=$'\033[34m'
+    C_GREEN=$'\033[32m'
+    C_YELLOW=$'\033[33m'
+    C_RED=$'\033[31m'
+    C_RESET=$'\033[0m'
+else
+    C_BLUE=''
+    C_GREEN=''
+    C_YELLOW=''
+    C_RED=''
+    C_RESET=''
+fi
+log() { echo "${C_BLUE}==>${C_RESET} $*"; }
+success() { echo "${C_GREEN}✓${C_RESET} $*"; }
+warn() { echo "${C_YELLOW}⚠${C_RESET} $*" >&2; }
+error() { echo "${C_RED}✗${C_RESET} $*" >&2; }
 
 require_root() {
     [[ "$(id -u)" -eq 0 ]] || {
-        echo "Error: must run as root (e.g. sudo bash hostname.sh)" >&2
+        error "must run as root (e.g. sudo bash hostname.sh)"
         exit 1
     }
 }
@@ -31,7 +47,7 @@ configure_hostname() {
     hostnamectl set-hostname "$NEW_HOSTNAME"
     sed -i '/^127\.0\.1\.1/d' /etc/hosts
     printf '127.0.1.1\t%s\n' "$NEW_HOSTNAME" >>/etc/hosts
-    log "Hostname set to $NEW_HOSTNAME"
+    success "Hostname set to $NEW_HOSTNAME"
 }
 
 main() {

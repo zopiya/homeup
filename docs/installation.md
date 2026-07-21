@@ -31,7 +31,7 @@ git clone https://git.zopiya.dev/infra/homeup-linux.git /opt/homeup
 cd /opt/homeup
 
 # just/chezmoi aren't installed yet, so install packages directly first:
-sudo apt-get update && xargs -a scripts/packages/apt-packages.txt sudo apt-get install -y
+sudo apt-get update && grep -v '^#' scripts/packages/apt-packages.txt | xargs sudo apt-get install -y
 bash scripts/packages/install-tools.sh   # installs chezmoi, just, starship, neovim, ...
 
 # Now chezmoi/just exist — apply dotfiles (--dry-run first to preview).

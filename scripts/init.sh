@@ -30,19 +30,35 @@ NEW_USER="${NEW_USER:-zopiya}"
 REPO_URL="${HOMEUP_REPO_URL:-https://bfa307128a5b7cf8376d61c7956fe64022f91054@git.zopiya.dev/infra/homeup-linux.git}"
 REPO_DIR="${HOMEUP_DIR:-/opt/homeup}"
 
-log() { echo "==> $*"; }
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    C_BLUE=$'\033[34m'
+    C_GREEN=$'\033[32m'
+    C_YELLOW=$'\033[33m'
+    C_RED=$'\033[31m'
+    C_RESET=$'\033[0m'
+else
+    C_BLUE=''
+    C_GREEN=''
+    C_YELLOW=''
+    C_RED=''
+    C_RESET=''
+fi
+log() { echo "${C_BLUE}==>${C_RESET} $*"; }
+success() { echo "${C_GREEN}✓${C_RESET} $*"; }
+warn() { echo "${C_YELLOW}⚠${C_RESET} $*" >&2; }
+error() { echo "${C_RED}✗${C_RESET} $*" >&2; }
 already_installed() { command -v "$1" &>/dev/null; }
 
 require_root() {
     [[ "$(id -u)" -eq 0 ]] || {
-        echo "Error: run this as root (e.g. sudo -E bash init.sh)." >&2
+        error "run this as root (e.g. sudo -E bash init.sh)."
         exit 1
     }
 }
 
 require_apt() {
     command -v apt-get &>/dev/null || {
-        echo "Error: apt-get not found. This installer targets Debian/Ubuntu." >&2
+        error "apt-get not found. This installer targets Debian/Ubuntu."
         exit 1
     }
 }
@@ -58,8 +74,8 @@ sync_repo() {
     if [[ -d "$REPO_DIR/.git" ]]; then
         log "Updating existing checkout at $REPO_DIR..."
         git -C "$REPO_DIR" pull --ff-only || {
-            echo "Error: git pull failed in $REPO_DIR (local changes or diverged history?)." >&2
-            echo "Resolve manually (commit/stash/rebase), then re-run." >&2
+            error "git pull failed in $REPO_DIR (local changes or diverged history?)."
+            echo "  Resolve manually (commit/stash/rebase), then re-run." >&2
             exit 1
         }
     else
@@ -86,7 +102,7 @@ install_minimal_tools() {
         command -v chezmoi &>/dev/null || sh -c \"\$(curl --connect-timeout 10 --max-time 180 -fsLS get.chezmoi.io)\" -- -b '$bin_dir'
         command -v just &>/dev/null || curl --connect-timeout 10 --max-time 180 --proto '=https' --tlsv1.2 -fsSL https://just.systems/install.sh | bash -s -- --to '$bin_dir'
     "
-    log "just/chezmoi installed for $NEW_USER"
+    success "just/chezmoi installed for $NEW_USER"
 }
 
 main() {
@@ -95,30 +111,26 @@ main() {
     ensure_git
     sync_repo
 
-    log "Creating user..."
+    log "[1/5] Creating user..."
     bash "$REPO_DIR/scripts/system/create-user.sh"
 
-    log "Configuring firewall..."
+    log "[2/5] Configuring firewall..."
     bash "$REPO_DIR/scripts/system/ufw.sh"
 
-    log "Setting hostname..."
+    log "[3/5] Setting hostname..."
     bash "$REPO_DIR/scripts/system/hostname.sh"
 
-    log "Setting timezone..."
+    log "[4/5] Setting timezone..."
     bash "$REPO_DIR/scripts/system/timezone.sh"
 
-    log "Handing $REPO_DIR off to $NEW_USER..."
+    log "[5/5] Handing $REPO_DIR off to $NEW_USER and installing just/chezmoi..."
     chown -R "$NEW_USER:$NEW_USER" "$REPO_DIR"
-
-    log "Installing just/chezmoi for $NEW_USER..."
     install_minimal_tools
 
     echo ""
-    echo "=== init.sh complete ==="
-    echo "Machine-level setup is done: $NEW_USER exists, $REPO_DIR is cloned, just/chezmoi"
-    echo "are installed."
+    success "init.sh complete — $NEW_USER exists, $REPO_DIR is cloned, just/chezmoi are installed."
     echo ""
-    echo "Verify you can log in as $NEW_USER, then — and only then — harden SSH yourself:"
+    echo "${C_YELLOW}Next:${C_RESET} verify you can log in as $NEW_USER, then — and only then — harden SSH yourself:"
     echo "  cd $REPO_DIR && NEW_USER=$NEW_USER just scripts::ssh-harden"
     echo ""
     echo "Once that's confirmed, log in as $NEW_USER and finish setup yourself, e.g.:"

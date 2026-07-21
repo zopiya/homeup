@@ -53,7 +53,7 @@ jobs:
 
       - name: Install apt-packages.txt
         run: |
-          xargs -a packages/apt-packages.txt apt-get install -y -qq
+          grep -v '^#' packages/apt-packages.txt | xargs apt-get install -y -qq
 
       - name: Run install-tools.sh as the non-root user
         run: su - tester -c "cd '$GITHUB_WORKSPACE' && bash packages/install-tools.sh"

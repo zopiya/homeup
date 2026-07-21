@@ -5,32 +5,39 @@ SCRIPTS_DIR := source_directory()
 # ── System (Day 0, root) ─────────────────────────────────────────────────────
 
 # Create sudo user + install SSH key + passwordless sudo
-create-user:
+@create-user:
+    echo "→ Creating sudo user..."
     sudo bash "{{SCRIPTS_DIR}}/system/create-user.sh"
 
 # Configure ufw firewall
-ufw:
+@ufw:
+    echo "→ Configuring firewall (ufw)..."
     sudo bash "{{SCRIPTS_DIR}}/system/ufw.sh"
 
 # Set hostname
-hostname:
+@hostname:
+    echo "→ Setting hostname..."
     sudo bash "{{SCRIPTS_DIR}}/system/hostname.sh"
 
 # Set timezone
-timezone:
+@timezone:
+    echo "→ Setting timezone..."
     sudo bash "{{SCRIPTS_DIR}}/system/timezone.sh"
 
 # Disable root/password SSH login (never automatic — run manually after confirming login)
-ssh-harden:
+@ssh-harden:
+    echo "→ SSH hardening (irreversible — read the prompts carefully)..."
     sudo bash "{{SCRIPTS_DIR}}/system/ssh-harden.sh"
 
 # ── Packages (Day 1) ─────────────────────────────────────────────────────────
 
 # Install apt packages from the flat package list
-apt:
+@apt:
+    echo "→ Installing apt packages..."
     sudo apt-get update -qq
-    xargs -a "{{SCRIPTS_DIR}}/packages/apt-packages.txt" sudo apt-get install -y
+    grep -v '^#' "{{SCRIPTS_DIR}}/packages/apt-packages.txt" | xargs sudo apt-get install -y
 
 # Install upstream tools apt lacks/undershoots
-tools:
+@tools:
+    echo "→ Installing upstream tools (chezmoi, just, neovim, ...)..."
     bash "{{SCRIPTS_DIR}}/packages/install-tools.sh"

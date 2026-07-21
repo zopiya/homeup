@@ -7,11 +7,27 @@ set -euo pipefail
 NEW_USER="${NEW_USER:-zopiya}"
 SSH_PUBKEY="${SSH_PUBKEY:-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKQ4Av3vfRyFgRIBw/WMEiSb1r96MumJPqH0W31m7M+J zopiya}"
 
-log() { echo "==> $*"; }
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    C_BLUE=$'\033[34m'
+    C_GREEN=$'\033[32m'
+    C_YELLOW=$'\033[33m'
+    C_RED=$'\033[31m'
+    C_RESET=$'\033[0m'
+else
+    C_BLUE=''
+    C_GREEN=''
+    C_YELLOW=''
+    C_RED=''
+    C_RESET=''
+fi
+log() { echo "${C_BLUE}==>${C_RESET} $*"; }
+success() { echo "${C_GREEN}✓${C_RESET} $*"; }
+warn() { echo "${C_YELLOW}⚠${C_RESET} $*" >&2; }
+error() { echo "${C_RED}✗${C_RESET} $*" >&2; }
 
 require_root() {
     [[ "$(id -u)" -eq 0 ]] || {
-        echo "Error: must run as root (e.g. sudo bash create-user.sh)" >&2
+        error "must run as root (e.g. sudo bash create-user.sh)"
         exit 1
     }
 }
@@ -32,12 +48,12 @@ valid_pubkey() { [[ "$1" =~ ^(ssh-ed25519|ssh-rsa|ssh-dss|ecdsa-sha2-nistp256|ec
 prompt_inputs() {
     if non_interactive; then
         valid_username "$NEW_USER" || {
-            echo "Error: NEW_USER='$NEW_USER' is invalid (must match ^[a-z_][a-z0-9_-]*\$)." >&2
+            error "NEW_USER='$NEW_USER' is invalid (must match ^[a-z_][a-z0-9_-]*\$)."
             exit 1
         }
         valid_pubkey "$SSH_PUBKEY" || {
-            echo "Error: SSH_PUBKEY is required and must be a valid public key line when running non-interactively." >&2
-            echo "Example: SSH_PUBKEY='ssh-ed25519 AAAA...' sudo -E bash scripts/system/create-user.sh" >&2
+            error "SSH_PUBKEY is required and must be a valid public key line when running non-interactively."
+            echo "  Example: SSH_PUBKEY='ssh-ed25519 AAAA...' sudo -E bash scripts/system/create-user.sh" >&2
             exit 1
         }
         return
@@ -48,12 +64,12 @@ prompt_inputs() {
         read -r -p "New non-root username [$NEW_USER]: " reply
         reply="${reply:-$NEW_USER}"
         valid_username "$reply" && break
-        echo "Invalid username '$reply' (must match ^[a-z_][a-z0-9_-]*\$) — try again." >&2
+        warn "Invalid username '$reply' (must match ^[a-z_][a-z0-9_-]*\$) — try again."
     done
     NEW_USER="$reply"
 
     while [[ -z "$SSH_PUBKEY" ]] || ! valid_pubkey "$SSH_PUBKEY"; do
-        [[ -n "$SSH_PUBKEY" ]] && echo "That doesn't look like a valid SSH public key line — try again." >&2
+        [[ -n "$SSH_PUBKEY" ]] && warn "That doesn't look like a valid SSH public key line — try again."
         read -r -p "Public key for $NEW_USER (paste the full 'ssh-ed25519 AAAA...' line): " SSH_PUBKEY
     done
 }
@@ -69,7 +85,7 @@ grant_passwordless_sudo() {
     tmp=$(mktemp)
     echo "$NEW_USER ALL=(ALL) NOPASSWD:ALL" >"$tmp"
     if ! visudo -cf "$tmp" &>/dev/null; then
-        echo "Error: generated sudoers entry for $NEW_USER failed validation" >&2
+        error "generated sudoers entry for $NEW_USER failed validation"
         rm -f "$tmp"
         exit 1
     fi
@@ -103,10 +119,11 @@ main() {
     require_root
     prompt_inputs
     create_user
+    success "User $NEW_USER is ready."
     echo ""
-    echo "Before continuing to ssh-harden.sh: open a NEW terminal and confirm you can log in as:"
+    echo "${C_YELLOW}Next:${C_RESET} open a NEW terminal and confirm you can log in as:"
     echo "  ssh $NEW_USER@<this-server-ip>"
-    echo "using the public key you just provided."
+    echo "using the public key you just provided — before running ssh-harden.sh."
 }
 
 main "$@"

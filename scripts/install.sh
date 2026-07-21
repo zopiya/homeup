@@ -21,19 +21,35 @@ set -euo pipefail
 REPO_URL="${HOMEUP_REPO_URL:-https://bfa307128a5b7cf8376d61c7956fe64022f91054@git.zopiya.dev/infra/homeup-linux.git}"
 REPO_DIR="${HOMEUP_DIR:-/opt/homeup}"
 
-log() { echo "==> $*"; }
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    C_BLUE=$'\033[34m'
+    C_GREEN=$'\033[32m'
+    C_YELLOW=$'\033[33m'
+    C_RED=$'\033[31m'
+    C_RESET=$'\033[0m'
+else
+    C_BLUE=''
+    C_GREEN=''
+    C_YELLOW=''
+    C_RED=''
+    C_RESET=''
+fi
+log() { echo "${C_BLUE}==>${C_RESET} $*"; }
+success() { echo "${C_GREEN}✓${C_RESET} $*"; }
+warn() { echo "${C_YELLOW}⚠${C_RESET} $*" >&2; }
+error() { echo "${C_RED}✗${C_RESET} $*" >&2; }
 
 require_non_root() {
     [[ "$(id -u)" -ne 0 ]] || {
-        echo "Error: run this as your normal (non-root) user, not root." >&2
-        echo "Haven't created that user yet? Run machine setup first: just provision (see README)." >&2
+        error "run this as your normal (non-root) user, not root."
+        echo "  Haven't created that user yet? Run machine setup first: just provision (see README)." >&2
         exit 1
     }
 }
 
 require_apt() {
     command -v apt-get &>/dev/null || {
-        echo "Error: apt-get not found. This installer targets Debian/Ubuntu." >&2
+        error "apt-get not found. This installer targets Debian/Ubuntu."
         exit 1
     }
 }
@@ -42,10 +58,11 @@ ensure_sudo() {
     sudo -n true 2>/dev/null && return
     if [[ -e /dev/tty ]]; then
         log "Needs sudo for package installation — you'll be prompted once."
+        # shellcheck disable=SC2024 # redirect feeds sudo's password prompt, not sudo's own I/O
         sudo -v </dev/tty
     else
-        echo "Error: sudo needs a password and there's no controlling terminal to ask on." >&2
-        echo "Configure passwordless sudo for this user, or run this from an interactive shell." >&2
+        error "sudo needs a password and there's no controlling terminal to ask on."
+        echo "  Configure passwordless sudo for this user, or run this from an interactive shell." >&2
         exit 1
     fi
 }
@@ -62,8 +79,8 @@ sync_repo() {
     if [[ -d "$REPO_DIR/.git" ]]; then
         log "Updating existing checkout at $REPO_DIR..."
         git -C "$REPO_DIR" pull --ff-only || {
-            echo "Error: git pull failed in $REPO_DIR (local changes or diverged history?)." >&2
-            echo "Resolve manually (commit/stash/rebase), then re-run." >&2
+            error "git pull failed in $REPO_DIR (local changes or diverged history?)."
+            echo "  Resolve manually (commit/stash/rebase), then re-run." >&2
             exit 1
         }
     else
@@ -97,24 +114,26 @@ main() {
     require_apt
     ensure_sudo
 
-    log "Updating apt package lists..."
+    log "[1/4] Updating apt package lists..."
     sudo apt-get update -qq
 
+    log "[2/4] Syncing $REPO_DIR..."
     ensure_git
     sync_repo
 
-    log "Installing just/chezmoi..."
+    log "[3/4] Installing just/chezmoi..."
     install_minimal_tools
+    success "just/chezmoi ready"
 
     # install_minimal_tools just put chezmoi/just in ~/.local/bin; this
     # process's PATH won't see them until the next login, so add it now.
     export PATH="$HOME/.local/bin:$PATH"
 
-    log "Running Day 1 (just bootstrap)..."
+    log "[4/4] Running Day 1 (just bootstrap)..."
     (cd "$REPO_DIR" && just bootstrap)
 
     echo ""
-    echo "homeup-linux bootstrap complete. Restart your shell: exec zsh -l"
+    success "homeup-linux bootstrap complete. Restart your shell: exec zsh -l"
     echo "Re-run this script any time to update."
 }
 

@@ -23,16 +23,32 @@ mkdir -p "$BIN_DIR"
 # hanging the whole install run.
 CURL_OPTS=(--connect-timeout 10 --max-time 180)
 
-log() { echo "==> $*"; }
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    C_BLUE=$'\033[34m'
+    C_GREEN=$'\033[32m'
+    C_YELLOW=$'\033[33m'
+    C_RED=$'\033[31m'
+    C_RESET=$'\033[0m'
+else
+    C_BLUE=''
+    C_GREEN=''
+    C_YELLOW=''
+    C_RED=''
+    C_RESET=''
+fi
+log() { echo "${C_BLUE}==>${C_RESET} $*"; }
+success() { echo "${C_GREEN}✓${C_RESET} $*"; }
+warn() { echo "${C_YELLOW}⚠${C_RESET} $*" >&2; }
+error() { echo "${C_RED}✗${C_RESET} $*" >&2; }
 already_installed() { command -v "$1" &>/dev/null; }
 
 check_arch() {
     local arch
     arch="$(uname -m)"
     if [[ "$arch" != "x86_64" ]]; then
-        echo "Error: install-tools.sh only supports x86_64 (detected: $arch)." >&2
-        echo "The GitHub-release patterns in this script are all amd64/x86_64 —" >&2
-        echo "on arm64, swap in aarch64/arm64 before running it." >&2
+        error "install-tools.sh only supports x86_64 (detected: $arch)."
+        echo "  The GitHub-release patterns in this script are all amd64/x86_64 —" >&2
+        echo "  on arm64, swap in aarch64/arm64 before running it." >&2
         exit 1
     fi
 }
@@ -69,7 +85,7 @@ install_from_github() {
         cut -d'"' -f4 |
         grep -iE "$pattern" | head -n1)
     if [[ -z "$url" ]]; then
-        echo "  could not find a release asset matching '$pattern' for $repo — skipping" >&2
+        error "$bin: no release asset matching '$pattern' for $repo — skipping"
         return 1
     fi
 
@@ -78,7 +94,7 @@ install_from_github() {
     trap 'rm -rf "$tmp"' RETURN
 
     if ! curl "${CURL_OPTS[@]}" -fsSL "$url" -o "$tmp/asset"; then
-        echo "  download failed: $url" >&2
+        error "$bin: download failed: $url"
         return 1
     fi
 
@@ -90,18 +106,18 @@ install_from_github() {
         *) mv "$tmp/asset" "$tmp/$bin" ;;
         esac
     } then
-        echo "  failed to extract asset from $url" >&2
+        error "$bin: failed to extract asset from $url"
         return 1
     fi
 
     local found
     found=$(find "$tmp" -type f -iname "$bin" | head -n1)
     if [[ -z "$found" || ! -s "$found" ]]; then
-        echo "  could not locate a non-empty '$bin' binary inside the downloaded asset" >&2
+        error "$bin: could not locate a non-empty '$bin' binary inside the downloaded asset"
         return 1
     fi
     install -m755 "$found" "$BIN_DIR/$bin"
-    log "$bin -> $BIN_DIR/$bin"
+    success "$bin -> $BIN_DIR/$bin"
 }
 
 # --- Official installer scripts (already support a custom bin dir) --------
@@ -112,6 +128,7 @@ install_chezmoi() {
         return
     }
     sh -c "$(curl "${CURL_OPTS[@]}" -fsLS get.chezmoi.io)" -- -b "$BIN_DIR"
+    success "chezmoi installed"
 }
 
 install_just() {
@@ -120,6 +137,7 @@ install_just() {
         return
     }
     curl "${CURL_OPTS[@]}" --proto '=https' --tlsv1.2 -fsSL https://just.systems/install.sh | bash -s -- --to "$BIN_DIR"
+    success "just installed"
 }
 
 install_starship() {
@@ -128,6 +146,7 @@ install_starship() {
         return
     }
     curl "${CURL_OPTS[@]}" -sS https://starship.rs/install.sh | sh -s -- -y -b "$BIN_DIR"
+    success "starship installed"
 }
 
 install_zoxide() {
@@ -136,6 +155,7 @@ install_zoxide() {
         return
     }
     curl "${CURL_OPTS[@]}" -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh -s -- --bin-dir "$BIN_DIR"
+    success "zoxide installed"
 }
 
 install_sheldon() {
@@ -145,6 +165,7 @@ install_sheldon() {
     }
     curl "${CURL_OPTS[@]}" --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh |
         bash -s -- --repo rossmacarthur/sheldon --to "$BIN_DIR"
+    success "sheldon installed"
 }
 
 install_uv() {
@@ -153,6 +174,7 @@ install_uv() {
         return
     }
     curl "${CURL_OPTS[@]}" -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$BIN_DIR" sh
+    success "uv installed"
 }
 
 install_bun() {
@@ -164,6 +186,7 @@ install_bun() {
     # It may also append PATH lines to ~/.bashrc / a stray ~/.zshrc — harmless here
     # since our zsh reads from $ZDOTDIR, not ~/.zshrc.
     curl "${CURL_OPTS[@]}" -fsSL https://bun.sh/install | env BUN_INSTALL="$HOME/.local" bash
+    success "bun installed"
 }
 
 # --- Neovim: apt's version is too old (this config needs 0.10+) -----------
@@ -181,11 +204,11 @@ install_neovim() {
     local extracted
     extracted=$(find "$tmp" -maxdepth 1 -type d -name "nvim-linux*" | head -n1)
     if [[ -z "$extracted" ]]; then
-        echo "  neovim archive didn't contain the expected nvim-linux* directory" >&2
+        error "neovim archive didn't contain the expected nvim-linux* directory"
         return 1
     fi
     cp -r "$extracted"/* "$HOME/.local/"
-    log "nvim -> $BIN_DIR/nvim"
+    success "nvim -> $BIN_DIR/nvim"
 }
 
 # --- tmux plugin manager: tmux.conf already declares tmux-resurrect/
@@ -197,7 +220,7 @@ install_tpm() {
         return
     fi
     timeout 60 git clone -q --depth 1 https://github.com/tmux-plugins/tpm "$tpm_dir"
-    log "tpm -> $tpm_dir (run 'prefix + I' inside tmux once to install plugins)"
+    success "tpm -> $tpm_dir (run 'prefix + I' inside tmux once to install plugins)"
 }
 
 # --- gh / terraform: official apt repositories (need sudo) ----------------
@@ -215,6 +238,7 @@ install_gh() {
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |
         sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
     sudo apt-get update -qq && sudo apt-get install -y -qq gh
+    success "gh installed"
 }
 
 install_terraform() {
@@ -229,6 +253,7 @@ install_terraform() {
     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $codename main" |
         sudo tee /etc/apt/sources.list.d/hashicorp.list >/dev/null
     sudo apt-get update -qq && sudo apt-get install -y -qq terraform
+    success "terraform installed"
 }
 
 install_ollama() {
@@ -237,6 +262,7 @@ install_ollama() {
         return
     }
     curl "${CURL_OPTS[@]}" -fsSL https://ollama.com/install.sh | sh
+    success "ollama installed"
 }
 
 install_fava() {
@@ -246,6 +272,7 @@ install_fava() {
     }
     sudo apt-get install -y -qq pipx
     pipx install fava
+    success "fava installed"
 }
 
 main() {
@@ -255,7 +282,10 @@ main() {
     run() {
         local name="$1"
         shift
-        "$@" || failed+=("$name")
+        if ! "$@"; then
+            error "$name failed to install — see message above"
+            failed+=("$name")
+        fi
     }
 
     run apt-renames link_apt_renamed_tools
@@ -294,10 +324,10 @@ main() {
 
     echo ""
     if [[ ${#failed[@]} -eq 0 ]]; then
-        echo "install-tools.sh done. Run 'just doctor' to verify everything is on PATH."
+        success "install-tools.sh done. Run 'just doctor' to verify everything is on PATH."
     else
-        echo "install-tools.sh finished with failures: ${failed[*]}"
-        echo "Check the messages above, fix the affected install_* function, and re-run (it's idempotent)."
+        error "install-tools.sh finished with failures: ${failed[*]}"
+        warn "Check the messages above, fix the affected install_* function, and re-run (it's idempotent)."
         exit 1
     fi
 }

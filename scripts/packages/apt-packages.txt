@@ -1,4 +1,4 @@
-# Installed via: xargs -a packages/apt-packages.txt apt-get install -y
+# Installed via: grep -v '^#' packages/apt-packages.txt | xargs apt-get install -y
 # One package per line. Tools that apt ships too old for this config's needs
 # (e.g. neovim < 0.10) or doesn't package at all live in install-tools.sh instead.
 zsh
