@@ -1,14 +1,6 @@
-# ==============================================================================
-# Chezmoi Configuration
-# ==============================================================================
-# This file defines global variables available to all dotfile templates.
-
-# --- Source Directory ---
+# Global variables available to all dotfile templates.
 sourceDir = "{{ .chezmoi.sourceDir }}"
 
-# ==============================================================================
-# Global Variables
-# ==============================================================================
 [data]
     # Identity is opt-in so a public image or fresh Codespace never inherits
     # personal Git data. Set HOMEUP_GIT_* before `just user::apply`.
@@ -17,20 +9,16 @@ sourceDir = "{{ .chezmoi.sourceDir }}"
     git_signing_key = {{ env "HOMEUP_GIT_SIGNING_KEY" | quote }}
     git_sign_commits = {{ env "HOMEUP_GIT_SIGN_COMMITS" | quote }}
 
-# --- Editor ---
 [edit]
     command = "nvim"
 
-# --- Diff ---
 [diff]
     command = "delta"
     pager = "delta"
 
-# --- Merge ---
 [merge]
     command = "nvim"
     args = ["-d", "{{ `{{ .Destination }}` }}", "{{ `{{ .Source }}` }}", "{{ `{{ .Target }}` }}"]
 
-# --- Update ---
 [update]
     apply = false

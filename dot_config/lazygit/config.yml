@@ -1,18 +1,11 @@
-# ==============================================================================
-# Lazygit Configuration
-# ==============================================================================
-# Docs: https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md
+# Lazygit config. Docs: https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md
 
 gui:
-  # Use nerd font icons (version 3)
   nerdFontsVersion: "3"
   border: "rounded"
   mouseEvents: true
-  # Expand the focused side panel
   expandFocusedSidePanel: true
-  # Show command log at the bottom
   showCommandLog: false
-  # Time format
   timeFormat: "2006-01-02"
   shortTimeFormat: "15:04"
   theme:
@@ -30,7 +23,6 @@ gui:
 git:
   pagers:
     - colorArg: always
-      # Use delta for diff rendering
       pager: delta --dark --paging=never
   commit:
     signOff: false
@@ -40,7 +32,6 @@ git:
   allBranchesLogCmds:
     - git log --graph --all --color=always --abbrev-commit --decorate --simplify-by-decoration
 os:
-  # Open files in nvim
   edit: "nvim {{filename}}"
   editAtLine: "nvim +{{line}} {{filename}}"
   editAtLineAndWait: "nvim +{{line}} {{filename}}"

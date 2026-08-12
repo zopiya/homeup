@@ -1,21 +1,12 @@
-# ==============================================================================
-# Lefthook Configuration - Git Hooks for Homeup
-# ==============================================================================
-# Install: lefthook install
-# ==============================================================================
+# Git hooks for Homeup. Install: lefthook install
 
-# Reduce output noise
 skip_output:
   - meta
   - summary
 
-# ------------------------------------------------------------------------------
-# Pre-commit: Fast checks before commit
-# ------------------------------------------------------------------------------
 pre-commit:
   parallel: true
   commands:
-    # Lint shell scripts
     shellcheck:
       glob: "*.sh"
       run: shellcheck {staged_files}
@@ -28,16 +19,14 @@ pre-commit:
           zsh -n "$file" || exit 1
         done
 
-    # Validate templates
     template-check:
       glob: "*.tmpl"
       run: |
         for file in {staged_files}; do
-          # Use absolute path to avoid path traversal
+          # Resolve to an absolute path and reject anything outside the repo
           abs_file="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
-          # Validate file is within repo
           case "$abs_file" in
-            "$PWD"/*) ;;  # OK
+            "$PWD"/*) ;;
             *) echo "✗ Path outside repo: $file"; exit 1 ;;
           esac
           if ! chezmoi execute-template --source="$abs_file" > /dev/null 2>&1; then
@@ -46,7 +35,7 @@ pre-commit:
           fi
         done
 
-    # Prevent secrets in non-template files
+    # Scans staged, non-template files only
     no-secrets:
       run: |
         if command -v gitleaks &>/dev/null; then
@@ -55,9 +44,7 @@ pre-commit:
           echo "Warning: gitleaks not installed, skipping secret scan"
         fi
 
-# ------------------------------------------------------------------------------
-# Prepare-commit-msg: AI 辅助生成建议（仅当消息为空时）
-# ------------------------------------------------------------------------------
+# AI 辅助生成建议（仅当消息为空时）
 prepare-commit-msg:
   commands:
     ai-suggest:
@@ -65,7 +52,7 @@ prepare-commit-msg:
         msg_file="{1}"
         msg=$(grep -v '^#' "$msg_file" | tr -d '[:space:]')
 
-        # 只在消息为空时提示（跳过 merge/squash）
+        # 跳过 merge/squash，只在消息为空时提示
         source_type="${2:-}"
         if [[ "$source_type" == "merge" || "$source_type" == "squash" ]]; then
           exit 0
@@ -88,37 +75,28 @@ prepare-commit-msg:
           echo "⚠️ opencode not installed, skipping AI suggestion"
         fi
 
-# ------------------------------------------------------------------------------
-# Commit-msg: Validate commit message format
-# ------------------------------------------------------------------------------
 commit-msg:
   commands:
     format-check:
       run: |
         msg=$(cat {1})
 
-        # Check subject line length (Unicode-aware character count)
+        # Unicode-aware character count (handles Chinese, emoji, etc.)
         subject=$(echo "$msg" | head -n1)
-        # Use awk for Unicode-aware character count (handles Chinese, emoji, etc.)
         subject_chars=$(echo "$subject" | awk '{print length}')
         if [ "$subject_chars" -gt 72 ]; then
           echo "✗ Commit subject too long ($subject_chars > 72 chars)"
           exit 1
         fi
 
-        # Check for empty message
         if [ -z "$(echo "$msg" | grep -v '^#' | tr -d '[:space:]')" ]; then
           echo "✗ Empty commit message"
           exit 1
         fi
 
-# ------------------------------------------------------------------------------
-# Pre-push: Comprehensive checks before push
-# ------------------------------------------------------------------------------
 pre-push:
   parallel: true
   commands:
-    # Validate templates
     validate-templates:
       run: |
         trap 'rm -rf /tmp/chezmoi-validate-linux' EXIT ERR INT
@@ -129,7 +107,6 @@ pre-push:
         fi
         echo "✓ Templates valid"
 
-    # Lint all shell scripts
     lint-all:
       run: |
         if ! command -v shellcheck &>/dev/null; then
