@@ -5,6 +5,10 @@ curl
 git
 zsh
 sudo
+# Locked runtimes are prebuilt archives (see toolchain/lock.sh) and never
+# compiled on the target machine. These headers/toolchain packages are kept
+# only so the user's own workflows (e.g. `pip install` of native extensions,
+# `cargo` crates with C dependencies) work without a separate apt step.
 build-essential
 pkg-config
 libssl-dev
