@@ -113,14 +113,10 @@ separately-invoked step by design.
 without this, sudo would be unusable for that user in any context, including the apt/sudo calls
 `install.sh`/`install-tools.sh`/the other `scripts/system/*.sh` scripts make).
 
-**Repo hosting**: canonical remote is self-hosted Forgejo (`git.zopiya.dev/infra/homeup-linux`,
-login required by default), not GitHub. Both entry scripts' `HOMEUP_REPO_URL` default embeds a
-read-only deploy token (`https://<token>@git.zopiya.dev/...`) specifically so the anonymous
-`curl | bash` flow can still `git clone` despite the instance requiring auth — that token is
-intentionally read-only, so don't expect it to work for anything beyond cloning. Docs/README show
-the plain (tokenless) URL for people using their own credentials; only the two scripts' defaults
-carry the token. The `get.zopiya.dev/init`/`/install` redirect that actually serves these scripts'
-raw bytes to `curl` is a separate, external system with no config in this repo — out of scope here.
+**Repo hosting**: the public GitHub repository `zopiya/homeup` is the canonical source for the
+v1 bootstrap. Its one-line installer reads the checked-in GitHub raw entry point and clones the
+public repository when Git is available; otherwise it downloads the corresponding public source
+archive. No deploy token or separate redirect service is part of the v1 bootstrap path.
 
 ## Commands
 

@@ -78,3 +78,5 @@ lock_install_components() {
 
 lock_tpm_repository() { printf '%s\n' 'https://github.com/tmux-plugins/tpm.git'; }
 lock_tpm_revision() { printf '%s\n' 'e261deb1b47614eed3400089ce7197dc68acc4eb'; }
+lock_tpm_url() { printf '%s\n' 'https://github.com/tmux-plugins/tpm/archive/e261deb1b47614eed3400089ce7197dc68acc4eb.tar.gz'; }
+lock_tpm_sha256() { printf '%s\n' '72d92c512270d4857e27519ac97b92a52cf149afe4d92f26860c710f60bbbe37'; }

@@ -107,9 +107,10 @@ normal install path.
 - Core CLI: newest compatible stable release at the time of an update.
 
 A scheduled GitHub Actions workflow checks official upstream metadata monthly
-and opens a pull request that updates the lock data, checksums, tests, and
-image metadata. It never writes to the default branch or publishes a release
-itself. A reviewed merge is the only operation that changes installed versions.
+and directly commits updated lock data, checksums, and update metadata to the
+default branch. The normal verification and image-publishing workflows then
+run from that same commit. This is intentionally optimized for the single-user
+repository: GitHub Actions is the audit trail rather than a mandatory PR.
 
 ### apt policy
 
@@ -164,12 +165,13 @@ checksum verification.
 The curl entry point is intentionally thin:
 
 ```sh
-curl -fsSL https://get.zopiya.dev/dev | bash
+curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/scripts/bootstrap/entrypoint.sh | bash
 ```
 
 It obtains or updates the checkout, performs carrier and privilege detection,
 and invokes `just bootstrap auto`. It must not duplicate package,
-language, or user-layer installation logic. `HOMEUP_REPO_URL` and `HOMEUP_DIR`
+language, or user-layer installation logic. `HOMEUP_REPO_URL`, `HOMEUP_REF`,
+`HOMEUP_DIR`, and (for non-GitHub sources without Git) `HOMEUP_ARCHIVE_URL`
 remain override points; no access token may be compiled into the script.
 
 ## 5. Carrier adapters
@@ -226,7 +228,9 @@ Until that first immutable manifest exists, the checked-in configuration may
 use the same `containers/dev/Dockerfile` as a one-time local build fallback.
 The release workflow commits the published digest directly to the default
 branch before the first public release is declared complete. That digest-only
-commit does not trigger another image build.
+commit does not trigger another image build. The one-line bootstrap command is
+served directly from the public GitHub repository; it falls back to that
+repository's source archive when Git is unavailable.
 
 When Codespaces prebuilds are enabled, all costly, secret-free work must be in
 the Docker image or `onCreateCommand`/`updateContentCommand`. The user-layer

@@ -7,15 +7,17 @@ VM, cloud-init instance, Development Container, or GitHub Codespaces.
 
 ## Quick start
 
-On a Debian/Ubuntu development machine with Git:
+On a Debian/Ubuntu development machine:
 
 ```sh
-curl -fsSL https://get.zopiya.dev/dev | bash
+curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/scripts/bootstrap/entrypoint.sh | bash
 ```
 
 The entry point keeps a checkout in `~/.local/share/homeup-linux`, installs a
-locked `just`, and runs `just bootstrap auto`. With root or non-interactive
-sudo it installs all layers; without it, it safely skips only the system layer.
+locked `just`, and runs `just bootstrap auto`. It uses Git when available and
+otherwise starts from the public GitHub source archive. With root or
+non-interactive sudo it installs all layers; without it, it safely skips only
+the system layer.
 
 From a checkout, the equivalent commands are:
 

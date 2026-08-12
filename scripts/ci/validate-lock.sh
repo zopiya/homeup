@@ -44,3 +44,15 @@ done
     echo 'Invalid TPM revision.' >&2
     exit 1
 }
+[[ "$(lock_tpm_url)" == https://* ]] || {
+    echo 'TPM archive URL must use HTTPS.' >&2
+    exit 1
+}
+[[ "$(lock_tpm_url)" != *latest* ]] || {
+    echo 'TPM archive URL must not use latest.' >&2
+    exit 1
+}
+[[ "$(lock_tpm_sha256)" =~ ^[a-f0-9]{64}$ ]] || {
+    echo 'Invalid TPM archive SHA-256.' >&2
+    exit 1
+}

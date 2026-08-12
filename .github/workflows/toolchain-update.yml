@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   update:
@@ -20,13 +19,14 @@ jobs:
         run: |
           scripts/ci/validate-lock.sh
           scripts/ci/check-toolchain-update.sh >toolchain/update-report.md
-      - uses: peter-evans/create-pull-request@v7
-        with:
-          commit-message: 'chore: update locked toolchain'
-          title: 'chore: update locked toolchain'
-          body: 'Updates exact release URLs and SHA-256 values from official upstream metadata. Review the lock and CI before merging.'
-          branch: automation/toolchain-update
-          delete-branch: true
-          add-paths: |
-            toolchain/lock.sh
-            toolchain/update-report.md
+      - name: Commit updated lock directly to the default branch
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        run: |
+          if git diff --quiet -- toolchain/lock.sh toolchain/update-report.md; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add toolchain/lock.sh toolchain/update-report.md
+          git commit -m 'chore: update locked toolchain'
+          git push

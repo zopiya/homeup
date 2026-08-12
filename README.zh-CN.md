@@ -6,13 +6,13 @@ Homeup 为 Debian/Ubuntu 提供统一、可锁定版本的开发环境：物理�
 
 ## 快速开始
 
-在已安装 Git 的 Debian/Ubuntu 开发环境执行：
+在任意 Debian/Ubuntu 开发环境执行：
 
 ```sh
-curl -fsSL https://get.zopiya.dev/dev | bash
+curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/scripts/bootstrap/entrypoint.sh | bash
 ```
 
-入口会把仓库维护在 `~/.local/share/homeup-linux`，安装锁定版本的 `just`，并运行 `just bootstrap auto`。可用 root 或非交互 sudo 时会安装全部层；没有 sudo 时只跳过系统层，语言层和用户层仍可运行。
+入口会把仓库维护在 `~/.local/share/homeup-linux`，安装锁定版本的 `just`，并运行 `just bootstrap auto`。有 Git 时维护 Git checkout；没有 Git 时从公开 GitHub 源码归档启动。可用 root 或非交互 sudo 时会安装全部层；没有 sudo 时只跳过系统层，语言层和用户层仍可运行。
 
 已 clone 仓库时，等价命令为：
 

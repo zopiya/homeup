@@ -5,12 +5,15 @@
 Debian and Ubuntu on `x86_64` / `amd64` are supported. The standard route is:
 
 ```sh
-curl -fsSL https://get.zopiya.dev/dev | bash
+curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/scripts/bootstrap/entrypoint.sh | bash
 ```
 
 It runs the same checked-in implementation as `just bootstrap auto`; the curl
-script only creates or updates the checkout. It does not contain package or
-runtime installation logic.
+script only creates or updates the checkout. If Git is not installed, it first
+uses the public GitHub source archive, then the system layer installs Git when
+privileges permit. It does not contain package or runtime installation logic.
+`HOMEUP_REPO_URL`, `HOMEUP_REF`, and `HOMEUP_DIR` are supported overrides;
+without Git, a non-GitHub source additionally needs `HOMEUP_ARCHIVE_URL`.
 
 For an existing checkout, install layers explicitly when useful:
 

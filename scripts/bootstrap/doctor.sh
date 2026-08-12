@@ -36,6 +36,8 @@ check_version rust rustc "$(lock_version rust)"
 TPM_DIR="$HOME/.tmux/plugins/tpm"
 if [[ "$(git -C "$TPM_DIR" rev-parse HEAD 2>/dev/null || true)" == "$(lock_tpm_revision)" ]]; then
     printf 'ok       %-9s %s\n' tpm "$(lock_tpm_revision)"
+elif [[ "$(cat "$TPM_DIR/.homeup-archive-checkout" 2>/dev/null || true)" == "$(lock_tpm_revision)" ]]; then
+    printf 'ok       %-9s %s (archive)\n' tpm "$(lock_tpm_revision)"
 else
     printf 'missing  %-9s expected %s\n' tpm "$(lock_tpm_revision)"
     failures=$((failures + 1))

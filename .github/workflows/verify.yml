@@ -53,11 +53,28 @@ jobs:
       - run: docker build --file containers/dev/Dockerfile --tag homeup-dev:smoke .
       - run: docker run --rm --user dev --volume "$PWD:/workspaces/homeup-linux" --workdir /workspaces/homeup-linux homeup-dev:smoke bash -lc 'just bootstrap user && just doctor'
 
+  entrypoint-archive-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Bootstrap a fresh Ubuntu image without Git
+        run: |
+          docker run --rm ubuntu:24.04 bash -lc '
+            set -euo pipefail
+            ! command -v git
+            apt-get update -qq
+            apt-get install -y --no-install-recommends ca-certificates curl tar xz-utils unzip
+            export HOME=/tmp/homeup
+            export HOMEUP_DIR=$HOME/source
+            curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/scripts/bootstrap/entrypoint.sh | bash
+            test -f "$HOMEUP_DIR/.homeup-archive-checkout"
+            "$HOME/.local/bin/just" --justfile "$HOMEUP_DIR/justfile" doctor
+          '
+
   system-smoke:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        image: [debian:13-slim, ubuntu:24.04]
+        image: ["debian:13-slim", "ubuntu:24.04"]
     steps:
       - uses: actions/checkout@v4
       - run: docker run --rm --volume "$PWD:/workspace" --workdir /workspace ${{ matrix.image }} bash scripts/bootstrap/system.sh
