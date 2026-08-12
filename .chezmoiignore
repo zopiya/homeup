@@ -33,7 +33,7 @@ LICENSE
 #   chmod 0700 ~/.ssh
 #   chmod 0600 ~/.ssh/id_*
 
-# authorized_keys is Day 0's territory (scripts/system/create-user.sh installs
+# authorized_keys is host-provisioning territory (scripts/host/create-user.sh installs
 # the real per-server key before chezmoi even exists on the box) — chezmoi must
 # never manage it. This repo's tracked copy is a comment-only placeholder, so
 # `chezmoi apply` on any already-provisioned server would silently overwrite

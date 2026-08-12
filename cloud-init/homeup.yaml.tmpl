@@ -2,6 +2,7 @@
 # Render this template with explicit values before uploading it as user-data.
 # Required values: HOMEUP_USER, HOMEUP_SSH_PUBLIC_KEY, HOMEUP_REPO_URL.
 # Optional values: HOMEUP_HOSTNAME, HOMEUP_TIMEZONE, HOMEUP_ENABLE_UFW.
+# HOMEUP_REPO_URL must be a Git URL reachable by the instance.
 hostname: ${HOMEUP_HOSTNAME}
 users:
   - name: ${HOMEUP_USER}

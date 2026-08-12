@@ -2,39 +2,69 @@
 
 [中文](README.zh-CN.md)
 
-Homeup provides one pinned Debian/Ubuntu development environment for a host,
-VM, cloud-init instance, Development Container, or GitHub Codespaces.
+A reproducible development environment for Debian and Ubuntu `amd64` hosts,
+VMs, cloud-init instances, Docker, Dev Containers, and GitHub Codespaces.
+Homeup installs the same locked runtimes, CLI tools, and dotfiles across every
+carrier while keeping host administration separate.
 
-## Quick start
+## Start here
 
-On a Debian/Ubuntu development machine:
+On a Debian or Ubuntu development machine, run:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/scripts/bootstrap/entrypoint.sh | bash
 ```
 
-The entry point keeps a checkout in `~/.local/share/homeup-linux`, installs a
-locked `just`, and runs `just bootstrap auto`. It uses Git when available and
-otherwise starts from the public GitHub source archive. With root or
-non-interactive sudo it installs all layers; without it, it safely skips only
-the system layer.
+The entry point stores Homeup in `~/.local/share/homeup-linux`, installs the
+locked `just` binary, and runs `just bootstrap auto`. Git is used when present;
+otherwise Homeup uses the public source archive. With root or passwordless
+sudo, all layers run. Without it, only the system layer is skipped.
 
-From a checkout, the equivalent commands are:
+From an existing checkout:
 
 ```sh
-just bootstrap          # automatic privilege selection
-just bootstrap full     # require system access
-just bootstrap user     # language + user layers only; never sudo
-just doctor             # exact lock-version report
+just bootstrap          # choose permitted layers automatically
+just bootstrap full     # require root or passwordless sudo
+just bootstrap user     # language + user layers; never invokes sudo
+just doctor             # report carrier and exact locked versions
 ```
 
-Host provisioning is intentionally separate and SSH hardening is always a
-manual follow-up:
+## What gets installed
+
+| Layer | Contents | Privilege |
+| --- | --- | --- |
+| System | Debian/Ubuntu packages | root or passwordless sudo |
+| Language | Locked Python, Node.js, Bun, and Rust archives | user-owned by default |
+| User | Locked CLI tools, chezmoi dotfiles, Sheldon, and TPM | no sudo |
+
+All version-sensitive artifacts come from `toolchain/lock.sh` and are verified
+with SHA-256 before installation.
+
+## Persistent hosts
+
+Provisioning a new host is optional and separate from the development setup:
 
 ```sh
 NEW_USER=dev SSH_PUBKEY="ssh-ed25519 AAAA..." just host::provision
+```
+
+First verify that the new user can log in from another terminal. Only then run
+the deliberately interactive SSH hardening command:
+
+```sh
 just host::ssh-harden
 ```
 
-See the accepted [v1 environment contract](docs/dev-environment-v1.md), the
-[command reference](docs/commands.md), and [installation guide](docs/installation.md).
+## Documentation
+
+- [Installation guide](docs/installation.md) — hosts, VMs, cloud-init, and images.
+- [Command reference](docs/commands.md) — public commands and variables.
+- [Troubleshooting](docs/troubleshooting.md) — common recovery paths.
+- [Linux operations guide](docs/linux-ops.md) — installed server tools.
+- [v1 environment contract](docs/dev-environment-v1.md) — design and support boundary.
+
+## Scope
+
+Homeup supports Debian and Ubuntu on `x86_64` / `amd64`. It intentionally does
+not configure GUI desktops, non-Debian Linux distributions, or SSH hardening
+without an explicit human confirmation.

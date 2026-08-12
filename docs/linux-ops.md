@@ -9,7 +9,7 @@
 ## 这些工具是 Linux 专属
 
 > 本文档从 homeup 历史提交（`a4f81d7~1`）恢复，原本对应旧的 `Brewfile.linux`。在本仓库里，这些
-> 工具由 `scripts/packages/apt-packages.txt`（glances/bmon/lnav 等）安装，用法说明依然适用。
+> 工具由系统层的 `packages/base.apt`（glances、bmon、lnav 等）安装；本文只说明用法。
 
 适用场景：SSH 到服务器、VPS 管理、容器环境调试。
 

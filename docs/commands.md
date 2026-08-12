@@ -27,15 +27,13 @@ running `just host::ssh-harden`.
 
 | Variable | Meaning |
 | --- | --- |
-| `HOMEUP_REPO_URL` | public checkout URL override for the curl entry point |
+| `HOMEUP_REPO_URL` | checkout URL override for the curl entry point |
+| `HOMEUP_REF` | branch or ref used when the curl entry point creates a Git checkout; default: `main` |
 | `HOMEUP_DIR` | checkout path override; default is `~/.local/share/homeup-linux` |
+| `HOMEUP_ARCHIVE_URL` | source archive override when Git is unavailable and the repository URL is not GitHub HTTPS |
 | `HOMEUP_GIT_NAME` | optional Git user name injected by chezmoi |
 | `HOMEUP_GIT_EMAIL` | optional Git email injected by chezmoi |
 | `HOMEUP_GIT_SIGNING_KEY` | optional SSH signing public key |
 | `HOMEUP_GIT_SIGN_COMMITS` | set to `true` to enable SSH commit signing |
 | `NEW_USER`, `SSH_PUBKEY` | required only for host provisioning |
 | `NEW_HOSTNAME`, `TIMEZONE`, `EXTRA_FIREWALL_PORTS` | optional host-provisioning values |
-
-The previous `provision`, `install`, `apply`, and `scripts::*` recipes remain
-as compatibility aliases during the v1 migration. New automation must use the
-v1 commands above.

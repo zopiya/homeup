@@ -4,19 +4,15 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck disable=SC1091
 source "$ROOT_DIR/scripts/bootstrap/lib.sh"
+# shellcheck disable=SC1091
+source "$ROOT_DIR/toolchain/lock.sh"
 bin_dir="${HOMEUP_BIN_DIR:-$HOME/.local/bin}"
 "$ROOT_DIR/scripts/bootstrap/core-cli.sh"
 export PATH="$bin_dir:$PATH"
 chezmoi init --source "$ROOT_DIR" --apply
 TPM_DIR="$HOME/.tmux/plugins/tpm"
-TPM_REPOSITORY="$(
-    source "$ROOT_DIR/toolchain/lock.sh"
-    lock_tpm_repository
-)"
-TPM_REVISION="$(
-    source "$ROOT_DIR/toolchain/lock.sh"
-    lock_tpm_revision
-)"
+TPM_REPOSITORY="$(lock_tpm_repository)"
+TPM_REVISION="$(lock_tpm_revision)"
 install_tpm_archive() {
     local temporary archive extracted
     temporary="$(mktemp -d)"

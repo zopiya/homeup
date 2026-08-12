@@ -91,7 +91,7 @@ cloud-init, or published logs.
 `toolchain/lock.sh` is the single source of truth for every non-apt core CLI
 and language artifact. It contains an exact version, x86_64 source URL,
 expected SHA-256 digest, destination, and any components to install.
-`toolchain/checksums.sh` may be split out only if it remains sourced by
+If checksum data is ever split into another file, it must remain sourced by
 `lock.sh`; it is not a second source of version truth.
 
 Installers download only URLs constructed from this lock data, verify the
@@ -258,7 +258,6 @@ packages/
   host.apt
 toolchain/
   lock.sh
-  checksums.sh
 containers/dev/
   Dockerfile
 .devcontainer/
@@ -272,11 +271,6 @@ cloud-init/
 docs/
   dev-environment-v1.md      # this contract
 ```
-
-Existing `scripts/system/` and `scripts/packages/` are migrated into these
-locations. Compatibility aliases preserve the current commands during the v1
-migration, but the new hierarchy is authoritative. Deprecated commands are
-documented with their replacements and removed only in a later major release.
 
 ## 7. Publishing and provenance
 
@@ -322,10 +316,8 @@ explicit variables were supplied.
 
 Implementation proceeds in these independently reviewable stages:
 
-1. Add the contract, lock format, carrier detection, and doctor output without
-   removing the existing workflow.
-2. Implement idempotent system, language, and user layers; preserve current
-   commands as compatibility aliases.
+1. Add the contract, lock format, carrier detection, and doctor output.
+2. Implement idempotent system, language, and user layers.
 3. Migrate chezmoi templates to opt-in Git identity and remove embedded
    repository credentials from bootstrap defaults.
 4. Add Dockerfile, amd64 smoke tests, GHCR publishing, and

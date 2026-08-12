@@ -1,7 +1,6 @@
 set shell := ["bash", "-uc"]
 set dotenv-load := true
 
-mod scripts 'scripts/justfile'
 mod system 'just/system.just'
 mod language 'just/language.just'
 mod user 'just/user.just'
@@ -19,16 +18,6 @@ bootstrap mode="auto":
 # Report carrier detection and exact locked runtime/CLI versions.
 doctor:
     bash "{{ROOT}}/scripts/bootstrap/doctor.sh"
-
-# Compatibility aliases retained during the v1 migration.
-provision: host::provision
-
-install: system::install language::install
-
-setup:
-    @echo "setup is deprecated: shell changes are host-only and are no longer made automatically."
-
-apply: user::apply
 
 diff:
     chezmoi diff
@@ -48,9 +37,3 @@ lint:
 
 fmt:
     shfmt -w -i 4 $(find . -name '*.sh' -type f ! -path './.git/*')
-
-upgrade:
-    @echo "Use your normal apt upgrade policy. Locked artifacts change only through a reviewed lock update."
-
-clean:
-    @echo "No global cache cleanup is performed by v1."
