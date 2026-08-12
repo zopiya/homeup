@@ -3,13 +3,14 @@ name: Publish development image
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - .devcontainer/devcontainer.json
     tags: ['v*']
   workflow_dispatch:
 
 permissions:
   contents: write
   packages: write
-  pull-requests: write
 
 jobs:
   publish:
@@ -48,13 +49,14 @@ jobs:
         run: |
           jq --arg image "$IMAGE" 'del(.build) | .image = $image' .devcontainer/devcontainer.json > /tmp/devcontainer.json
           mv /tmp/devcontainer.json .devcontainer/devcontainer.json
-      - name: Open immutable-image update pull request
+      - name: Commit immutable image digest
         if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-        uses: peter-evans/create-pull-request@v7
-        with:
-          commit-message: 'chore: pin Dev Container image digest'
-          title: 'chore: pin Dev Container image digest'
-          body: 'Pins the Dev Container to the manifest produced by the image workflow.'
-          branch: automation/pin-devcontainer-image
-          delete-branch: true
-          add-paths: .devcontainer/devcontainer.json
+        run: |
+          if git diff --quiet -- .devcontainer/devcontainer.json; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .devcontainer/devcontainer.json
+          git commit -m 'chore: pin Dev Container image digest'
+          git push

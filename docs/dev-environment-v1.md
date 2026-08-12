@@ -224,8 +224,9 @@ not install system packages, language runtimes, or host configuration.
 
 Until that first immutable manifest exists, the checked-in configuration may
 use the same `containers/dev/Dockerfile` as a one-time local build fallback.
-The release workflow must replace that fallback with the published digest
-before the first public release is declared complete.
+The release workflow commits the published digest directly to the default
+branch before the first public release is declared complete. That digest-only
+commit does not trigger another image build.
 
 When Codespaces prebuilds are enabled, all costly, secret-free work must be in
 the Docker image or `onCreateCommand`/`updateContentCommand`. The user-layer

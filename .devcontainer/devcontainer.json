@@ -1,9 +1,5 @@
 {
   "name": "Homeup Linux",
-  "build": {
-    "dockerfile": "../containers/dev/Dockerfile",
-    "context": ".."
-  },
   "remoteUser": "dev",
   "postCreateCommand": "just user::apply",
   "customizations": {
@@ -17,5 +13,6 @@
         "files.eol": "\n"
       }
     }
-  }
+  },
+  "image": "ghcr.io/zopiya/homeup-linux@sha256:d890c07ebc2572debb11e31bd4c9076164f7d00bb7b47c88c3ad90b2b0e25281"
 }
