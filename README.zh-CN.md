@@ -1,4 +1,4 @@
-# Homeup Linux
+# Homeup
 
 [English](README.md)
 
@@ -14,7 +14,7 @@ CLI 工具与 dotfiles，同时将主机运维与开发环境严格分离。
 curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/scripts/bootstrap/entrypoint.sh | bash
 ```
 
-入口会将仓库维护在 `~/.local/share/homeup-linux`，安装锁定版本的 `just`，再执行
+入口会将仓库维护在 `~/.local/share/homeup`，安装锁定版本的 `just`，再执行
 `just bootstrap auto`。系统有 Git 时使用 Git checkout；没有 Git 时使用公开源码
 归档。具备 root 或免交互 sudo 时会运行全部层；否则只跳过系统层。
 
@@ -61,8 +61,8 @@ just host::ssh-harden
 - [命令参考](docs/commands.md)：公开命令与环境变量速查表。
 - [故障排查](docs/troubleshooting.md)：常见恢复路径。
 - [Linux 运维工具](docs/linux-ops.md)：已安装的服务器工具用法。
-- [v1 开发环境契约](docs/dev-environment-v1.md)：已批准的设计契约，实现与
-  文档必须与它保持一致。
+- [设计契约](docs/contract.md)：已批准的设计契约，实现与文档必须与它保持
+  一致。
 
 ## 支持边界
 

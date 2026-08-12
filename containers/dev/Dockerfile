@@ -18,4 +18,4 @@ RUN /opt/homeup/scripts/bootstrap/system.sh \
     && rm -rf /var/lib/apt/lists/* /root/.cache
 
 USER dev
-WORKDIR /workspaces/homeup-linux
+WORKDIR /workspaces/homeup

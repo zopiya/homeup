@@ -1,4 +1,4 @@
-# Homeup Linux contributor guide
+# Homeup contributor guide
 
 Homeup is a personal, reproducible development environment for Debian and
 Ubuntu on `amd64`. It supports hosts and VMs, cloud-init, Docker, Dev
@@ -9,7 +9,7 @@ Containers, and GitHub Codespaces through the same three layers:
 2. **Language** installs the locked Python, Node.js, Bun, and Rust toolchains.
 3. **User** installs locked CLI tools and applies chezmoi-managed dotfiles.
 
-The accepted design contract is [docs/dev-environment-v1.md](docs/dev-environment-v1.md).
+The accepted design contract is [docs/contract.md](docs/contract.md).
 Keep the implementation and public documentation consistent with it.
 
 ## Safety boundaries

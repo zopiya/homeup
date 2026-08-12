@@ -6,7 +6,7 @@
 
 ## 公开命令
 
-v1 的公开接口刻意保持很小，不会新增平行的安装器或命令别名。
+公开接口刻意保持很小，不会新增平行的安装器或命令别名。
 
 ```sh
 just bootstrap [auto]   # 权限允许就装系统层，语言层 + 用户层总会装
@@ -50,7 +50,7 @@ just fmt       # shfmt 格式化所有 shell 脚本
 | --- | --- | --- |
 | `HOMEUP_REPO_URL` | curl 入口点使用的仓库 URL | `https://github.com/zopiya/homeup.git` |
 | `HOMEUP_REF` | Git checkout 使用的分支/引用 | `main` |
-| `HOMEUP_DIR` | checkout 存放路径 | `~/.local/share/homeup-linux` |
+| `HOMEUP_DIR` | checkout 存放路径 | `~/.local/share/homeup` |
 | `HOMEUP_ARCHIVE_URL` | 无 Git 且仓库不是 GitHub HTTPS 地址时的源码归档地址 | 无（此时必填） |
 
 ### 语言层安装位置（一般不需要手动设置）

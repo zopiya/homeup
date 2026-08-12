@@ -5,7 +5,7 @@
 set -euo pipefail
 
 repo_url="${HOMEUP_REPO_URL:-https://github.com/zopiya/homeup.git}"
-repo_dir="${HOMEUP_DIR:-$HOME/.local/share/homeup-linux}"
+repo_dir="${HOMEUP_DIR:-$HOME/.local/share/homeup}"
 repo_ref="${HOMEUP_REF:-main}"
 if [[ -n "${HOMEUP_ARCHIVE_URL:-}" ]]; then
     archive_url="$HOMEUP_ARCHIVE_URL"

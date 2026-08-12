@@ -1,4 +1,4 @@
-# Homeup Linux
+# Homeup
 
 [中文](README.zh-CN.md)
 
@@ -15,7 +15,7 @@ On a Debian or Ubuntu development machine, run:
 curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/scripts/bootstrap/entrypoint.sh | bash
 ```
 
-The entry point stores Homeup in `~/.local/share/homeup-linux`, installs the
+The entry point stores Homeup in `~/.local/share/homeup`, installs the
 locked `just` binary, and runs `just bootstrap auto`. Git is used when present;
 otherwise Homeup uses the public source archive. With root or passwordless
 sudo, all layers run. Without it, only the system layer is skipped.
@@ -72,9 +72,8 @@ labeled accordingly.
   paths.
 - [Linux operations guide (Chinese)](docs/linux-ops.md) — installed server
   tools.
-- [v1 environment contract (Chinese)](docs/dev-environment-v1.md) — the
-  accepted design contract; implementation and documentation must stay
-  consistent with it.
+- [Design contract (Chinese)](docs/contract.md) — the accepted design
+  contract; implementation and documentation must stay consistent with it.
 
 ## Scope
 

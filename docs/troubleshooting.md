@@ -3,7 +3,7 @@
 ## 先看环境报告
 
 任何问题排查都从这条命令开始（在 checkout 根目录，或 curl 安装的默认目录
-`~/.local/share/homeup-linux` 下执行）：
+`~/.local/share/homeup` 下执行）：
 
 ```sh
 just doctor
@@ -44,8 +44,8 @@ curl 入口点拒绝覆盖一个"非它自己创建"的目录，对已有的 Git
 `git pull --ff-only`。如果 fast-forward 失败，先保护好本地修改，再手动处理：
 
 ```sh
-git -C ~/.local/share/homeup-linux status
-git -C ~/.local/share/homeup-linux pull --ff-only
+git -C ~/.local/share/homeup status
+git -C ~/.local/share/homeup pull --ff-only
 ```
 
 如果这个 checkout 是故意做了本地定制，换一个 `HOMEUP_DIR` 而不是覆盖它。

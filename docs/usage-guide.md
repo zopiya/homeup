@@ -5,7 +5,7 @@
 [命令参考](commands.md)；出问题时看[故障排查](troubleshooting.md)。
 
 所有命令默认在 Homeup 的 checkout 根目录执行（curl 安装后默认是
-`~/.local/share/homeup-linux`）。
+`~/.local/share/homeup`）。
 
 ## 我该看哪一节？
 
@@ -31,14 +31,14 @@
 curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/scripts/bootstrap/entrypoint.sh | bash
 ```
 
-这一行做的事：把仓库放到 `~/.local/share/homeup-linux`（有 Git 用 Git
+这一行做的事：把仓库放到 `~/.local/share/homeup`（有 Git 用 Git
 checkout，没有则用源码归档），安装锁定版本的 `just`，然后执行
 `just bootstrap auto`——即"权限允许就装系统层，语言层和用户层总会装"。
 
 装完立刻验证：
 
 ```sh
-cd ~/.local/share/homeup-linux
+cd ~/.local/share/homeup
 just doctor
 ```
 

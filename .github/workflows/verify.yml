@@ -26,7 +26,7 @@ jobs:
         env:
           HOMEUP_USER: dev
           HOMEUP_SSH_PUBLIC_KEY: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeKeyForSchemaOnly homeup
-          HOMEUP_REPO_URL: https://github.com/example/homeup-linux.git
+          HOMEUP_REPO_URL: https://github.com/example/homeup.git
           HOMEUP_HOSTNAME: homeup-ci
           HOMEUP_TIMEZONE: UTC
           HOMEUP_ENABLE_UFW: "false"
@@ -51,7 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build --file containers/dev/Dockerfile --tag homeup-dev:smoke .
-      - run: docker run --rm --user dev --volume "$PWD:/workspaces/homeup-linux" --workdir /workspaces/homeup-linux homeup-dev:smoke bash -lc 'just bootstrap user && just doctor'
+      - run: docker run --rm --user dev --volume "$PWD:/workspaces/homeup" --workdir /workspaces/homeup homeup-dev:smoke bash -lc 'just bootstrap user && just doctor'
 
   entrypoint-archive-smoke:
     runs-on: ubuntu-24.04

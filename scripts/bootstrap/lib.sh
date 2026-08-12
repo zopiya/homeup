@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 
-homeup_root() {
-    cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd
-}
-
 homeup_arch() {
     case "$(uname -m)" in
     x86_64 | amd64) printf '%s\n' amd64 ;;

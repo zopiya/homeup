@@ -1,7 +1,7 @@
 # 架构总览
 
-本文档用图和白话文解读 Homeup Linux 的整体设计，帮助你快速建立心智模型。
-**它是 [v1 开发环境契约](dev-environment-v1.md) 的解读版本，不是权威定义**——
+本文档用图和白话文解读 Homeup 的整体设计，帮助你快速建立心智模型。
+**它是 [设计契约](contract.md) 的解读版本，不是权威定义**——
 两者冲突时，一切以契约为准；架构调整也必须先改契约，再改本文档和实现。
 
 ## 1. 一句话概括
@@ -151,7 +151,7 @@ flowchart LR
         B --> C["core-cli.sh\n装 just/chezmoi/sheldon"]
         C --> D["创建 dev 用户\n免密码 sudo"]
     end
-    D --> E["发布到 ghcr.io/…/homeup-linux\n按摘要 pin 进 devcontainer.json"]
+    D --> E["发布到 ghcr.io/…/homeup\n按摘要 pin 进 devcontainer.json"]
     E --> F["Dev Container / Codespaces\n创建容器"]
     F --> G["postCreateCommand:\njust user::apply"]
 ```
@@ -176,7 +176,7 @@ flowchart LR
 | `.github/workflows/` | 校验、镜像发布、每月工具链更新三条流水线 |
 | `docs/` | 本文档体系 |
 
-完整的正式定义见契约 [第 6 节](dev-environment-v1.md#6-仓库结构)。
+完整的正式定义见契约 [第 6 节](contract.md#6-仓库结构)。
 
 ## 8. 想按场景操作，请看
 

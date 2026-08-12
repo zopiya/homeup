@@ -1,8 +1,8 @@
-# Homeup Linux 开发环境 v1
+# Homeup 开发环境契约
 
 ## 状态
 
-**已批准（Accepted）。** 本文档是跨载体（carrier）v1 开发环境的实现契约。实现、
+**已批准（Accepted）。** 本文档是跨载体（carrier）开发环境的实现契约。实现、
 文档与 CI 都必须遵循本文档；契约本身的变更必须先修改本文档，再落地到实现。
 
 ## 1. 目标
@@ -112,7 +112,7 @@ HOMEUP_GIT_SIGN_COMMITS
 
 ## 4. 公开命令契约
 
-以下命令是稳定的 v1 公开接口。
+以下命令是稳定的公开接口。
 
 ```sh
 # 引导当前用户，自动选择被允许的层。
@@ -245,7 +245,7 @@ cloud-init/
   verify.yml
   toolchain-update.yml
 docs/
-  dev-environment-v1.md      # 本契约
+  contract.md                # 本契约
 ```
 
 ## 7. 发布与来源证明（Provenance）
@@ -253,7 +253,7 @@ docs/
 GitHub Actions 构建并测试公开的 `linux/amd64` 镜像，然后将其发布到：
 
 ```text
-ghcr.io/<github-owner>/homeup-linux
+ghcr.io/<github-owner>/homeup
 ```
 
 每一次被接受的发布都会推送：
@@ -287,10 +287,9 @@ GitHub 仓库。CI 使用 GitHub 提供的、权限最小化的 token 来操作�
 
 ## 9. 交付状态
 
-**已实现（Implemented）。** v1 契约已经完整体现在 checked-in 的 bootstrap 各层、
+**已实现（Implemented）。** 本契约已经完整体现在 checked-in 的 bootstrap 各层、
 主机适配器、cloud-init 模板、Docker 镜像、Dev Container 配置、锁文件更新器和
-CI 工作流中。公开接口仅限于第 4 节列出的命令；历史遗留的并行安装器和命令别名
-不属于 v1 的一部分。
+CI 工作流中。公开接口仅限于第 4 节列出的命令；不新增平行的安装器或命令别名。
 
 未来的变更必须保持 carrier/layer 边界与手动 SSH 加固的保证，并在同一次变更中
 同步更新本契约与相关的操作文档。
