@@ -8,9 +8,8 @@ homeup_root() {
 homeup_arch() {
     case "$(uname -m)" in
     x86_64 | amd64) printf '%s\n' amd64 ;;
-    aarch64 | arm64) printf '%s\n' arm64 ;;
     *)
-        printf 'Unsupported architecture: %s (only amd64 and arm64 are supported).\n' "$(uname -m)" >&2
+        printf 'Unsupported architecture: %s (only x86_64/amd64 is supported).\n' "$(uname -m)" >&2
         return 1
         ;;
     esac

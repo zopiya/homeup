@@ -36,14 +36,13 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
-      - name: Validate multi-architecture image build
+      - name: Validate amd64 image build
         uses: docker/build-push-action@v6
         with:
           context: .
           file: containers/dev/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: false
           outputs: type=oci,dest=/tmp/homeup-dev-image.tar
 

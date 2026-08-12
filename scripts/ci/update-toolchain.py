@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import hashlib
-import base64
 import json
 import re
 import subprocess
@@ -77,16 +76,6 @@ def sha256(url: str) -> str:
     return digest.hexdigest()
 
 
-def sigstore_sha256(url: str) -> str:
-    bundle = json.loads(text(f"{url}.sigstore"))
-    body = bundle["verificationMaterial"]["tlogEntries"][0]["canonicalizedBody"]
-    record = json.loads(base64.b64decode(body))
-    digest = record["spec"]["data"]["hash"]
-    if digest["algorithm"] != "sha256" or not re.fullmatch(r"[a-f0-9]{64}", digest["value"]):
-        raise RuntimeError(f"Invalid Sigstore SHA-256 for {url}.")
-    return digest["value"]
-
-
 def rust_target(manifest: str, target: str) -> tuple[str, str]:
     match = re.search(
         rf"^\[pkg\.rust\.target\.{re.escape(target)}\]$\n(.*?)(?=^\[)",
@@ -108,45 +97,30 @@ def resolve() -> dict[str, tuple[str, dict[str, str], dict[str, str]]]:
     node_tag = next(item["version"] for item in node_index if item["lts"])
     node_version = node_tag.removeprefix("v")
     node_sums = sums(f"https://nodejs.org/dist/{node_tag}/SHASUMS256.txt")
-    node_urls = {
-        "amd64": f"https://nodejs.org/dist/{node_tag}/node-v{node_version}-linux-x64.tar.xz",
-        "arm64": f"https://nodejs.org/dist/{node_tag}/node-v{node_version}-linux-arm64.tar.xz",
-    }
+    node_urls = {"amd64": f"https://nodejs.org/dist/{node_tag}/node-v{node_version}-linux-x64.tar.xz"}
     node_hashes = {arch: node_sums[Path(url).name] for arch, url in node_urls.items()}
 
     bun = release("oven-sh/bun")
     bun_version = bun["tag_name"].removeprefix("bun-v")
     bun_sums = sums(asset(bun, "SHASUMS256.txt"))
-    bun_urls = {
-        "amd64": asset(bun, "bun-linux-x64.zip"),
-        "arm64": asset(bun, "bun-linux-aarch64.zip"),
-    }
+    bun_urls = {"amd64": asset(bun, "bun-linux-x64.zip")}
     bun_hashes = {arch: bun_sums[Path(url).name] for arch, url in bun_urls.items()}
 
     just = release("casey/just")
     just_version = just["tag_name"].removeprefix("v")
     just_sums = sums(asset(just, "SHA256SUMS"))
-    just_urls = {
-        "amd64": asset(just, f"just-{just_version}-x86_64-unknown-linux-musl.tar.gz"),
-        "arm64": asset(just, f"just-{just_version}-aarch64-unknown-linux-musl.tar.gz"),
-    }
+    just_urls = {"amd64": asset(just, f"just-{just_version}-x86_64-unknown-linux-musl.tar.gz")}
     just_hashes = {arch: just_sums[Path(url).name] for arch, url in just_urls.items()}
 
     chezmoi = release("twpayne/chezmoi")
     chezmoi_version = chezmoi["tag_name"].removeprefix("v")
     chezmoi_sums = sums(asset(chezmoi, f"chezmoi_{chezmoi_version}_checksums.txt"))
-    chezmoi_urls = {
-        "amd64": asset(chezmoi, f"chezmoi_{chezmoi_version}_linux_amd64.tar.gz"),
-        "arm64": asset(chezmoi, f"chezmoi_{chezmoi_version}_linux_arm64.tar.gz"),
-    }
+    chezmoi_urls = {"amd64": asset(chezmoi, f"chezmoi_{chezmoi_version}_linux_amd64.tar.gz")}
     chezmoi_hashes = {arch: chezmoi_sums[Path(url).name] for arch, url in chezmoi_urls.items()}
 
     sheldon = release("rossmacarthur/sheldon")
     sheldon_version = sheldon["tag_name"].removeprefix("v")
-    sheldon_urls = {
-        "amd64": asset(sheldon, f"sheldon-{sheldon_version}-x86_64-unknown-linux-musl.tar.gz"),
-        "arm64": asset(sheldon, f"sheldon-{sheldon_version}-aarch64-unknown-linux-musl.tar.gz"),
-    }
+    sheldon_urls = {"amd64": asset(sheldon, f"sheldon-{sheldon_version}-x86_64-unknown-linux-musl.tar.gz")}
     sheldon_hashes = {arch: sha256(url) for arch, url in sheldon_urls.items()}
 
     rust_manifest = text("https://static.rust-lang.org/dist/channel-rust-stable.toml")
@@ -156,18 +130,22 @@ def resolve() -> dict[str, tuple[str, dict[str, str], dict[str, str]]]:
     rust_version = rust_version_match.group(1)
     rust_urls: dict[str, str] = {}
     rust_hashes: dict[str, str] = {}
-    for arch, target in {"amd64": "x86_64-unknown-linux-gnu", "arm64": "aarch64-unknown-linux-gnu"}.items():
+    for arch, target in {"amd64": "x86_64-unknown-linux-gnu"}.items():
         rust_urls[arch], rust_hashes[arch] = rust_target(rust_manifest, target)
 
-    releases = json.loads(text("https://www.python.org/api/v2/downloads/release/?is_published=true"))
-    stable = [
-        item
-        for item in releases
-        if not item["pre_release"] and re.fullmatch(r"Python 3\.\d+\.\d+", item["name"])
+    python_release = release("astral-sh/python-build-standalone")
+    python_pattern = re.compile(
+        r"^cpython-(3\.\d+\.\d+)\+\d+-x86_64-unknown-linux-gnu-install_only_stripped\.tar\.gz$"
+    )
+    python_assets = [
+        (tuple(map(int, match.group(1).split("."))), match.group(1), item["browser_download_url"])
+        for item in python_release["assets"]
+        if (match := python_pattern.fullmatch(item["name"]))
     ]
-    python_version = max(stable, key=lambda item: item["release_date"])["name"].removeprefix("Python ")
-    python_url = f"https://www.python.org/ftp/python/{python_version}/Python-{python_version}.tgz"
-    python_hash = sigstore_sha256(python_url)
+    if not python_assets:
+        raise RuntimeError("Missing a stable x86_64 prebuilt CPython asset.")
+    _, python_version, python_url = max(python_assets)
+    python_hash = sha256(python_url)
 
     return {
         "just": (just_version, just_urls, just_hashes),
@@ -175,7 +153,7 @@ def resolve() -> dict[str, tuple[str, dict[str, str], dict[str, str]]]:
         "sheldon": (sheldon_version, sheldon_urls, sheldon_hashes),
         "node": (node_version, node_urls, node_hashes),
         "bun": (bun_version, bun_urls, bun_hashes),
-        "python": (python_version, {"amd64": python_url, "arm64": python_url}, {"amd64": python_hash, "arm64": python_hash}),
+        "python": (python_version, {"amd64": python_url}, {"amd64": python_hash}),
         "rust": (rust_version, rust_urls, rust_hashes),
     }
 
@@ -196,10 +174,7 @@ def update_lock(data: dict[str, tuple[str, dict[str, str], dict[str, str]]]) -> 
     updated = original
     for component, (version, urls, hashes) in data.items():
         updated = replace_case(updated, "lock_version", component, version)
-        if component == "python":
-            labels = {"amd64": "python:amd64 | python:arm64", "arm64": None}
-        else:
-            labels = {arch: f"{component}:{arch}" for arch in ("amd64", "arm64")}
+        labels = {"amd64": f"{component}:amd64"}
         for arch, label in labels.items():
             if label:
                 updated = replace_case(updated, "lock_url", label, urls[arch])

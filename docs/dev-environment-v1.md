@@ -22,7 +22,7 @@ management remain host-only concerns.
 ### Supported platform and non-goals
 
 - Supported operating systems: Debian and Ubuntu only.
-- Supported architectures: `amd64` and `arm64`.
+- Supported architecture: `amd64` / `x86_64`.
 - Default language toolchain: Python, Node.js, Bun, and Rust.
 - No GUI configuration, no non-Debian/Ubuntu support, and no third-party
   version managers (`mise`, `asdf`, `nvm`, or `pyenv`).
@@ -60,9 +60,9 @@ Rust plus their required package managers and tooling. It can run either:
 - entirely in user-owned locations under `~/.local` (including its private
   `opt` prefix) on a host.
 
-It must not require sudo. If build dependencies are absent in a no-sudo
-environment, it exits with an actionable diagnosis rather than silently
-falling back to a different version.
+It must not require sudo or compile language runtimes on the target machine.
+Every language runtime is downloaded from a locked, checksum-verified
+prebuilt archive.
 
 ### User layer
 
@@ -89,8 +89,8 @@ cloud-init, or published logs.
 ### Locked artifacts
 
 `toolchain/lock.sh` is the single source of truth for every non-apt core CLI
-and language artifact. It contains an exact version, per-architecture source
-URL, expected SHA-256 digest, destination, and any components to install.
+and language artifact. It contains an exact version, x86_64 source URL,
+expected SHA-256 digest, destination, and any components to install.
 `toolchain/checksums.sh` may be split out only if it remains sourced by
 `lock.sh`; it is not a second source of version truth.
 
@@ -199,8 +199,8 @@ user-data and it has no automatic SSH-hardening switch.
 ### Docker image
 
 `containers/dev/Dockerfile` is the only image build definition. It uses an
-explicit Debian/Ubuntu base digest, builds for `linux/amd64` and `linux/arm64`,
-and runs the system and language layers during image build. It creates a
+explicit Debian/Ubuntu base digest, builds for `linux/amd64`, and runs the
+system and language layers during image build. It creates a
 non-root `dev` user with passwordless sudo only for interactive development;
 the user layer is not executed at build time.
 
@@ -275,7 +275,7 @@ documented with their replacements and removed only in a later major release.
 
 ## 7. Publishing and provenance
 
-GitHub Actions builds and tests public multi-architecture images, then
+GitHub Actions builds and tests public `linux/amd64` images, then
 publishes them to:
 
 ```text
@@ -287,7 +287,7 @@ Each accepted release publishes:
 - `dev-<commit-sha>` for traceability;
 - a versioned release tag for human consumption;
 - `dev` as the current convenience tag; and
-- an immutable manifest-list digest.
+- an immutable image digest.
 
 The checked-in Dev Container configuration uses the immutable digest. The
 image package is public and linked to its GitHub repository. CI uses GitHub's
@@ -302,7 +302,7 @@ dotfiles must run the applicable checks:
 1. shell formatting, ShellCheck, and shell syntax checks;
 2. chezmoi template validation;
 3. lock-file schema and checksum-reference validation;
-4. Docker multi-platform build validation for amd64 and arm64;
+4. Docker amd64 image build validation;
 5. container smoke test as a non-root user running `just bootstrap user`;
 6. Debian and Ubuntu system-layer smoke tests;
 7. `cloud-init schema --config-file` validation of rendered user-data; and
@@ -323,7 +323,7 @@ Implementation proceeds in these independently reviewable stages:
    commands as compatibility aliases.
 3. Migrate chezmoi templates to opt-in Git identity and remove embedded
    repository credentials from bootstrap defaults.
-4. Add Dockerfile, multi-architecture smoke tests, GHCR publishing, and
+4. Add Dockerfile, amd64 smoke tests, GHCR publishing, and
    provenance metadata.
 5. Add Dev Container/Codespaces configuration and verify prebuild-safe
    lifecycle placement.

@@ -18,17 +18,6 @@ fi
 cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/homeup/downloads"
 mkdir -p "$prefix" "$bin_dir" "$cache_dir"
 
-require_build_tools() {
-    local missing=() command
-    for command in cc make tar xz unzip; do
-        command -v "$command" >/dev/null 2>&1 || missing+=("$command")
-    done
-    if ((${#missing[@]})); then
-        printf 'Language layer needs: %s. Install the system layer first, or ask the host administrator to provide them.\n' "${missing[*]}" >&2
-        return 1
-    fi
-}
-
 artifact() {
     local component="$1" output="$2"
     homeup_download "$(lock_url "$component" "$arch")" "$(lock_sha256 "$component" "$arch")" "$output"
@@ -75,23 +64,17 @@ install_bun() {
 }
 
 install_python() {
-    local version archive target extracted jobs
+    local version archive target extracted
     version="$(lock_version python)"
     target="$prefix/python-$version"
     [[ -x "$target/bin/python3" ]] || {
-        require_build_tools
-        archive="$cache_dir/Python-$version.tgz"
+        archive="$cache_dir/python-$version-$arch.tar.gz"
         artifact python "$archive"
         extracted="$(mktemp -d)"
         trap 'rm -rf "$extracted"' RETURN
         tar -xzf "$archive" -C "$extracted"
-        jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '2')"
-        (
-            cd "$extracted/Python-$version"
-            ./configure --prefix="$target" --with-ensurepip=install
-            make -j"$jobs"
-            make install
-        )
+        rm -rf "$target"
+        mv "$extracted/python" "$target"
         trap - RETURN
         rm -rf "$extracted"
     }
