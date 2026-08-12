@@ -2,42 +2,37 @@
 
 [中文](README.zh-CN.md)
 
+Homeup provides one pinned Debian/Ubuntu development environment for a host,
+VM, cloud-init instance, Development Container, or GitHub Codespaces.
+
 ## Quick start
 
-Fresh cloud server, logged in as `root` (the normal case):
-
-```bash
-curl -fsSL https://get.zopiya.dev/init | bash
-```
-
-Already on the box as a non-root sudo user instead? Use `sudo -E bash` in place of `bash` (plain
-`sudo bash` drops your environment, so `-E` matters if you're overriding `NEW_USER`/`SSH_PUBKEY`).
-
-Creates your user, opens the firewall, clones the repo, and installs `just`/`chezmoi` — then stops
-before disabling root/password SSH login. Verify `ssh zopiya@<ip>` works from another terminal,
-then run the follow-up command it prints.
-
-Log in as that user and finish setup:
-
-```bash
-just bootstrap
-```
-
-(or, without `just`: `curl -fsSL https://get.zopiya.dev/install | bash`)
-
-Update / re-apply later:
-
-```bash
-just update
-```
-
-## Common commands
+On a Debian/Ubuntu development machine with Git:
 
 ```sh
-just diff      # preview
-just apply     # apply
-just update    # pull + apply
-just doctor    # health check
+curl -fsSL https://get.zopiya.dev/dev | bash
 ```
 
-`just` for the full menu · [docs/architecture.md](docs/architecture.md) · [docs/installation.md](docs/installation.md) · [docs/commands.md](docs/commands.md) · [docs/linux-ops.md](docs/linux-ops.md)
+The entry point keeps a checkout in `~/.local/share/homeup-linux`, installs a
+locked `just`, and runs `just bootstrap auto`. With root or non-interactive
+sudo it installs all layers; without it, it safely skips only the system layer.
+
+From a checkout, the equivalent commands are:
+
+```sh
+just bootstrap          # automatic privilege selection
+just bootstrap full     # require system access
+just bootstrap user     # language + user layers only; never sudo
+just doctor             # exact lock-version report
+```
+
+Host provisioning is intentionally separate and SSH hardening is always a
+manual follow-up:
+
+```sh
+NEW_USER=dev SSH_PUBKEY="ssh-ed25519 AAAA..." just host::provision
+just host::ssh-harden
+```
+
+See the accepted [v1 environment contract](docs/dev-environment-v1.md), the
+[command reference](docs/commands.md), and [installation guide](docs/installation.md).

@@ -1,0 +1,24 @@
+#cloud-config
+# Render this template with explicit values before uploading it as user-data.
+# Required values: HOMEUP_USER, HOMEUP_SSH_PUBLIC_KEY, HOMEUP_REPO_URL.
+# Optional values: HOMEUP_HOSTNAME, HOMEUP_TIMEZONE, HOMEUP_ENABLE_UFW.
+hostname: ${HOMEUP_HOSTNAME}
+users:
+  - name: ${HOMEUP_USER}
+    groups: [sudo]
+    shell: /usr/bin/zsh
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys:
+      - ${HOMEUP_SSH_PUBLIC_KEY}
+package_update: true
+packages:
+  - git
+  - curl
+  - sudo
+runcmd:
+  - [bash, -lc, 'if [ -n "${HOMEUP_TIMEZONE}" ]; then timedatectl set-timezone "${HOMEUP_TIMEZONE}"; fi']
+  - [bash, -lc, 'if [ "${HOMEUP_ENABLE_UFW}" = "true" ]; then apt-get install -y ufw && ufw allow OpenSSH && ufw --force enable; fi']
+  - [bash, -lc, 'git clone "${HOMEUP_REPO_URL}" /opt/homeup-linux || git -C /opt/homeup-linux pull --ff-only']
+  - [bash, -lc, 'chown -R ${HOMEUP_USER}:${HOMEUP_USER} /opt/homeup-linux && bash /opt/homeup-linux/scripts/bootstrap/system.sh']
+  - [bash, -lc, 'runuser -l ${HOMEUP_USER} -c "HOMEUP_BIN_DIR=/home/${HOMEUP_USER}/.local/bin bash /opt/homeup-linux/scripts/bootstrap/bootstrap-just.sh >/dev/null"']
+  - [bash, -lc, 'runuser -l ${HOMEUP_USER} -c "/home/${HOMEUP_USER}/.local/bin/just --justfile /opt/homeup-linux/justfile language::install && /home/${HOMEUP_USER}/.local/bin/just --justfile /opt/homeup-linux/justfile user::apply"']

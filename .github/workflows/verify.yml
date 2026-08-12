@@ -1,0 +1,64 @@
+name: Verify development environment
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  shell-and-lock:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck shfmt gettext-base cloud-init zsh
+      - run: bash -n $(find scripts toolchain -name '*.sh' -type f)
+      - run: shellcheck -x $(find scripts toolchain -name '*.sh' -type f)
+      - run: shfmt -d -i 4 $(find scripts toolchain -name '*.sh' -type f)
+      - run: python3 -m py_compile scripts/ci/update-toolchain.py
+      - run: zsh -n $(find dot_config -name '*.zsh' -type f)
+      - run: scripts/ci/validate-lock.sh
+      - name: Validate Dev Container lifecycle
+        run: jq -e '.remoteUser == "dev" and .postCreateCommand == "just user::apply" and ((has("build")) or (.image | test("@sha256:[a-f0-9]{64}$")))' .devcontainer/devcontainer.json
+      - name: Validate cloud-init rendering
+        env:
+          HOMEUP_USER: dev
+          HOMEUP_SSH_PUBLIC_KEY: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeKeyForSchemaOnly homeup
+          HOMEUP_REPO_URL: https://github.com/example/homeup-linux.git
+          HOMEUP_HOSTNAME: homeup-ci
+          HOMEUP_TIMEZONE: UTC
+          HOMEUP_ENABLE_UFW: "false"
+        run: envsubst < cloud-init/homeup.yaml.tmpl >/tmp/homeup-cloud-init.yaml && cloud-init schema --config-file /tmp/homeup-cloud-init.yaml
+
+  image:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Validate multi-architecture image build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: containers/dev/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          outputs: type=oci,dest=/tmp/homeup-dev-image.tar
+
+  container-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --file containers/dev/Dockerfile --tag homeup-dev:smoke .
+      - run: docker run --rm --user dev --volume "$PWD:/workspaces/homeup-linux" --workdir /workspaces/homeup-linux homeup-dev:smoke bash -lc 'just bootstrap user && just doctor'
+
+  system-smoke:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        image: [debian:13-slim, ubuntu:24.04]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker run --rm --volume "$PWD:/workspace" --workdir /workspace ${{ matrix.image }} bash scripts/bootstrap/system.sh

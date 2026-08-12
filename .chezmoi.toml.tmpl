@@ -9,12 +9,13 @@ sourceDir = "{{ .chezmoi.sourceDir }}"
 # ==============================================================================
 # Global Variables
 # ==============================================================================
-# Headless Debian/Ubuntu server repo — sibling of homeup (macOS). No profile/OS
-# branching needed here either.
 [data]
-    # --- User Identity ---
-    name = "zopiya"
-    email = "i@zopiya.com"
+    # Identity is opt-in so a public image or fresh Codespace never inherits
+    # personal Git data. Set HOMEUP_GIT_* before `just user::apply`.
+    git_name = {{ env "HOMEUP_GIT_NAME" | quote }}
+    git_email = {{ env "HOMEUP_GIT_EMAIL" | quote }}
+    git_signing_key = {{ env "HOMEUP_GIT_SIGNING_KEY" | quote }}
+    git_sign_commits = {{ env "HOMEUP_GIT_SIGN_COMMITS" | quote }}
 
 # --- Editor ---
 [edit]

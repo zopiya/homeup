@@ -2,42 +2,32 @@
 
 [English](README.md)
 
+Homeup 为 Debian/Ubuntu 提供统一、可锁定版本的开发环境：物理机、VM、cloud-init、Dev Container 与 GitHub Codespaces 使用同一套层和命令。
+
 ## 快速开始
 
-全新云服务器，直接以 `root` 登录（常见情况）：
-
-```bash
-curl -fsSL https://get.zopiya.dev/init | bash
-```
-
-如果是以已有的非 root sudo 用户登录，把 `bash` 换成 `sudo -E bash`（普通 `sudo bash` 会清空环境
-变量，要覆盖 `NEW_USER`/`SSH_PUBKEY` 时 `-E` 才有用）。
-
-建好用户、开防火墙、clone 仓库、装好 `just`/`chezmoi`，然后停在关闭 root/密码登录之前 ——
-另开个终端 `ssh zopiya@<ip>` 确认能登录，再手动跑它打印出来的那条命令。
-
-登录那个用户，跑完剩下的安装：
-
-```bash
-just bootstrap
-```
-
-（不想用 just 也可以：`curl -fsSL https://get.zopiya.dev/install | bash`）
-
-之后更新 / 重新 apply：
-
-```bash
-just update
-```
-
-## 常用命令
+在已安装 Git 的 Debian/Ubuntu 开发环境执行：
 
 ```sh
-just diff      # 预览
-just apply     # 应用
-just update    # 拉最新 + 应用
-just doctor    # 健康检查
+curl -fsSL https://get.zopiya.dev/dev | bash
 ```
 
-`just` 看完整菜单 · [docs/architecture.md](docs/architecture.md) 架构 · [docs/installation.md](docs/installation.md) 安装
-· [docs/commands.md](docs/commands.md) 命令手册 · [docs/linux-ops.md](docs/linux-ops.md) 运维工具箱用法（均为英文，除本文件外）
+入口会把仓库维护在 `~/.local/share/homeup-linux`，安装锁定版本的 `just`，并运行 `just bootstrap auto`。可用 root 或非交互 sudo 时会安装全部层；没有 sudo 时只跳过系统层，语言层和用户层仍可运行。
+
+已 clone 仓库时，等价命令为：
+
+```sh
+just bootstrap          # 自动选择允许的层
+just bootstrap full     # 必须具备系统权限
+just bootstrap user     # 只运行语言层与用户层，绝不调用 sudo
+just doctor             # 检查精确锁定版本
+```
+
+主机初始化与开发环境分离，SSH 加固永远需要人工单独执行：
+
+```sh
+NEW_USER=dev SSH_PUBKEY="ssh-ed25519 AAAA..." just host::provision
+just host::ssh-harden
+```
+
+完整约束见 [v1 开发环境契约](docs/dev-environment-v1.md)，具体命令见 [命令手册](docs/commands.md)。

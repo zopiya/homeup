@@ -1,0 +1,21 @@
+{
+  "name": "Homeup Linux",
+  "build": {
+    "dockerfile": "../containers/dev/Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "dev",
+  "postCreateCommand": "just user::apply",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "tamasfe.even-better-toml",
+        "mkhl.shfmt",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "files.eol": "\n"
+      }
+    }
+  }
+}

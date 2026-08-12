@@ -8,11 +8,9 @@
 #
 #   curl -fsSL https://get.zopiya.dev/init | sudo -E bash
 #
-# NEW_USER/SSH_PUBKEY default to zopiya's own user/key (see
-# scripts/system/create-user.sh) — override via env vars for a different user.
-# (`-E` matters: plain `sudo bash` resets the environment and an overridden
-# NEW_USER/SSH_PUBKEY would never reach the script. Already logged in as
-# literal root? Drop `sudo -E` entirely and just pipe into `bash`.)
+# NEW_USER and SSH_PUBKEY are required explicit inputs. (`-E` matters: plain
+# `sudo bash` resets the environment and these variables would never reach the
+# script. Already logged in as literal root? Drop `sudo -E` entirely.)
 #
 # SSH hardening (disabling root/password login) is deliberately NOT part of
 # this script — that's scripts/system/ssh-harden.sh's job, and it never runs
@@ -26,8 +24,8 @@
 # automatically and never as root.
 set -euo pipefail
 
-NEW_USER="${NEW_USER:-zopiya}"
-REPO_URL="${HOMEUP_REPO_URL:-https://bfa307128a5b7cf8376d61c7956fe64022f91054@git.zopiya.dev/infra/homeup-linux.git}"
+NEW_USER="${NEW_USER:-}"
+REPO_URL="${HOMEUP_REPO_URL:-https://github.com/zopiya/homeup.git}"
 REPO_DIR="${HOMEUP_DIR:-/opt/homeup}"
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -63,13 +61,24 @@ require_apt() {
     }
 }
 
+require_host_inputs() {
+    [[ -n "$NEW_USER" && -n "${SSH_PUBKEY:-}" ]] || {
+        error 'NEW_USER and SSH_PUBKEY are required for legacy host initialization.'
+        echo "  Example: export NEW_USER=dev SSH_PUBKEY='ssh-ed25519 AAAA... laptop'; curl -fsSL https://get.zopiya.dev/init | sudo -E bash" >&2
+        exit 1
+    }
+}
+
 # Core support is Debian 12/13 and Ubuntu 24.04/26.04 (each distro's two most
 # recent LTS releases) — other Debian/Ubuntu versions aren't blocked, just not
 # a support target, so this only warns and continues.
 check_os_support() {
     local id version_id pretty_name
+    # shellcheck disable=SC1091,SC2153
     id=$(. /etc/os-release && echo "$ID")
+    # shellcheck disable=SC1091,SC2153
     version_id=$(. /etc/os-release && echo "$VERSION_ID")
+    # shellcheck disable=SC1091,SC2153
     pretty_name=$(. /etc/os-release && echo "$PRETTY_NAME")
     case "$id:$version_id" in
     debian:12 | debian:13 | ubuntu:24.04 | ubuntu:26.04) return ;;
@@ -100,29 +109,17 @@ sync_repo() {
     fi
 }
 
-# Installs only `just` and `chezmoi` — just enough for $NEW_USER to run
-# `just bootstrap` themselves. Deliberately not the full
-# scripts/packages/install-tools.sh (that installs a whole toolset and is a
-# manual choice, run as the new user, not something root does for them).
-# Duplicates install-tools.sh's install_chezmoi/install_just one-liners
-# rather than sourcing/parametrizing that script, for the same reason
-# scripts/install.sh doesn't source this one either: entry scripts here are
-# meant to stand alone under `curl | bash`, without assuming anything else in
-# the repo is a safe thing to source.
+# The v1 bootstrap owns locked CLI installation. This legacy Day 0 helper only
+# creates/provisions the host and hands the checkout to the target user.
 install_minimal_tools() {
-    local bin_dir="/home/$NEW_USER/.local/bin"
-    su - "$NEW_USER" -c "
-        set -euo pipefail
-        mkdir -p '$bin_dir'
-        command -v chezmoi &>/dev/null || sh -c \"\$(curl --connect-timeout 10 --max-time 180 -fsLS get.chezmoi.io)\" -- -b '$bin_dir'
-        command -v just &>/dev/null || curl --connect-timeout 10 --max-time 180 --proto '=https' --tlsv1.2 -fsSL https://just.systems/install.sh | bash -s -- --to '$bin_dir'
-    "
-    success "just/chezmoi installed for $NEW_USER"
+    su - "$NEW_USER" -c "HOMEUP_DIR='$REPO_DIR' bash '$REPO_DIR/scripts/bootstrap/bootstrap-just.sh' >/dev/null"
+    success "locked just installed for $NEW_USER"
 }
 
 main() {
     require_root
     require_apt
+    require_host_inputs
     check_os_support
     ensure_git
     sync_repo
@@ -144,7 +141,7 @@ main() {
     install_minimal_tools
 
     echo ""
-    success "init.sh complete — $NEW_USER exists, $REPO_DIR is cloned, just/chezmoi are installed."
+    success "init.sh complete — $NEW_USER exists, $REPO_DIR is cloned, and locked just is installed."
     echo ""
     echo "${C_YELLOW}Next:${C_RESET} verify you can log in as $NEW_USER, then — and only then — harden SSH yourself:"
     echo "  cd $REPO_DIR && NEW_USER=$NEW_USER just scripts::ssh-harden"
