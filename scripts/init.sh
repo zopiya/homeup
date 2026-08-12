@@ -25,7 +25,7 @@
 set -euo pipefail
 
 NEW_USER="${NEW_USER:-}"
-REPO_URL="${HOMEUP_REPO_URL:-https://github.com/zopiya/homeup-linux.git}"
+REPO_URL="${HOMEUP_REPO_URL:-https://github.com/zopiya/homeup.git}"
 REPO_DIR="${HOMEUP_DIR:-/opt/homeup}"
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then

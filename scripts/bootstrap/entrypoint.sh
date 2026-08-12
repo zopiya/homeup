@@ -3,7 +3,7 @@
 # to the checked-in, locked bootstrap implementation.
 set -euo pipefail
 
-repo_url="${HOMEUP_REPO_URL:-https://github.com/zopiya/homeup-linux.git}"
+repo_url="${HOMEUP_REPO_URL:-https://github.com/zopiya/homeup.git}"
 repo_dir="${HOMEUP_DIR:-$HOME/.local/share/homeup-linux}"
 
 command -v git >/dev/null 2>&1 || {
