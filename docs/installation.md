@@ -2,7 +2,7 @@
 
 ## Developer machine, VM, or host
 
-Debian and Ubuntu on `amd64` and `arm64` are supported. The standard route is:
+Debian and Ubuntu on `x86_64` / `amd64` are supported. The standard route is:
 
 ```sh
 curl -fsSL https://get.zopiya.dev/dev | bash
@@ -20,9 +20,9 @@ just language::install   # user-owned paths by default
 just user::apply         # locked CLI + chezmoi
 ```
 
-The language layer builds CPython where needed and therefore needs the build
-packages from the system layer. A no-sudo machine without those prerequisites
-fails with a diagnostic rather than installing an unpinned fallback.
+The language layer downloads locked prebuilt runtime archives, including
+CPython, and verifies their SHA-256 digests. It does not compile languages on
+the target machine.
 
 ## Fresh persistent host
 

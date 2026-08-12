@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-# Debian 13-slim manifest list, pinned on 2026-08-12 for linux/amd64 and linux/arm64.
+# Debian 13-slim digest, pinned on 2026-08-12 for linux/amd64.
 FROM debian:13-slim@sha256:3a39a0592364683e6bab97937b72cad5a8fa6dcbbee90edb3bb48c7f8e94f258
 
 ENV DEBIAN_FRONTEND=noninteractive \

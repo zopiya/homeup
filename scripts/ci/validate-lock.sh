@@ -19,22 +19,21 @@ for component in $(lock_components); do
         echo "Missing install components for $component" >&2
         exit 1
     }
-    for arch in amd64 arm64; do
-        url="$(lock_url "$component" "$arch")"
-        checksum="$(lock_sha256 "$component" "$arch")"
-        [[ "$url" == https://* ]] || {
-            echo "$component/$arch URL is not HTTPS" >&2
-            exit 1
-        }
-        [[ "$url" != *latest* ]] || {
-            echo "$component/$arch URL must not use latest" >&2
-            exit 1
-        }
-        [[ "$checksum" =~ ^[a-f0-9]{64}$ ]] || {
-            echo "Invalid SHA-256 for $component/$arch" >&2
-            exit 1
-        }
-    done
+    arch=amd64
+    url="$(lock_url "$component" "$arch")"
+    checksum="$(lock_sha256 "$component" "$arch")"
+    [[ "$url" == https://* ]] || {
+        echo "$component/$arch URL is not HTTPS" >&2
+        exit 1
+    }
+    [[ "$url" != *latest* ]] || {
+        echo "$component/$arch URL must not use latest" >&2
+        exit 1
+    }
+    [[ "$checksum" =~ ^[a-f0-9]{64}$ ]] || {
+        echo "Invalid SHA-256 for $component/$arch" >&2
+        exit 1
+    }
 done
 
 [[ "$(lock_tpm_repository)" == https://* ]] || {
