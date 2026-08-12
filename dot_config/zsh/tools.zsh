@@ -102,8 +102,9 @@ fi
 # Deferred keybindings (plugins are loaded async via zsh-defer)
 
 # History substring search: arrow keys navigate matching history
-zsh-defer bindkey "^[[A" history-substring-search-up
-zsh-defer bindkey "^[[B" history-substring-search-down
-zsh-defer bindkey "^P" history-substring-search-up
-zsh-defer bindkey "^N" history-substring-search-down
-
+if (( $+functions[zsh-defer] )); then
+    zsh-defer bindkey "^[[A" history-substring-search-up
+    zsh-defer bindkey "^[[B" history-substring-search-down
+    zsh-defer bindkey "^P" history-substring-search-up
+    zsh-defer bindkey "^N" history-substring-search-down
+fi

@@ -7,27 +7,27 @@ SCRIPTS_DIR := source_directory()
 # Create sudo user + install SSH key + passwordless sudo
 @create-user:
     echo "→ Creating sudo user..."
-    sudo bash "{{SCRIPTS_DIR}}/system/create-user.sh"
+    sudo -E bash "{{SCRIPTS_DIR}}/system/create-user.sh"
 
 # Configure ufw firewall
 @ufw:
     echo "→ Configuring firewall (ufw)..."
-    sudo bash "{{SCRIPTS_DIR}}/system/ufw.sh"
+    sudo -E bash "{{SCRIPTS_DIR}}/system/ufw.sh"
 
 # Set hostname
 @hostname:
     echo "→ Setting hostname..."
-    sudo bash "{{SCRIPTS_DIR}}/system/hostname.sh"
+    sudo -E bash "{{SCRIPTS_DIR}}/system/hostname.sh"
 
 # Set timezone
 @timezone:
     echo "→ Setting timezone..."
-    sudo bash "{{SCRIPTS_DIR}}/system/timezone.sh"
+    sudo -E bash "{{SCRIPTS_DIR}}/system/timezone.sh"
 
 # Disable root/password SSH login (never automatic — run manually after confirming login)
 @ssh-harden:
     echo "→ SSH hardening (irreversible — read the prompts carefully)..."
-    sudo bash "{{SCRIPTS_DIR}}/system/ssh-harden.sh"
+    sudo -E bash "{{SCRIPTS_DIR}}/system/ssh-harden.sh"
 
 # ── Packages (Day 1) ─────────────────────────────────────────────────────────
 
@@ -37,7 +37,7 @@ SCRIPTS_DIR := source_directory()
     sudo apt-get update -qq
     grep -v '^#' "{{SCRIPTS_DIR}}/packages/apt-packages.txt" | xargs sudo apt-get install -y
 
-# Install upstream tools apt lacks/undershoots
+# Deprecated compatibility alias for locked core CLI installation.
 @tools:
-    echo "→ Installing upstream tools (chezmoi, just, neovim, ...)..."
+    echo "→ Installing locked core CLI tools..."
     bash "{{SCRIPTS_DIR}}/packages/install-tools.sh"

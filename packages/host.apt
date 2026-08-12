@@ -1,0 +1,2 @@
+# Persistent-host/VM operational packages. Never install these in the dev image.
+ufw

@@ -1,8 +1,22 @@
-# ==============================================================================
-# Git Identity
-# ==============================================================================
-
+{{- $name := env "HOMEUP_GIT_NAME" }}
+{{- $email := env "HOMEUP_GIT_EMAIL" }}
+{{- $signingKey := env "HOMEUP_GIT_SIGNING_KEY" }}
+{{- $signCommits := env "HOMEUP_GIT_SIGN_COMMITS" }}
+{{- if or $name $email $signingKey }}
 [user]
-    name = {{ .name | default "" }}
-    email = {{ .email | default "" }}
-    signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKQ4Av3vfRyFgRIBw/WMEiSb1r96MumJPqH0W31m7M+J zopiya
+{{- if $name }}
+    name = {{ $name | quote }}
+{{- end }}
+{{- if $email }}
+    email = {{ $email | quote }}
+{{- end }}
+{{- if $signingKey }}
+    signingkey = {{ $signingKey | quote }}
+{{- end }}
+{{- end }}
+{{- if eq $signCommits "true" }}
+[commit]
+    gpgSign = true
+[gpg]
+    format = ssh
+{{- end }}

@@ -1,0 +1,32 @@
+name: Check toolchain updates
+
+on:
+  schedule:
+    - cron: '17 4 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update lock from official immutable release metadata
+        run: python3 scripts/ci/update-toolchain.py
+      - name: Validate the updated lock and record metadata
+        run: |
+          scripts/ci/validate-lock.sh
+          scripts/ci/check-toolchain-update.sh >toolchain/update-report.md
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'chore: update locked toolchain'
+          title: 'chore: update locked toolchain'
+          body: 'Updates exact release URLs and SHA-256 values from official upstream metadata. Review the lock and CI before merging.'
+          branch: automation/toolchain-update
+          delete-branch: true
+          add-paths: |
+            toolchain/lock.sh
+            toolchain/update-report.md
