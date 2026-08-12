@@ -1,77 +1,68 @@
-# Homeup Linux Development Environment v1
+# Homeup Linux 开发环境 v1
 
-## Status
+## 状态
 
-**Accepted.** This document is the implementation contract for the v1
-cross-carrier development environment. Implementation, documentation, and CI
-must follow this document; changes to the contract require updating this
-document first.
+**已批准（Accepted）。** 本文档是跨载体（carrier）v1 开发环境的实现契约。实现、
+文档与 CI 都必须遵循本文档；契约本身的变更必须先修改本文档，再落地到实现。
 
-## 1. Goal
+## 1. 目标
 
-Provide one consistent, personal Linux development environment on supported
-Debian and Ubuntu releases, whether it runs on a long-lived host, virtual
-machine, cloud-init provisioned instance, local Development Container, or
-GitHub Codespaces.
+在受支持的 Debian 与 Ubuntu 发行版上，无论运行在长期存活的主机、虚拟机、
+cloud-init 配置的实例、本地 Development Container，还是 GitHub Codespaces，
+都提供同一套一致、个人化的 Linux 开发环境。
 
-Consistency means the same pinned core CLI and language runtimes, dotfiles,
-shell behavior, and public `just` commands. It does not mean treating
-containers as hosts: SSH, firewall, hostname, timezone, and login-shell
-management remain host-only concerns.
+一致性指的是相同的锁定版本核心 CLI 与语言运行时、相同的 dotfiles、相同的 shell
+行为，以及相同的公开 `just` 命令。它不代表把容器当主机对待：SSH、防火墙、主机名、
+时区与登录 shell 管理，始终只属于主机层面的职责。
 
-### Supported platform and non-goals
+### 支持平台与非目标
 
-- Supported operating systems: Debian and Ubuntu only.
-- Supported architecture: `amd64` / `x86_64`.
-- Default language toolchain: Python, Node.js, Bun, and Rust.
-- No GUI configuration, no non-Debian/Ubuntu support, and no third-party
-  version managers (`mise`, `asdf`, `nvm`, or `pyenv`).
-- SSH hardening is never automated. It remains a separately invoked,
-  human-confirmed host operation.
+- 仅支持操作系统：Debian 与 Ubuntu。
+- 仅支持架构：`amd64` / `x86_64`。
+- 默认语言工具链：Python、Node.js、Bun、Rust。
+- 不做任何 GUI 配置，不支持非 Debian/Ubuntu 系统，也不使用第三方版本管理器
+  （`mise`、`asdf`、`nvm`、`pyenv`）。
+- SSH 加固永远不会被自动化。它始终是一个单独调用、需要人工确认的主机操作。
 
-## 2. Model: carriers and layers
+## 2. 模型：载体（carrier）与层（layer）
 
-Every installation is described by one carrier and up to three layers.
+每一次安装都由一个载体和最多三个层描述。
 
-| Carrier | System layer | Language layer | User layer |
+| 载体 | 系统层 | 语言层 | 用户层 |
 | --- | --- | --- | --- |
-| Host or VM with root/sudo | Install | Install | Install |
-| Host or VM without sudo | Report unavailable | Install to user-owned paths | Install |
-| cloud-init | Configure through cloud-init, then install | Install for target user | Install for target user |
-| Docker image | Install at build time | Install at build time | Not applied |
-| Dev Container/Codespaces | Present from image | Present from image | Apply after the target user exists |
+| 有 root/sudo 的主机或 VM | 安装 | 安装 | 安装 |
+| 无 sudo 的主机或 VM | 报告不可用 | 安装到用户自有路径 | 安装 |
+| cloud-init | 通过 cloud-init 配置，再安装 | 为目标用户安装 | 为目标用户安装 |
+| Docker 镜像 | 构建期安装 | 构建期安装 | 不应用 |
+| Dev Container / Codespaces | 由镜像预置 | 由镜像预置 | 目标用户存在后应用 |
 
-### System layer
+### 系统层
 
-The system layer is the only layer allowed to use `apt` or otherwise require
-root. It installs Debian/Ubuntu packages needed by the environment and may add
-the narrow package sources required by pinned tools.
+系统层是唯一允许使用 `apt` 或需要 root 权限的层。它安装环境所需的
+Debian/Ubuntu 软件包，并可以按需添加锁定工具所需的少量额外软件源。
 
-It explicitly excludes host provisioning. Host provisioning is a separate
-host-only capability: user creation, SSH public keys, firewall, hostname,
-timezone, and optional manual SSH hardening.
+它明确不包含主机初始化（host provisioning）。主机初始化是一项独立的、
+仅主机可用的能力：创建用户、写入 SSH 公钥、防火墙、主机名、时区，以及
+可选的手动 SSH 加固。
 
-### Language layer
+### 语言层
 
-The language layer installs the pinned versions of Python, Node.js, Bun, and
-Rust plus their required package managers and tooling. It can run either:
+语言层安装锁定版本的 Python、Node.js、Bun、Rust，以及它们所需的包管理器和
+工具。它可以运行在两种场景之一：
 
-- system-wide in a Docker image build; or
-- entirely in user-owned locations under `~/.local` (including its private
-  `opt` prefix) on a host.
+- 在 Docker 镜像构建期以系统范围安装；或
+- 完全安装在主机上用户自有的路径下（包括其私有的 `opt` 前缀）。
 
-It must not require sudo or compile language runtimes on the target machine.
-Every language runtime is downloaded from a locked, checksum-verified
-prebuilt archive.
+它不得要求 sudo，也不得在目标机器上编译语言运行时。每一个语言运行时都从
+经过校验和验证的锁定预编译归档下载。
 
-### User layer
+### 用户层
 
-The user layer never requires sudo. It installs user-owned core CLI tools,
-applies chezmoi dotfiles, initializes user-owned integrations (Sheldon and
-TPM), and verifies the resulting environment.
+用户层永远不需要 sudo。它安装用户自有的核心 CLI 工具，应用 chezmoi 管理的
+dotfiles，初始化用户自有的集成（Sheldon 与 TPM），并验证最终环境。
 
-Git identity is opt-in. Chezmoi templates use only these variables when they
-are set:
+Git 身份信息是可选启用（opt-in）的。chezmoi 模板只在下列变量被设置时才会
+使用它们：
 
 ```text
 HOMEUP_GIT_NAME
@@ -80,173 +71,158 @@ HOMEUP_GIT_SIGNING_KEY
 HOMEUP_GIT_SIGN_COMMITS
 ```
 
-By default, no Git identity, signing configuration, personal key, or secret is
-written. Credentials are never embedded in the repository, image, generated
-cloud-init, or published logs.
+默认情况下，不会写入任何 Git 身份、签名配置、个人密钥或密钥材料。凭据永远
+不会被内嵌进仓库、镜像、生成的 cloud-init 数据或公开发布的日志中。
 
-## 3. Version and supply-chain policy
+## 3. 版本与供应链策略
 
-### Locked artifacts
+### 锁定产物
 
-`toolchain/lock.sh` is the single source of truth for every non-apt core CLI
-and language artifact. It contains an exact version, x86_64 source URL,
-expected SHA-256 digest, destination, and any components to install.
-If checksum data is ever split into another file, it must remain sourced by
-`lock.sh`; it is not a second source of version truth.
+`toolchain/lock.sh` 是每一个非 apt 的核心 CLI 与语言产物的唯一版本真源
+（single source of truth）。它记录精确版本号、x86_64 源 URL、期望的 SHA-256
+摘要、目标位置，以及需要安装的组件。如果校验和数据以后被拆分到另一个文件，
+它仍必须由 `lock.sh` 引用；`lock.sh` 是唯一的版本真源，不允许出现第二个。
 
-Installers download only URLs constructed from this lock data, verify the
-digest before installation, and never request a `latest` endpoint in the
-normal install path.
+安装脚本只下载由这些锁定数据拼接出的 URL，安装前先校验摘要，并且在正常安装
+路径中永远不会请求 `latest` 端点。
 
-### Update policy
+### 更新策略
 
-- Node.js: newest active LTS release at the time of an update.
-- Python: newest stable CPython release at the time of an update.
-- Bun: newest stable release at the time of an update.
-- Rust: newest stable release at the time of an update.
-- Core CLI: newest compatible stable release at the time of an update.
+- Node.js：更新时选择当时最新的活跃 LTS 版本。
+- Python：更新时选择当时最新的稳定 CPython 版本。
+- Bun：更新时选择当时最新的稳定版本。
+- Rust：更新时选择当时最新的稳定版本。
+- 核心 CLI：更新时选择当时最新的兼容稳定版本。
 
-A scheduled GitHub Actions workflow checks official upstream metadata monthly
-and directly commits updated lock data, checksums, and update metadata to the
-default branch. The normal verification and image-publishing workflows then
-run from that same commit. This is intentionally optimized for the single-user
-repository: GitHub Actions is the audit trail rather than a mandatory PR.
+一个按月执行的 GitHub Actions 定时工作流会检查官方上游元数据，并直接把更新后的
+锁定数据、校验和与更新元数据提交到默认分支。随后常规的验证与镜像发布工作流会
+基于同一个提交运行。这个设计是刻意为单人仓库优化的：GitHub Actions 本身就是
+审计轨迹，而不强制要求 PR 评审。
 
-### apt policy
+### apt 策略
 
-Packages supplied by Debian/Ubuntu apt remain distribution-managed. The
-repository maintains two explicit lists:
+由 Debian/Ubuntu apt 提供的软件包仍由发行版自行管理版本。仓库维护两份明确的
+清单：
 
-- `packages/base.apt`: packages necessary on every carrier with system access.
-- `packages/host.apt`: host/VM-only operational tooling.
+- `packages/base.apt`：每一个具备系统访问权限的载体都需要的软件包。
+- `packages/host.apt`：仅主机/VM 需要的运维工具。
 
-No language runtime or core CLI that is required to be version-consistent may
-be supplied by apt unless its version is explicitly accepted into the lock
-policy.
+任何需要版本一致性的语言运行时或核心 CLI，都不允许由 apt 提供，除非它的版本
+已经被明确纳入锁定策略。
 
-## 4. Public command contract
+## 4. 公开命令契约
 
-The following commands are the stable v1 public interface.
+以下命令是稳定的 v1 公开接口。
 
 ```sh
-# Bootstrap the current user and automatically select the permitted layers.
+# 引导当前用户，自动选择被允许的层。
 just bootstrap
 
-# Explicitly choose an installation policy.
+# 显式选择安装策略。
 just bootstrap auto
 just bootstrap full
 just bootstrap user
 
-# Execute one layer.
+# 执行单个层。
 just system::install
 just language::install
 just user::apply
 
-# Persistent-host-only provisioning.
+# 仅限长期主机的初始化。
 just host::provision
 just host::ssh-harden
 
-# Report installed versions, missing prerequisites, and skipped layers.
+# 报告已安装版本、缺失的前置条件与被跳过的层。
 just doctor
 ```
 
-Modes have the following exact meaning:
+各模式的确切含义如下：
 
-| Mode | Behavior |
+| 模式 | 行为 |
 | --- | --- |
-| `auto` | Install the system layer only when root/sudo is usable; always run language and user layers. |
-| `full` | Require root or non-interactive-capable sudo and fail before making changes if unavailable. |
-| `user` | Never call `sudo` or `apt`; run only language and user layers. |
+| `auto` | 只在 root/sudo 可用时安装系统层；语言层和用户层始终运行。 |
+| `full` | 要求 root 或可免交互使用的 sudo，如果不可用则在做任何改动之前失败。 |
+| `user` | 永远不调用 `sudo` 或 `apt`；只运行语言层与用户层。 |
 
-All layers are idempotent. Re-running a command with the same lock data must
-converge to the same state. A new lock version is applied only after its normal
-checksum verification.
+所有层都是幂等的。使用相同锁定数据重复执行同一个命令，必须收敛到相同的状态。
+只有在通过正常的校验和验证之后，才会应用新的锁定版本。
 
-The curl entry point is intentionally thin:
+curl 入口点被刻意设计得很薄：
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/scripts/bootstrap/entrypoint.sh | bash
 ```
 
-It obtains or updates the checkout, performs carrier and privilege detection,
-and invokes `just bootstrap auto`. It must not duplicate package,
-language, or user-layer installation logic. `HOMEUP_REPO_URL`, `HOMEUP_REF`,
-`HOMEUP_DIR`, and (for non-GitHub sources without Git) `HOMEUP_ARCHIVE_URL`
-remain override points; no access token may be compiled into the script.
+它负责获取或更新 checkout、执行载体与权限探测，并调用 `just bootstrap auto`。
+它不得重复实现软件包、语言或用户层的安装逻辑。`HOMEUP_REPO_URL`、`HOMEUP_REF`、
+`HOMEUP_DIR`，以及（在没有 Git 的非 GitHub 源场景下）`HOMEUP_ARCHIVE_URL`，
+都是保留的覆盖点；脚本中不得编译进任何访问令牌。
 
-## 5. Carrier adapters
+## 5. 载体适配器
 
-### Host and VM
+### 主机与 VM
 
-`just bootstrap` (equivalent to `just bootstrap auto`) is the standard developer-environment entry
-point. `just host::provision` is optional and intended only for a new
-persistent VM or physical host. It composes the independent host scripts but
-never calls `host::ssh-harden`.
+`just bootstrap`（等价于 `just bootstrap auto`）是标准的开发环境入口命令。
+`just host::provision` 是可选的，只用于全新的长期主机或物理机。它组合了独立的
+主机脚本，但永远不会调用 `host::ssh-harden`。
 
 ### cloud-init
 
-`cloud-init/homeup.yaml.tmpl` is a user-data template, not an independent
-installer. It:
+`cloud-init/homeup.yaml.tmpl` 是一个 user-data 模板，而不是一个独立的安装器。
+它会：
 
-1. declares the target user, its SSH authorized keys, and its sudo policy via
-   cloud-init's native configuration;
-2. optionally performs safe host provisioning selected in template data;
-3. uses `runcmd` to invoke the same bootstrap checkout and commands; and
-4. uses `runuser` to execute language and user layers as the target user.
+1. 通过 cloud-init 原生配置声明目标用户、其 SSH 授权公钥和 sudo 策略；
+2. 可选地执行模板数据里指定的安全主机初始化操作；
+3. 使用 `runcmd` 调用同一套 bootstrap checkout 和命令；并
+4. 使用 `runuser` 以目标用户身份执行语言层和用户层。
 
-The template accepts only named data values such as `HOMEUP_USER`, SSH key,
-hostname, timezone, and whether UFW is requested. It does not place secrets in
-user-data and it has no automatic SSH-hardening switch.
+模板只接受具名数据值，例如 `HOMEUP_USER`、SSH 公钥、主机名、时区，以及是否
+启用 UFW。它不会在 user-data 里放置任何密钥，也没有自动 SSH 加固开关。
 
-### Docker image
+### Docker 镜像
 
-`containers/dev/Dockerfile` is the only image build definition. It uses an
-explicit Debian/Ubuntu base digest, builds for `linux/amd64`, and runs the
-system and language layers during image build. It creates a
-non-root `dev` user with passwordless sudo only for interactive development;
-the user layer is not executed at build time.
+`containers/dev/Dockerfile` 是唯一的镜像构建定义。它使用显式的 Debian/Ubuntu
+基础镜像摘要，为 `linux/amd64` 构建，并在镜像构建期运行系统层与语言层。它会
+创建一个非 root 的 `dev` 用户，并仅为交互式开发赋予免密码 sudo；用户层不会在
+构建期执行。
 
-The image must contain the locked toolchain and enough prerequisites for
-`just user::apply` to work offline except for explicitly user-owned plugin
-downloads. The image build must not include Git identity, SSH material,
-GitHub credentials, or user home-directory dotfiles.
+镜像必须包含锁定工具链，并且必须提供足够的前置条件，使 `just user::apply` 能够
+离线工作，唯一的例外是显式的用户自有插件下载。镜像构建不得包含 Git 身份、SSH
+密钥材料、GitHub 凭据，或用户主目录的 dotfiles。
 
-### Dev Container and Codespaces
+### Dev Container 与 Codespaces
 
-After the first public image is published, `.devcontainer/devcontainer.json`
-references the public GHCR image by digest, sets `remoteUser` to `dev`, and
-runs the user layer after creation:
+第一个公开镜像发布之后，`.devcontainer/devcontainer.json` 会通过摘要引用公开的
+GHCR 镜像，将 `remoteUser` 设为 `dev`，并在创建之后运行用户层：
 
 ```text
 just user::apply
 ```
 
-It may add project-maintenance editor extensions and settings only. It does
-not install system packages, language runtimes, or host configuration.
+它只可以添加与项目维护相关的编辑器扩展和设置，不得安装系统软件包、语言运行时，
+或进行任何主机配置。
 
-Until that first immutable manifest exists, the checked-in configuration may
-use the same `containers/dev/Dockerfile` as a one-time local build fallback.
-The release workflow commits the published digest directly to the default
-branch before the first public release is declared complete. That digest-only
-commit does not trigger another image build. The one-line bootstrap command is
-served directly from the public GitHub repository; it falls back to that
-repository's source archive when Git is unavailable.
+在这个首个不可变清单存在之前，checked-in 的配置可以使用同一份
+`containers/dev/Dockerfile` 作为一次性的本地构建兜底方案。发布工作流会在首个
+公开发布被宣告完成之前，直接把已发布的镜像摘要提交到默认分支。这次只提交摘要的
+commit 不会触发另一次镜像构建。一行式 bootstrap 命令直接由公开的 GitHub 仓库
+提供服务；当 Git 不可用时，它会回退到该仓库的源码归档。
 
-When Codespaces prebuilds are enabled, all costly, secret-free work must be in
-the Docker image or `onCreateCommand`/`updateContentCommand`. The user-layer
-application stays in `postCreateCommand`, because user secrets and identity
-variables are unavailable to prebuilds and must not be baked into snapshots.
+启用 Codespaces prebuild 时，所有代价高昂、且不含密钥的工作都必须放在 Docker
+镜像或 `onCreateCommand`/`updateContentCommand` 中完成。用户层的应用必须留在
+`postCreateCommand` 里，因为用户密钥和身份变量在 prebuild 阶段不可用，也不得被
+烘焙进快照。
 
-## 6. Repository layout
+## 6. 仓库结构
 
 ```text
 scripts/
   bootstrap/
-    entrypoint.sh            # curl entry point implementation
-    detect.sh                # carrier, OS, architecture, and privilege checks
-    system.sh                # system-layer implementation
-    language.sh              # language-layer implementation
-    user.sh                  # user-layer implementation
+    entrypoint.sh            # curl 入口点的实现
+    detect.sh                # 载体、系统、架构与权限检测
+    system.sh                # 系统层实现
+    language.sh              # 语言层实现
+    user.sh                  # 用户层实现
   host/
     create-user.sh
     ufw.sh
@@ -269,57 +245,52 @@ cloud-init/
   verify.yml
   toolchain-update.yml
 docs/
-  dev-environment-v1.md      # this contract
+  dev-environment-v1.md      # 本契约
 ```
 
-## 7. Publishing and provenance
+## 7. 发布与来源证明（Provenance）
 
-GitHub Actions builds and tests public `linux/amd64` images, then
-publishes them to:
+GitHub Actions 构建并测试公开的 `linux/amd64` 镜像，然后将其发布到：
 
 ```text
 ghcr.io/<github-owner>/homeup-linux
 ```
 
-Each accepted release publishes:
+每一次被接受的发布都会推送：
 
-- `dev-<commit-sha>` for traceability;
-- a versioned release tag for human consumption;
-- `dev` as the current convenience tag; and
-- an immutable image digest.
+- `dev-<commit-sha>`，用于可追溯性；
+- 一个供人阅读的版本发布标签；
+- `dev`，作为当前的便捷标签；以及
+- 一个不可变的镜像摘要。
 
-The checked-in Dev Container configuration uses the immutable digest. The
-image package is public and linked to its GitHub repository. CI uses GitHub's
-token with the minimum package permission required; no long-lived registry
-credential is committed.
+checked-in 的 Dev Container 配置使用该不可变摘要。镜像包是公开的，并链接到其
+GitHub 仓库。CI 使用 GitHub 提供的、权限最小化的 token 来操作镜像包；仓库中
+不会提交任何长期有效的 registry 凭据。
 
-## 8. CI and acceptance criteria
+## 8. CI 与验收标准
 
-Every change to bootstrap, toolchain, Docker, Dev Container, cloud-init, or
-dotfiles must run the applicable checks:
+对 bootstrap、工具链、Docker、Dev Container、cloud-init 或 dotfiles 的每一次
+变更，都必须运行相应的检查：
 
-1. shell formatting, ShellCheck, and shell syntax checks;
-2. chezmoi template validation;
-3. lock-file schema and checksum-reference validation;
-4. Docker amd64 image build validation;
-5. container smoke test as a non-root user running `just bootstrap user`;
-6. Debian and Ubuntu system-layer smoke tests;
-7. `cloud-init schema --config-file` validation of rendered user-data; and
-8. `just doctor` assertions for required tools and exact locked versions.
+1. shell 格式化、ShellCheck，以及 shell 语法检查；
+2. chezmoi 模板校验；
+3. 锁文件 schema 与校验和引用校验；
+4. Docker amd64 镜像构建校验；
+5. 以非 root 用户运行 `just bootstrap user` 的容器冒烟测试；
+6. Debian 与 Ubuntu 系统层冒烟测试；
+7. 对渲染后的 user-data 执行 `cloud-init schema --config-file` 校验；以及
+8. `just doctor` 对所需工具及精确锁定版本的断言。
 
-The final acceptance test is a clean Dev Container/Codespaces creation from
-the published image. It must yield a working non-root Zsh environment, all
-locked language runtimes, the configured CLI suite, and no Git identity unless
-explicit variables were supplied.
+最终的验收测试是从已发布镜像进行一次干净的 Dev Container/Codespaces 创建。
+它必须产出一个可用的非 root Zsh 环境、全部锁定的语言运行时、已配置好的 CLI
+套件，并且在没有显式提供变量时不带任何 Git 身份信息。
 
-## 9. Delivery status
+## 9. 交付状态
 
-**Implemented.** The v1 contract is fully represented by the checked-in
-bootstrap layers, host adapter, cloud-init template, Docker image, Dev
-Container configuration, lock updater, and CI workflows. The public interface
-is limited to the commands in section 4; legacy parallel installers and command
-aliases are not part of v1.
+**已实现（Implemented）。** v1 契约已经完整体现在 checked-in 的 bootstrap 各层、
+主机适配器、cloud-init 模板、Docker 镜像、Dev Container 配置、锁文件更新器和
+CI 工作流中。公开接口仅限于第 4 节列出的命令；历史遗留的并行安装器和命令别名
+不属于 v1 的一部分。
 
-Future changes must preserve the carrier/layer boundaries and the manual
-SSH-hardening guarantee, then update this contract and the relevant operation
-documentation in the same change.
+未来的变更必须保持 carrier/layer 边界与手动 SSH 加固的保证，并在同一次变更中
+同步更新本契约与相关的操作文档。

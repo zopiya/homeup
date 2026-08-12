@@ -53,12 +53,16 @@ just host::ssh-harden
 
 ## 文档
 
-- [安装指南](docs/installation.md)：主机、VM、cloud-init 与镜像。
-- [命令手册](docs/commands.md)：公开命令及变量。
-- [操作手册](docs/operations.md)：日常安装、更新与恢复流程。
+- [架构总览](docs/architecture.md)：carrier/layer 模型、组件调用关系与供应链
+  信任链路，配图解读。
+- [场景化使用手册](docs/usage-guide.md)：按场景给命令——首次安装、无 sudo
+  主机、新建长期主机、cloud-init、Docker 镜像、Dev Container/Codespaces、
+  工具链升级。
+- [命令参考](docs/commands.md)：公开命令与环境变量速查表。
 - [故障排查](docs/troubleshooting.md)：常见恢复路径。
-- [Linux 运维工具](docs/linux-ops.md)：已安装的服务器工具。
-- [v1 开发环境契约](docs/dev-environment-v1.md)：设计与支持边界。
+- [Linux 运维工具](docs/linux-ops.md)：已安装的服务器工具用法。
+- [v1 开发环境契约](docs/dev-environment-v1.md)：已批准的设计契约，实现与
+  文档必须与它保持一致。
 
 ## 支持边界
 

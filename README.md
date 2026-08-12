@@ -57,12 +57,24 @@ just host::ssh-harden
 
 ## Documentation
 
-- [Installation guide](docs/installation.md) — hosts, VMs, cloud-init, and images.
-- [Command reference](docs/commands.md) — public commands and variables.
-- [Operations manual (Chinese)](docs/operations.md) — day-to-day bootstrap, update, and recovery workflows.
-- [Troubleshooting](docs/troubleshooting.md) — common recovery paths.
-- [Linux operations guide](docs/linux-ops.md) — installed server tools.
-- [v1 environment contract](docs/dev-environment-v1.md) — design and support boundary.
+The full documentation set is maintained in Chinese; each link below is
+labeled accordingly.
+
+- [Architecture overview (Chinese)](docs/architecture.md) — the carrier/layer
+  model, component call graph, and supply-chain trust path, with diagrams.
+- [Usage guide (Chinese)](docs/usage-guide.md) — scenario-by-scenario
+  walkthroughs: first install, no-sudo hosts, new persistent hosts,
+  cloud-init, Docker images, Dev Containers/Codespaces, and toolchain
+  updates.
+- [Command reference (Chinese)](docs/commands.md) — public commands and
+  environment variables at a glance.
+- [Troubleshooting (Chinese)](docs/troubleshooting.md) — common recovery
+  paths.
+- [Linux operations guide (Chinese)](docs/linux-ops.md) — installed server
+  tools.
+- [v1 environment contract (Chinese)](docs/dev-environment-v1.md) — the
+  accepted design contract; implementation and documentation must stay
+  consistent with it.
 
 ## Scope
 

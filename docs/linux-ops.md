@@ -1,17 +1,12 @@
-# Linux 运维工具
+# Linux 运维工具速查
 
-> **迁移说明：** 安装策略以 v1 的系统层和 `toolchain/lock.sh` 为准；本文只保留工具使用说明。
+本文是[场景化使用手册](usage-guide.md)的附录：这些工具由系统层的
+`packages/base.apt`（glances、bmon、lnav 等）安装，装不装、装什么版本由
+[架构总览](architecture.md#1-一句话概括)里的系统层规则决定；本文只讲用法，
+不涉及安装策略。
 
-> 专为 Linux 服务器场景设计：监控资源、分析日志、稳定远程连接、同步文件
-
----
-
-## 这些工具是 Linux 专属
-
-> 本文档从 homeup 历史提交（`a4f81d7~1`）恢复，原本对应旧的 `Brewfile.linux`。在本仓库里，这些
-> 工具由系统层的 `packages/base.apt`（glances、bmon、lnav 等）安装；本文只说明用法。
-
-适用场景：SSH 到服务器、VPS 管理、容器环境调试。
+> 专为 Linux 服务器场景设计：监控资源、分析日志、稳定远程连接、同步文件。
+> 适用场景：SSH 到服务器、VPS 管理、容器环境调试。
 
 ---
 
@@ -88,6 +83,7 @@ mosh --ssh="ssh -p 2222" user@server  # SSH 走非标准端口时
 ```
 
 **和 SSH 的区别**：
+
 - SSH：TCP 连接，网络断了就断了，重连需要重新建 session
 - mosh：UDP + 本地回显，网络切换（WiFi → 4G）自动重连，延迟高时也能流畅输入
 
@@ -182,6 +178,7 @@ mpstat -P ALL 1         # 每个 CPU 核的统计
 ## 典型工作流
 
 **服务器排查性能问题**：
+
 ```bash
 # 整体情况
 glances
@@ -198,6 +195,7 @@ ncdu /
 ```
 
 **远程日志分析**：
+
 ```bash
 # SSH 进服务器（用 mosh 防止断线）
 mosh user@server
@@ -210,6 +208,7 @@ rsync -avz user@server:/var/log/app/ ./logs/
 ```
 
 **定期备份**：
+
 ```bash
 # 增量备份到远程（只传变化的文件）
 rsync -avz --delete ~/workspace/ backup@nas:/backups/workspace/
