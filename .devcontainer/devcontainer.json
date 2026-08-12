@@ -14,8 +14,5 @@
       }
     }
   },
-  "build": {
-    "dockerfile": "../containers/dev/Dockerfile",
-    "context": ".."
-  }
+  "image": "ghcr.io/zopiya/homeup@sha256:8b4b868a6e386c0bb1b7c0552319f4458f86b654302b119db2f355c4d4ec30fe"
 }
