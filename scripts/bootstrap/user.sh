@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$ROOT_DIR/scripts/bootstrap/lib.sh"
 # shellcheck disable=SC1091
 source "$ROOT_DIR/toolchain/lock.sh"
-bin_dir="${HOMEUP_BIN_DIR:-$HOME/.local/bin}"
+bin_dir="$(homeup_bin_dir)"
 "$ROOT_DIR/scripts/bootstrap/core-cli.sh"
 export PATH="$bin_dir:$PATH"
 chezmoi init --source "$ROOT_DIR" --apply

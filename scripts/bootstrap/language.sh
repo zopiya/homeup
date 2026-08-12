@@ -8,14 +8,9 @@ source "$ROOT_DIR/scripts/bootstrap/lib.sh"
 source "$ROOT_DIR/toolchain/lock.sh"
 
 arch="$(homeup_arch)"
-if [[ "${HOMEUP_INSTALL_SCOPE:-user}" == system ]]; then
-    prefix="${HOMEUP_PREFIX:-/usr/local/lib/homeup}"
-    bin_dir="${HOMEUP_BIN_DIR:-/usr/local/bin}"
-else
-    prefix="${HOMEUP_PREFIX:-$HOME/.local/opt/homeup}"
-    bin_dir="${HOMEUP_BIN_DIR:-$HOME/.local/bin}"
-fi
-cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/homeup/downloads"
+prefix="$(homeup_language_prefix)"
+bin_dir="$(homeup_language_bin_dir)"
+cache_dir="$(homeup_cache_dir)"
 mkdir -p "$prefix" "$bin_dir" "$cache_dir"
 
 artifact() {

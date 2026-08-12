@@ -18,6 +18,10 @@ Keep the implementation and public documentation consistent with it.
   managers or compile language runtimes on target machines.
 - `toolchain/lock.sh` is the single source of truth for non-apt artifacts.
   Downloads must be checksum-verified and must not use a `latest` URL.
+- `scripts/bootstrap/lib.sh` is the single source of truth for install-path
+  defaults (`homeup_bin_dir`, `homeup_cache_dir`, `homeup_language_prefix`,
+  `homeup_language_bin_dir`). No script should inline its own copy of
+  `~/.local/bin`, the cache dir, or the language prefix.
 - Host provisioning is separate from bootstrap. `host::ssh-harden` must remain
   interactive and must never be called by bootstrap, cloud-init, or an image.
 - Git identity is opt-in via `HOMEUP_GIT_*`; never commit credentials, keys, or

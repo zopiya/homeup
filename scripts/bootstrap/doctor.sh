@@ -7,7 +7,8 @@ source "$ROOT_DIR/scripts/bootstrap/lib.sh"
 # shellcheck disable=SC1091
 source "$ROOT_DIR/toolchain/lock.sh"
 
-export PATH="${HOMEUP_BIN_DIR:-$HOME/.local/bin}:$PATH"
+bin_dir="$(homeup_bin_dir)"
+export PATH="$bin_dir:$PATH"
 "$ROOT_DIR/scripts/bootstrap/detect.sh"
 failures=0
 check_version() {

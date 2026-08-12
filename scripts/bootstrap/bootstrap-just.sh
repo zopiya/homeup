@@ -7,7 +7,7 @@ source "$ROOT_DIR/scripts/bootstrap/lib.sh"
 # shellcheck disable=SC1091
 source "$ROOT_DIR/toolchain/lock.sh"
 
-bin_dir="${HOMEUP_BIN_DIR:-$HOME/.local/bin}"
+bin_dir="$(homeup_bin_dir)"
 mkdir -p "$bin_dir"
 if ! command -v just >/dev/null 2>&1 || [[ "$(just --version | awk '{print $2}')" != "$(lock_version just)" ]]; then
     HOMEUP_BIN_DIR="$bin_dir" "$ROOT_DIR/scripts/bootstrap/core-cli.sh"

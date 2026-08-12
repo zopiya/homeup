@@ -27,6 +27,33 @@ homeup_os() {
     esac
 }
 
+# Canonical HOMEUP_BIN_DIR/HOMEUP_PREFIX/cache-dir defaults. Every layer
+# sources this file, so these are the single place that defines "where
+# things go" — no script should inline its own copy of these paths.
+homeup_bin_dir() { printf '%s\n' "${HOMEUP_BIN_DIR:-$HOME/.local/bin}"; }
+homeup_cache_dir() { printf '%s\n' "${XDG_CACHE_HOME:-$HOME/.cache}/homeup/downloads"; }
+
+# Language-layer install location. HOMEUP_INSTALL_SCOPE=system is only used
+# during image builds; containers/dev/Dockerfile passes HOMEUP_PREFIX and
+# HOMEUP_BIN_DIR explicitly rather than relying on the system-scope
+# defaults below, but its ENV PATH is a literal string that must still be
+# kept in sync with whatever those two build args are set to.
+homeup_language_prefix() {
+    if [[ "${HOMEUP_INSTALL_SCOPE:-user}" == system ]]; then
+        printf '%s\n' "${HOMEUP_PREFIX:-/usr/local/lib/homeup}"
+    else
+        printf '%s\n' "${HOMEUP_PREFIX:-$HOME/.local/opt/homeup}"
+    fi
+}
+
+homeup_language_bin_dir() {
+    if [[ "${HOMEUP_INSTALL_SCOPE:-user}" == system ]]; then
+        printf '%s\n' "${HOMEUP_BIN_DIR:-/usr/local/bin}"
+    else
+        homeup_bin_dir
+    fi
+}
+
 homeup_has_root() { [[ "$(id -u)" -eq 0 ]]; }
 homeup_has_sudo() { ! homeup_has_root && command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; }
 homeup_can_system_install() { homeup_has_root || homeup_has_sudo; }

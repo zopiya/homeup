@@ -8,8 +8,8 @@ source "$ROOT_DIR/scripts/bootstrap/lib.sh"
 source "$ROOT_DIR/toolchain/lock.sh"
 
 arch="$(homeup_arch)"
-bin_dir="${HOMEUP_BIN_DIR:-$HOME/.local/bin}"
-cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/homeup/downloads"
+bin_dir="$(homeup_bin_dir)"
+cache_dir="$(homeup_cache_dir)"
 mkdir -p "$bin_dir" "$cache_dir"
 
 install_cli() {
