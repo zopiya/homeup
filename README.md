@@ -59,6 +59,7 @@ just host::ssh-harden
 
 - [Installation guide](docs/installation.md) — hosts, VMs, cloud-init, and images.
 - [Command reference](docs/commands.md) — public commands and variables.
+- [Operations manual (Chinese)](docs/operations.md) — day-to-day bootstrap, update, and recovery workflows.
 - [Troubleshooting](docs/troubleshooting.md) — common recovery paths.
 - [Linux operations guide](docs/linux-ops.md) — installed server tools.
 - [v1 environment contract](docs/dev-environment-v1.md) — design and support boundary.

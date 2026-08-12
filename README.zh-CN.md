@@ -55,6 +55,7 @@ just host::ssh-harden
 
 - [安装指南](docs/installation.md)：主机、VM、cloud-init 与镜像。
 - [命令手册](docs/commands.md)：公开命令及变量。
+- [操作手册](docs/operations.md)：日常安装、更新与恢复流程。
 - [故障排查](docs/troubleshooting.md)：常见恢复路径。
 - [Linux 运维工具](docs/linux-ops.md)：已安装的服务器工具。
 - [v1 开发环境契约](docs/dev-environment-v1.md)：设计与支持边界。

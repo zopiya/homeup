@@ -312,22 +312,14 @@ the published image. It must yield a working non-root Zsh environment, all
 locked language runtimes, the configured CLI suite, and no Git identity unless
 explicit variables were supplied.
 
-## 9. Delivery sequence
+## 9. Delivery status
 
-Implementation proceeds in these independently reviewable stages:
+**Implemented.** The v1 contract is fully represented by the checked-in
+bootstrap layers, host adapter, cloud-init template, Docker image, Dev
+Container configuration, lock updater, and CI workflows. The public interface
+is limited to the commands in section 4; legacy parallel installers and command
+aliases are not part of v1.
 
-1. Add the contract, lock format, carrier detection, and doctor output.
-2. Implement idempotent system, language, and user layers.
-3. Migrate chezmoi templates to opt-in Git identity and remove embedded
-   repository credentials from bootstrap defaults.
-4. Add Dockerfile, amd64 smoke tests, GHCR publishing, and
-   provenance metadata.
-5. Add Dev Container/Codespaces configuration and verify prebuild-safe
-   lifecycle placement.
-6. Add the cloud-init template, renderer/validation workflow, and host
-   provisioning migration.
-7. Update all public documentation; mark old entry points deprecated after
-   successful end-to-end validation.
-
-At the end of every stage, existing users must retain a functioning migration
-path. No stage may weaken the manual SSH-hardening guarantee.
+Future changes must preserve the carrier/layer boundaries and the manual
+SSH-hardening guarantee, then update this contract and the relevant operation
+documentation in the same change.

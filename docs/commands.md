@@ -23,6 +23,18 @@ cannot use system access. `user` is safe on a host where the user has no sudo.
 never invokes SSH hardening. Confirm a separate SSH login before manually
 running `just host::ssh-harden`.
 
+## Everyday maintenance
+
+```sh
+just diff      # preview unmanaged dotfile changes
+just update    # fetch chezmoi source updates without applying them
+just validate  # validate chezmoi source/templates without changing $HOME
+just lint      # run ShellCheck, shell syntax, and zsh syntax checks
+```
+
+Run `just doctor` after a bootstrap or toolchain update. It exits non-zero when
+a required runtime, CLI, or TPM revision is missing or does not match the lock.
+
 ## Variables
 
 | Variable | Meaning |

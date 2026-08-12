@@ -46,7 +46,39 @@ automatic workflow.
 
 ## Other carriers
 
-Use `cloud-init/homeup.yaml.tmpl` only after rendering its required named
-values. The Docker image is defined by `containers/dev/Dockerfile`; it prepares
-the system and language layers as root and leaves dotfiles for the non-root
-post-create user layer. See `docs/dev-environment-v1.md` for lifecycle details.
+### cloud-init
+
+`cloud-init/homeup.yaml.tmpl` is a template, not a ready-to-upload file. Render
+it on a trusted machine with explicit values, then review the output before
+using it as instance user-data:
+
+```sh
+export HOMEUP_USER=dev
+export HOMEUP_SSH_PUBLIC_KEY="$(cat ~/.ssh/id_ed25519.pub)"
+export HOMEUP_REPO_URL=https://github.com/zopiya/homeup.git
+export HOMEUP_HOSTNAME=homeup-dev
+export HOMEUP_TIMEZONE=UTC
+export HOMEUP_ENABLE_UFW=false
+envsubst < cloud-init/homeup.yaml.tmpl >homeup-cloud-init.yaml
+```
+
+The template creates the user and key through cloud-init, then runs the same
+system, language, and user layers. It never enables SSH hardening. Do not put
+access tokens or private keys in user-data.
+
+### Docker, Dev Containers, and Codespaces
+
+`containers/dev/Dockerfile` builds the `linux/amd64` development image with the
+system and language layers. The checked-in Dev Container references its
+published GHCR image by immutable digest and runs `just user::apply` as the
+non-root `dev` user after creation.
+
+For a local image check:
+
+```sh
+docker build --file containers/dev/Dockerfile --tag homeup-dev:local .
+docker run --rm --user dev homeup-dev:local bash -lc 'just doctor'
+```
+
+See the [v1 environment contract](dev-environment-v1.md) for lifecycle and
+provenance details.
