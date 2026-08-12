@@ -56,16 +56,24 @@ jobs:
   entrypoint-archive-smoke:
     runs-on: ubuntu-24.04
     steps:
+      # Fetches entrypoint.sh and the fallback archive from this ref, not a
+      # hardcoded owner/branch, so a PR that changes either is actually
+      # exercised by this job instead of silently testing stale `main`.
       - name: Bootstrap a fresh Ubuntu image without Git
+        env:
+          REPO: ${{ github.repository }}
+          REF: ${{ github.head_ref || github.ref_name }}
         run: |
-          docker run --rm ubuntu:24.04 bash -lc '
+          docker run --rm --env REPO --env REF ubuntu:24.04 bash -lc '
             set -euo pipefail
             ! command -v git
             apt-get update -qq
             apt-get install -y --no-install-recommends ca-certificates curl tar xz-utils unzip
             export HOME=/tmp/homeup
             export HOMEUP_DIR=$HOME/source
-            curl -fsSL https://raw.githubusercontent.com/zopiya/homeup/main/scripts/bootstrap/entrypoint.sh | bash
+            export HOMEUP_REPO_URL="https://github.com/$REPO.git"
+            export HOMEUP_REF="$REF"
+            curl -fsSL "https://raw.githubusercontent.com/$REPO/$REF/scripts/bootstrap/entrypoint.sh" | bash
             test -f "$HOMEUP_DIR/.homeup-archive-checkout"
             "$HOME/.local/bin/just" --justfile "$HOMEUP_DIR/justfile" doctor
           '
