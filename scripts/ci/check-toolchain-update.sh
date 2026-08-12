@@ -14,7 +14,14 @@ just_latest="$(curl -fsSL https://api.github.com/repos/casey/just/releases/lates
 chezmoi_latest="$(curl -fsSL https://api.github.com/repos/twpayne/chezmoi/releases/latest | jq -r .tag_name)"
 sheldon_latest="$(curl -fsSL https://api.github.com/repos/rossmacarthur/sheldon/releases/latest | jq -r .tag_name)"
 rust_latest="$(curl -fsSL https://static.rust-lang.org/dist/channel-rust-stable.toml | awk '/^\[pkg\.rustc\]/{found=1; next} found && /^version =/ && !printed {match($0, /[0-9]+\.[0-9]+\.[0-9]+/); print substr($0, RSTART, RLENGTH); printed=1}')"
-python_latest="$(curl -fsSL 'https://www.python.org/api/v2/downloads/release/?is_published=true' | jq -r '[.[] | select(.name | test("^Python 3\\.[0-9]+\\.[0-9]+$")) | select(.pre_release == false)] | sort_by(.release_date) | last.name | sub("^Python "; "")')"
+# Compare against astral-sh/python-build-standalone, not python.org: the lock
+# tracks its prebuilt releases, which lag official CPython, so comparing to
+# python.org would always report a spurious mismatch.
+python_latest="$(curl -fsSL https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest |
+    jq -r '.assets[].name' |
+    grep -E '^cpython-3\.[0-9]+\.[0-9]+\+[0-9]+-x86_64-unknown-linux-gnu-install_only_stripped\.tar\.gz$' |
+    sed -E 's/^cpython-(3\.[0-9]+\.[0-9]+)\+.*/\1/' |
+    sort -V | tail -n1)"
 printf '| Node.js | %s | %s |\n' "$(lock_version node)" "$node_latest"
 printf '| Bun | %s | %s |\n' "$(lock_version bun)" "$bun_latest"
 printf '| just | %s | %s |\n' "$(lock_version just)" "$just_latest"
