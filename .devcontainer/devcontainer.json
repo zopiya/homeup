@@ -14,5 +14,5 @@
       }
     }
   },
-  "image": "ghcr.io/zopiya/homeup-linux@sha256:d890c07ebc2572debb11e31bd4c9076164f7d00bb7b47c88c3ad90b2b0e25281"
+  "image": "ghcr.io/zopiya/homeup-linux@sha256:c7a47e5c758c02e24b6d1d0e1bd766015cc1cfb4ef603faa87be158beb35df20"
 }
