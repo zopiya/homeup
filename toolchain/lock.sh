@@ -10,12 +10,12 @@ readonly HOMEUP_LOCK_REVISION="2026-08-12.2"
 lock_version() {
     case "$1" in
     just) printf '%s\n' '1.58.0' ;;
-    chezmoi) printf '%s\n' '2.72.0' ;;
+    chezmoi) printf '%s\n' '2.72.1' ;;
     sheldon) printf '%s\n' '0.8.5' ;;
-    node) printf '%s\n' '24.19.0' ;;
-    bun) printf '%s\n' '1.3.14' ;;
-    python) printf '%s\n' '3.13.15' ;;
-    rust) printf '%s\n' '1.97.1' ;;
+    node) printf '%s\n' '24.20.0' ;;
+    bun) printf '%s\n' '1.4.0' ;;
+    python) printf '%s\n' '3.14.7' ;;
+    rust) printf '%s\n' '1.98.0' ;;
     *) return 1 ;;
     esac
 }
@@ -24,12 +24,12 @@ lock_url() {
     local component="$1" arch="$2"
     case "$component:$arch" in
     just:amd64) printf '%s\n' 'https://github.com/casey/just/releases/download/1.58.0/just-1.58.0-x86_64-unknown-linux-musl.tar.gz' ;;
-    chezmoi:amd64) printf '%s\n' 'https://github.com/twpayne/chezmoi/releases/download/v2.72.0/chezmoi_2.72.0_linux_amd64.tar.gz' ;;
+    chezmoi:amd64) printf '%s\n' 'https://github.com/twpayne/chezmoi/releases/download/v2.72.1/chezmoi_2.72.1_linux_amd64.tar.gz' ;;
     sheldon:amd64) printf '%s\n' 'https://github.com/rossmacarthur/sheldon/releases/download/0.8.5/sheldon-0.8.5-x86_64-unknown-linux-musl.tar.gz' ;;
-    node:amd64) printf '%s\n' 'https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz' ;;
-    bun:amd64) printf '%s\n' 'https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/bun-linux-x64.zip' ;;
-    python:amd64) printf '%s\n' 'https://github.com/astral-sh/python-build-standalone/releases/download/20260807/cpython-3.13.15%2B20260807-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz' ;;
-    rust:amd64) printf '%s\n' 'https://static.rust-lang.org/dist/2026-07-16/rust-1.97.1-x86_64-unknown-linux-gnu.tar.xz' ;;
+    node:amd64) printf '%s\n' 'https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.xz' ;;
+    bun:amd64) printf '%s\n' 'https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-x64.zip' ;;
+    python:amd64) printf '%s\n' 'https://github.com/astral-sh/python-build-standalone/releases/download/20260825/cpython-3.14.7%2B20260825-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz' ;;
+    rust:amd64) printf '%s\n' 'https://static.rust-lang.org/dist/2026-08-20/rust-1.98.0-x86_64-unknown-linux-gnu.tar.xz' ;;
     *) return 1 ;;
     esac
 }
@@ -38,12 +38,12 @@ lock_sha256() {
     local component="$1" arch="$2"
     case "$component:$arch" in
     just:amd64) printf '%s\n' '4a5cc2f53e6f0f8c59092a6cc38291eb729d46a7dd95d3ae582008881b84931d' ;;
-    chezmoi:amd64) printf '%s\n' '0d6665b96c527d57fdc562bf19e808f80f48c2d977062c03e3e65c6b09eafbce' ;;
+    chezmoi:amd64) printf '%s\n' '9f97d32caca166e5c92160ec3a9325519809c38963121cef38173142065c981f' ;;
     sheldon:amd64) printf '%s\n' '80aa0be617072c278d67fd6c5fbce4903d3801d78b6abf8f058f0648d2242c78' ;;
-    node:amd64) printf '%s\n' '14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647' ;;
-    bun:amd64) printf '%s\n' '951ee2aee855f08595aeec6225226a298d3fea83a3dcd6465c09cbccdf7e848f' ;;
-    python:amd64) printf '%s\n' 'faae10a9faa9bec06da009ac69326cc1d9691dc138fec6a1b69159dff1781f35' ;;
-    rust:amd64) printf '%s\n' '88f28fa9af20594179f85d6df67078dfd6fa93e2f6da5e1e9b0ac4997988ca4f' ;;
+    node:amd64) printf '%s\n' '2f2c0da162318f0de47665410c7c8c2ed3d36c8f3105de4bbc61176c70a7cbf2' ;;
+    bun:amd64) printf '%s\n' '2d03fb5fb83ac8b567aca0a281b2ce1a1a19d488f56c2968d88c3f25e92fe452' ;;
+    python:amd64) printf '%s\n' 'a0f39e822fd3b96a2605f30f954acf9a2cdf91faa1385a13e24bc407a41e05ea' ;;
+    rust:amd64) printf '%s\n' 'ed8ee2df70909c88cbaf87a6cfa3920dac00b537de12a6abe6906641e0f5952f' ;;
     *) return 1 ;;
     esac
 }
